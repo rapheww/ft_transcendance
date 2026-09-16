@@ -32,6 +32,32 @@
                     │   Database    │
                     └───────────────┘
 
+                 HTTP
+                  │
+                  ▼
+        ┌──────────────────┐
+        │      Router      │
+        │                  │
+        │ HTTP concerns    │
+        └────────┬─────────┘
+                 │
+                 ▼
+        ┌──────────────────┐
+        │     Service      │
+        │                  │
+        │ Business rules   │
+        └────────┬─────────┘
+                 │
+                 ▼
+        ┌──────────────────┐
+        │    Repository    │
+        │                  │
+        │ Database access  │
+        └────────┬─────────┘
+                 │
+                 ▼
+            PostgreSQL
+
 When you clone the project, launch the following:
 ```bash
 python3 -m venv .venv
@@ -60,6 +86,11 @@ Pull the image for the database:
 podman pull docker.io/library/postgres:17
 ```
 
+Create the container:
+```bash
+podman run --name transcendence-db \ -e POSTGRES_USER=transcendence \ -e POSTGRES_PASSWORD=transcendence_dev \ -e POSTGRES_DB=transcendence \ -p 5432:5432 \ -d docker.io/library/postgres:17
+```
+
 Start and stop the container:
 ```bash
 podman start transcendence-db
@@ -76,4 +107,4 @@ TL + PM: Raph / Vincent
 PO + TL: Chikako
 Devs: All
 
-https://chatgpt.com/s/t_6aa9c6f1ad1c8191a1a234c6eedd490d
+https://chatgpt.com/s/t_6aaad58bf994819182752c90a225c6b7
