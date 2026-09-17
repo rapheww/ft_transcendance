@@ -1,10 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.db.session import get_db
-from backend.models.user import User
+from backend.exceptions.user import UserAlreadyExists, UserNotFound
 from backend.schemas.user import UserCreate, UserResponse
 from backend.services import user_service
 
@@ -12,22 +10,21 @@ router = APIRouter()
 
 @router.get("/{username}", response_model=UserResponse)
 def get_user(username: str, db: Session = Depends(get_db)):
-    statement = select(User).where(User.username == username)
-    user = db.scalar(statement)
+    try:
+        return user_service.get_user(db, username)
 
-    if user is None:
+    except UserNotFound as error:
         raise HTTPException(
             status_code=404,
-            detail="User not found",
+            detail=str(error),
         )
-
-    return user
 
 @router.post("/", response_model=UserResponse, status_code=201)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     try:
         return user_service.create_user(db, user)
-    except ValueError as error:
+
+    except UserAlreadyExists as error:
         raise HTTPException(
             status_code=409,
             detail=str(error),

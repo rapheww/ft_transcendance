@@ -1,6 +1,7 @@
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from backend.exceptions.user import UserAlreadyExists, UserNotFound
 from backend.models.user import User
 from backend.repositories import user_repository
 from backend.schemas.user import UserCreate
@@ -15,7 +16,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
             )
 
             if existing_username is not None:
-                raise ValueError("Username already exists")
+                raise UserAlreadyExists("Username already exists")
 
             existing_email = user_repository.get_by_email(
                 db,
@@ -23,7 +24,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
             )
 
             if existing_email is not None:
-                raise ValueError("Email already exists")
+                raise UserAlreadyExists("Email already exists")
 
             user = User(
                 username=user_data.username,
@@ -35,7 +36,16 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         return user
 
     except IntegrityError:
-        raise ValueError("Username or email already exists")
+        raise UserAlreadyExists("Username or email already exists")
 
     except SQLAlchemyError:
         raise
+
+
+def get_user(db: Session, username: str) -> User:
+    user = user_repository.get_by_username(db, username)
+
+    if user is None:
+        raise UserNotFound("User not found")
+
+    return user

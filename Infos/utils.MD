@@ -1,62 +1,59 @@
-                ┌─────────────────────┐
-                │      Frontend       │
-                └──────────┬──────────┘
-                           │
-            ┌──────────────┴──────────────┐
-            │                             │
-        REST API                      WebSocket
-            │                             │
-            ▼                             ▼
-    ┌───────────────┐             ┌───────────────┐
-    │    Routers    │             │ Game Manager  │
-    └───────┬───────┘             └───────┬───────┘
-            │                             │
-            └──────────────┬──────────────┘
-                           │
-                        FastAPI
-                           │
-                           ▼
-                    ┌───────────────┐
-                    │   Services    │
-                    │               │
-                    │ Auth          │
-                    │ Games         │
-                    │ Users         │
-                    │ Tournaments   │
-                    └───────┬───────┘
-                            │
-                        PostgreSQL
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │   Database    │
-                    └───────────────┘
-
-                 HTTP
-                  │
-                  ▼
-        ┌──────────────────┐
-        │      Router      │
-        │                  │
-        │ HTTP concerns    │
-        └────────┬─────────┘
-                 │
-                 ▼
-        ┌──────────────────┐
-        │     Service      │
-        │                  │
-        │ Business rules   │
-        └────────┬─────────┘
-                 │
-                 ▼
-        ┌──────────────────┐
-        │    Repository    │
-        │                  │
-        │ Database access  │
-        └────────┬─────────┘
-                 │
-                 ▼
-            PostgreSQL
+                         ┌──────────────────────┐
+                         │       CLIENT         │
+                         │                      │
+                         │ Browser / Frontend   │
+                         │ Swagger / API client │
+                         └──────────┬───────────┘
+                                    │
+                              HTTP request
+                                    │
+                                    ▼
+                    ┌───────────────────────────┐
+                    │         FASTAPI           │
+                    │                           │
+                    │ • routes                  │
+                    │ • HTTP status codes       │
+                    │ • HTTPException           │
+                    │ • dependency injection    │
+                    └─────────────┬─────────────┘
+                                  │
+                                  ▼
+                    ┌───────────────────────────┐
+                    │         SERVICE           │
+                    │                           │
+                    │ • business rules          │
+                    │ • application logic       │
+                    │ • transaction boundary    │
+                    └─────────────┬─────────────┘
+                                  │
+                                  ▼
+                    ┌───────────────────────────┐
+                    │        REPOSITORY         │
+                    │                           │
+                    │ • database queries        │
+                    │ • persistence operations  │
+                    │ • SQLAlchemy statements   │
+                    └─────────────┬─────────────┘
+                                  │
+                                  ▼
+                    ┌───────────────────────────┐
+                    │        SQLALCHEMY         │
+                    │                           │
+                    │ Session → Engine          │
+                    │                           │
+                    │ Models → Tables           │
+                    └─────────────┬─────────────┘
+                                  │ PostgreSQL connection
+                                  ▼
+                    ┌───────────────────────────┐
+                    │        POSTGRESQL         │
+                    │                           │
+                    │   Podman container        │
+                    │   transcendence-db        │
+                    │                           │
+                    │   users                   │
+                    │   ...                     │
+                    └───────────────────────────┘
 
 When you clone the project, launch the following:
 ```bash
@@ -78,7 +75,7 @@ python -m uvicorn backend.app.main:app --reload
 
 Clean the '__pycache__' folders:
 ```bash
-find ./backend -type d -name "__pycache__" -exec rm -rf {} \;
+find ./backend ./tests -type d -name "__pycache__" -exec rm -rf {} \;
 ```
 
 Pull the image for the database:
@@ -97,6 +94,11 @@ podman start transcendence-db
 podman stop transcendence-db
 ```
 
+Clean the database:
+```bash
+podman exec -it transcendence-db psql -U transcendence -d transcendence -c 'TRUNCATE TABLE users RESTART IDENTITY CASCADE;'
+```
+
 Connect to PostgreSQL:
 ```bash
 podman exec -it transcendence-db psql -U transcendence -d transcendence
@@ -107,4 +109,4 @@ TL + PM: Raph / Vincent
 PO + TL: Chikako
 Devs: All
 
-https://chatgpt.com/s/t_6aaad58bf994819182752c90a225c6b7
+https://chatgpt.com/s/t_6aac4a83aeac8191bc55017ddbf9a219
