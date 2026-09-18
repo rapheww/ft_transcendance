@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from backend.api import users
 
 app = FastAPI(title="ft_transcendence")
-
 app.include_router(users.router, prefix="/api/users")
 
 @app.get("/")

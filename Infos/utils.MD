@@ -55,6 +55,8 @@
                     │   ...                     │
                     └───────────────────────────┘
 
+### Global commands
+
 When you clone the project, launch the following:
 ```bash
 python3 -m venv .venv
@@ -77,6 +79,8 @@ Clean the '__pycache__' folders:
 ```bash
 find ./backend ./tests -type d -name "__pycache__" -exec rm -rf {} \;
 ```
+
+### Podman commands
 
 Pull the image for the database:
 ```bash
@@ -104,9 +108,41 @@ Connect to PostgreSQL:
 podman exec -it transcendence-db psql -U transcendence -d transcendence
 ```
 
+### Alembic commands
+
+Apply everything up to latest:
+```bash
+alembic upgrade head
+```
+
+See current database revision:
+```bash
+alembic current
+```
+
+See migration history:
+```bash
+alembic history
+```
+
+Create a new migration:
+```bash
+alembic revision --autogenerate -m "description"
+```
+
+Roll back one migration:
+```bash
+alembic downgrade -1
+```
+
+Roll back everything:
+```bash
+alembic downgrade base
+```
+
 PO + PM: Louis
 TL + PM: Raph / Vincent
 PO + TL: Chikako
 Devs: All
 
-https://chatgpt.com/s/t_6aac4a83aeac8191bc55017ddbf9a219
+https://chatgpt.com/s/t_6aad9a2eb634819196a6ce2dd5ab833f
