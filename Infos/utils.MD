@@ -1,59 +1,72 @@
-                         ┌──────────────────────┐
-                         │       CLIENT         │
-                         │                      │
-                         │ Browser / Frontend   │
-                         │ Swagger / API client │
-                         └──────────┬───────────┘
-                                    │
-                              HTTP request
-                                    │
-                                    ▼
-                    ┌───────────────────────────┐
-                    │         FASTAPI           │
-                    │                           │
-                    │ • routes                  │
-                    │ • HTTP status codes       │
-                    │ • HTTPException           │
-                    │ • dependency injection    │
-                    └─────────────┬─────────────┘
-                                  │
-                                  ▼
-                    ┌───────────────────────────┐
-                    │         SERVICE           │
-                    │                           │
-                    │ • business rules          │
-                    │ • application logic       │
-                    │ • transaction boundary    │
-                    └─────────────┬─────────────┘
-                                  │
-                                  ▼
-                    ┌───────────────────────────┐
-                    │        REPOSITORY         │
-                    │                           │
-                    │ • database queries        │
-                    │ • persistence operations  │
-                    │ • SQLAlchemy statements   │
-                    └─────────────┬─────────────┘
-                                  │
-                                  ▼
-                    ┌───────────────────────────┐
-                    │        SQLALCHEMY         │
-                    │                           │
-                    │ Session → Engine          │
-                    │                           │
-                    │ Models → Tables           │
-                    └─────────────┬─────────────┘
-                                  │ PostgreSQL connection
-                                  ▼
-                    ┌───────────────────────────┐
-                    │        POSTGRESQL         │
-                    │                           │
-                    │   Podman container        │
-                    │   transcendence-db        │
-                    │                           │
-                    │   users                   │
-                    │   ...                     │
-                    └───────────────────────────┘
+┌──────────────────────────────────────────┐
+│ CLIENT                                   │
+│                                          │
+│ Browser / Frontend                       │
+│ Swagger / API client                     │
+└──────────────────────┬───────────────────┘
+                  HTTP request
+                       |
+                       ▼
+┌──────────────────────────────────────────┐
+│ FastAPI                                  │
+│                                          │
+│ HTTP concerns                            │
+│ Request/response                         │
+│ Status codes                             │
+│ Dependency injection                     │
+└──────────────────────┬───────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────┐
+│ SCHEMAS                                  │
+│                                          │
+│ Pydantic models                          │
+│ Input validation                         │
+│ Output serialization                     │
+└──────────────────────┬───────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────┐
+│ SERVICE                                  │
+│                                          │
+│ Business logic                           │
+│ Password hashing                         │
+│ Duplicate checks                         │
+│ Transactions                             │
+│                                          │
+│ "What should happen?"                    │
+└──────────────────────┬───────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────┐
+│ REPOSITORY                               │
+│                                          │
+│ Database operations                      │
+│ SQLAlchemy queries                       │
+│                                          │
+│ "How do I access the data?"              │
+└──────────────────────┬───────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────┐
+│ MODEL                                    │
+│                                          │
+│ SQLAlchemy database representation       │
+│                                          │
+│ User → users                             │
+└──────────────────────┬───────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────┐
+│ PostgreSQL                               │
+│                                          │
+│ SQLAlchemy database representation       │
+│                                          │
+│ User → users                             │
+└──────────────────────┬───────────────────┘
+                       │
+                       ▼
+                  Reverse Way
 
 ### Global commands
 
@@ -144,5 +157,3 @@ PO + PM: Louis
 TL + PM: Raph / Vincent
 PO + TL: Chikako
 Devs: All
-
-https://chatgpt.com/s/t_6aad9a2eb634819196a6ce2dd5ab833f
