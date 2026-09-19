@@ -7,6 +7,7 @@ from backend.services import user_service
 
 router = APIRouter()
 
+
 @router.get("/{username}", response_model=UserResponse)
 def get_user(username: str, db: Session = Depends(get_db)):
     try:
@@ -14,6 +15,7 @@ def get_user(username: str, db: Session = Depends(get_db)):
 
     except UserNotFound as error:
         raise HTTPException(status_code=404, detail=str(error))
+
 
 @router.post("/", response_model=UserResponse, status_code=201)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):

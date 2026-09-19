@@ -12,6 +12,7 @@ if DATABASE_URL is None:
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
+
 def get_db():
     db = SessionLocal()
 

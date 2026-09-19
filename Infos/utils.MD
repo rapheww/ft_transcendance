@@ -90,7 +90,7 @@ python -m uvicorn backend.app.main:app --reload
 
 Clean the '__pycache__' folders:
 ```bash
-find ./backend ./tests -type d -name "__pycache__" -exec rm -rf {} \;
+find . -type d -name "__pycache__" -exec rm -rf {} \;
 ```
 
 ### Podman commands
@@ -100,10 +100,15 @@ Pull the image for the database:
 podman pull docker.io/library/postgres:17
 ```
 
-Create the container:
+Create the container and database:
 ```bash
 podman run --name transcendence-db \ -e POSTGRES_USER=transcendence \ -e POSTGRES_PASSWORD=transcendence_dev \ -e POSTGRES_DB=transcendence \ -p 5432:5432 \ -d docker.io/library/postgres:17
 ```
+
+Create the test database:
+```bash
+podman exec -it transcendence-db psql -U transcendence -d transcendence -c "CREATE DATABASE transcendence_test;"
+  ```
 
 Start and stop the container:
 ```bash
