@@ -16,9 +16,11 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(
                      db: Session = Depends(get_db)) -> User:
     try:
         payload = decode_access_token(credentials.credentials)
-        subject = payload.get("sub")
 
-        if subject is None:
+        subject = payload.get("sub")
+        token_type = payload.get("type")
+
+        if subject is None or token_type != "access":
             raise ValueError
 
         user_id = int(subject)
@@ -29,6 +31,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(
 
     try:
         return user_service.get_user_by_id(db, user_id)
+
     except UserNotFound:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Invalid authentication credentials")

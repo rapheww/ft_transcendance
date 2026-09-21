@@ -1,11 +1,32 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from backend.core.dependencies import get_current_user
 from backend.db.session import get_db
 from backend.exceptions.user import UserAlreadyExists, UserNotFound
-from backend.schemas.user import UserCreate, UserResponse
+from backend.models.user import User
+from backend.schemas.user import UserCreate, UserResponse, UserUpdate
 from backend.services import user_service
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_me(user_data: UserUpdate,
+              current_user: User = Depends(get_current_user),
+              db: Session = Depends(get_db)):
+    try:
+        return user_service.update_user(db, current_user.id, user_data)
+
+    except UserAlreadyExists as error:
+        raise HTTPException(status_code=409, detail=str(error))
+
+    except UserNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error))
 
 
 @router.get("/{username}", response_model=UserResponse)

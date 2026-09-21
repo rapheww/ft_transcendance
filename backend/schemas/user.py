@@ -17,3 +17,8 @@ class UserResponse(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+
+class UserUpdate(BaseModel):
+    username: str | None = None
+    email: str | None = None

@@ -72,3 +72,19 @@ def test_get_by_email_returns_none_for_missing_user(db):
     result = user_repository.get_by_email(db, "does-not-exist@example.com")
 
     assert result is None
+
+
+def test_update_user(db):
+    user = User(username="alice",
+                email="alice@example.com",
+                password_hash="test-password-hash")
+
+    created_user = user_repository.create(db, user)
+
+    created_user.email = "new@example.com"
+
+    result = user_repository.update(db, created_user)
+
+    assert result.id == created_user.id
+    assert result.username == "alice"
+    assert result.email == "new@example.com"

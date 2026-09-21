@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from backend.exceptions.user import UserAlreadyExists, UserNotFound, InvalidCredentials
 from backend.models.user import User
 from backend.repositories import user_repository
-from backend.schemas.user import UserCreate
+from backend.schemas.user import UserCreate, UserUpdate
 
 password_hasher = PasswordHasher()
 
@@ -75,3 +75,43 @@ def get_user(db: Session, username: str) -> User:
         raise UserNotFound("User not found")
 
     return user
+
+
+def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User:
+    try:
+        user = user_repository.get_by_id(db, user_id)
+
+        if user is None:
+            raise UserNotFound("User not found")
+
+        if user_data.username is not None:
+            existing_username = user_repository.get_by_username(
+                db, user_data.username)
+
+            if (existing_username is not None
+                    and existing_username.id != user.id):
+                raise UserAlreadyExists("Username already exists")
+
+            user.username = user_data.username
+
+        if user_data.email is not None:
+            existing_email = user_repository.get_by_email(db, user_data.email)
+
+            if (existing_email is not None and existing_email.id != user.id):
+                raise UserAlreadyExists("Email already exists")
+
+            user.email = user_data.email
+
+        user_repository.update(db, user)
+
+        db.commit()
+
+        return user
+
+    except IntegrityError:
+        db.rollback()
+        raise UserAlreadyExists("Username or email already exists")
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise

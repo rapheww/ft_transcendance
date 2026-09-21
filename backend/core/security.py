@@ -1,6 +1,5 @@
-from datetime import datetime, timedelta, timezone
 import jwt
-from jwt import InvalidTokenError
+from datetime import datetime, timedelta, timezone
 from backend.core.config import settings
 
 
@@ -8,7 +7,7 @@ def create_access_token(subject: str) -> str:
     expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=settings.jwt_access_token_expire_minutes)
 
-    payload = {"sub": subject, "exp": expires_at}
+    payload = {"sub": subject, "exp": expires_at, "type": "access"}
 
     return jwt.encode(payload,
                       settings.jwt_secret_key,

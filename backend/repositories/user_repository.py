@@ -24,3 +24,10 @@ def create(db: Session, user: User) -> User:
     db.refresh(user)
 
     return user
+
+
+def update(db: Session, user: User) -> User:
+    db.flush()
+    db.refresh(user)
+
+    return user
