@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 from backend.db.base import Base
 from backend.models.user import User
+from backend.models.game import Game
 
 load_dotenv()
 config = context.config

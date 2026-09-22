@@ -1,4 +1,4 @@
-### Global commands
+## Global commands
 
 When you clone the project, launch the following:
 ```bash
@@ -29,7 +29,7 @@ Tests:
 pytest -v
 ```
 
-### Podman commands
+## Podman commands
 
 Pull the image for the database:
 ```bash
@@ -62,7 +62,7 @@ Connect to PostgreSQL:
 podman exec -it transcendence-db psql -U transcendence -d transcendence
 ```
 
-### Alembic commands
+## Alembic commands
 
 Apply everything up to latest:
 ```bash
@@ -100,11 +100,9 @@ PO + TL: Chikako
 Devs: All
 
 
-### Current implementation
+## Backend Architecture & Implementation Overview
 
-# Backend Architecture & Implementation Overview
-
-## 1. Technology Stack
+### 1. Technology Stack
 
 The backend currently uses:
 
@@ -128,7 +126,7 @@ The backend is designed around a layered architecture.
 
 ---
 
-# 2. Overall Architecture
+### 2. Overall Architecture
 
 The current backend follows this structure:
 
@@ -192,9 +190,9 @@ The main principle is:
 
 ---
 
-# 3. Database
+### 3. Database
 
-## PostgreSQL
+#### PostgreSQL
 
 PostgreSQL is the project's relational database.
 
@@ -217,7 +215,7 @@ This keeps automated tests separate from development data.
 
 ---
 
-# 4. SQLAlchemy
+### 4. SQLAlchemy
 
 SQLAlchemy is used as the ORM.
 
@@ -255,7 +253,7 @@ password_hash  NOT NULL
 
 ---
 
-# 5. Alembic
+### 5. Alembic
 
 Alembic manages database schema migrations.
 
@@ -283,7 +281,7 @@ The database schema should be changed through migrations rather than manually mo
 
 ---
 
-# 6. User Management
+### 6. User Management
 
 User management is the first completed backend domain.
 
@@ -299,7 +297,7 @@ POST   /api/auth/login
 
 ---
 
-# 7. User Registration
+### 7. User Registration
 
 Flow:
 
@@ -346,7 +344,7 @@ password_hash
 
 ---
 
-# 8. Password Security
+### 8. Password Security
 
 The project uses Argon2 through:
 
@@ -386,7 +384,7 @@ This means the original password cannot be recovered from the database.
 
 ---
 
-# 9. Authentication
+### 9. Authentication
 
 Authentication uses:
 
@@ -428,7 +426,7 @@ The client receives:
 
 ---
 
-# 10. JWT Structure
+### 10. JWT Structure
 
 The access token contains:
 
@@ -460,7 +458,7 @@ The JWT is signed with the configured secret key.
 
 ---
 
-# 11. Protected Endpoints
+### 11. Protected Endpoints
 
 FastAPI's dependency injection is used for authentication.
 
@@ -514,7 +512,7 @@ instead of manually processing JWTs.
 
 ---
 
-# 12. Current User Endpoint
+### 12. Current User Endpoint
 
 The endpoint:
 
@@ -549,7 +547,7 @@ email
 
 ---
 
-# 13. Profile Update
+### 13. Profile Update
 
 The endpoint:
 
@@ -608,7 +606,7 @@ does not modify the username.
 
 ---
 
-# 14. Exception Handling
+### 14. Exception Handling
 
 Business-level exceptions are separated from HTTP concerns.
 
@@ -642,7 +640,7 @@ This keeps HTTP-specific behavior out of the service layer.
 
 ---
 
-# 15. Repository Layer
+### 15. Repository Layer
 
 The repository contains database access functions.
 
@@ -675,7 +673,7 @@ business policies
 
 ---
 
-# 16. Service Layer
+### 16. Service Layer
 
 The user service currently handles:
 
@@ -701,7 +699,7 @@ User must exist before update
 
 ---
 
-# 17. API Layer
+### 17. API Layer
 
 The API layer currently contains:
 
@@ -710,13 +708,13 @@ backend/api/auth.py
 backend/api/users.py
 ```
 
-### Authentication
+##### Authentication
 
 ```text
 POST /api/auth/login
 ```
 
-### Users
+##### Users
 
 ```text
 POST  /api/users/
@@ -739,7 +737,7 @@ It should delegate business logic to services.
 
 ---
 
-# 18. Testing Architecture
+### 18. Testing Architecture
 
 The project uses:
 
@@ -767,7 +765,7 @@ tests/
 
 ---
 
-# 19. Repository Tests
+### 19. Repository Tests
 
 Repository tests verify database behavior.
 
@@ -786,7 +784,7 @@ They use the test PostgreSQL database.
 
 ---
 
-# 20. Service Tests
+### 20. Service Tests
 
 Service tests verify business logic.
 
@@ -812,7 +810,7 @@ These tests verify business behavior without requiring an HTTP request.
 
 ---
 
-# 21. API Tests
+### 21. API Tests
 
 API tests use:
 
@@ -840,7 +838,7 @@ profile update → 200
 
 ---
 
-# 22. Test Database
+### 22. Test Database
 
 Tests use a separate PostgreSQL database:
 
@@ -864,7 +862,7 @@ This prevents tests from modifying the development database.
 
 ---
 
-# 23. Authentication Security Tests
+### 23. Authentication Security Tests
 
 The JWT implementation has dedicated tests for:
 
@@ -882,7 +880,7 @@ This is important because authentication failures should be explicitly tested ra
 
 ---
 
-# 24. Current Backend Status
+### 24. Current Backend Status
 
 The following major pieces are currently implemented:
 
@@ -915,7 +913,7 @@ The following major pieces are currently implemented:
 
 ---
 
-# 25. What Has NOT Been Implemented Yet
+### 25. What Has NOT Been Implemented Yet
 
 The following are planned:
 
@@ -939,7 +937,7 @@ Frontend integration
 
 ---
 
-# 26. Planned Game Architecture
+### 26. Planned Game Architecture
 
 The game should follow the same architecture already established for users.
 
@@ -976,7 +974,7 @@ The game service should own the game rules/application logic, while `python-ches
 
 ---
 
-# 27. Planned Chess Flow
+### 27. Planned Chess Flow
 
 A simplified game will eventually look like:
 
@@ -1017,7 +1015,7 @@ This allows the game logic to be tested independently from WebSockets.
 
 ---
 
-# 28. Team Development Rule
+### 28. Team Development Rule
 
 New backend features should generally follow:
 
@@ -1062,7 +1060,7 @@ Game
 
 ---
 
-# 29. Delegation Strategy
+### 29. Delegation Strategy
 
 The current architecture makes it possible to split development by domain.
 
@@ -1094,7 +1092,7 @@ This separation reduces conflicts between team members.
 
 ---
 
-# 30. Development Environment
+### 30. Development Environment
 
 The main tools currently used during development are:
 
@@ -1120,7 +1118,7 @@ PostgreSQL
 
 ---
 
-# 31. Core Architectural Principle
+### 31. Core Architectural Principle
 
 The backend should remain understandable by following one central rule:
 
