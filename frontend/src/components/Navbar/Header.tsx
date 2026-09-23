@@ -1,0 +1,13 @@
+import Logo from "./Logo";
+import Navbar from "./Navbar";
+
+const Header = () => {
+    return (
+        <header className="sticky shrink-0 top-0 z-20 mx-auto flex h-18 w-full items-center justify-between border-2 border-gray-500 bg-mist-600/50 px-8">
+            <Logo />
+            <Navbar />
+        </header>
+    );
+};
+
+export default Header;

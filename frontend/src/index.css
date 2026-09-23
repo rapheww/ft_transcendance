@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+    themes :
+        dark
+};
+
+
+/*bg avec petit points*/
+html {
+  height:100%;
+  
+  --s: 75px; /* control the space between circles */
+             /*        v-- the radius of circle */
+  --g: radial-gradient(2px at 25% 50%,rgba(94, 96, 97, 0.573) 50%,#0000);
+  background: var(--g),var(--g) var(--s) calc(var(--s)/2);
+  background-size: calc(2*var(--s)) var(--s);
+}

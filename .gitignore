@@ -76,3 +76,7 @@ Testing/
 .env
 .env.*
 !.env.example
+
+#front
+node_modules/
+dist/
