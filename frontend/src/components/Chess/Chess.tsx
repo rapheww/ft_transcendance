@@ -4,7 +4,6 @@ import Chessboard from "./Chessboard";
 
 export default function Chess() {
   const [moves, setMoves] = useState<string[]>([]);
-
   return (
     <div className="w-full min-h-screen">
       <Header />
@@ -24,7 +23,7 @@ export default function Chess() {
             border-2
             border-black
             shadow-[0_0_6px_#000000]
-            bg-mist-800/65 
+            bg-mist-800 
             items-center 
             justify-center 
             flex-col
@@ -48,7 +47,7 @@ export default function Chess() {
 
           <div
             id="chat"
-            className={`
+            className="
             hidden
             xl:flex
             order-3
@@ -58,11 +57,11 @@ export default function Chess() {
             border-black
             shadow-[0_0_6px_#000000]
             rounded-md 
-            bg-mist-800/65 
+            bg-mist-800 
             items-center 
             justify-center
             flex-col
-            `}
+            "
           >
             <div className={`border-b-2 border-black w-full h-[5%] flex items-center justify-center`}>
               <p className="text-center uppercase">Chat</p>
