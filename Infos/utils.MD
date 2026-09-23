@@ -66,32 +66,32 @@ podman exec -it transcendence-db psql -U transcendence -d transcendence
 
 Apply everything up to latest:
 ```bash
-alembic upgrade head
+alembic -c backend/alembic.ini upgrade head
 ```
 
 See current database revision:
 ```bash
-alembic current
+alembic -c backend/alembic.ini current
 ```
 
 See migration history:
 ```bash
-alembic history
+alembic -c backend/alembic.ini history
 ```
 
 Create a new migration:
 ```bash
-alembic revision --autogenerate -m "description"
+alembic -c backend/alembic.ini revision --autogenerate -m "description"
 ```
 
 Roll back one migration:
 ```bash
-alembic downgrade -1
+alembic -c backend/alembic.ini downgrade -1
 ```
 
 Roll back everything:
 ```bash
-alembic downgrade base
+alembic -c backend/alembic.ini downgrade base
 ```
 
 PO + PM: Louis
