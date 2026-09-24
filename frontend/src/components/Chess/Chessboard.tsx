@@ -9,6 +9,7 @@ interface Piece {
     image : string
     x: number
     y: number
+    id: string
 }
 
 type Movements = {
@@ -25,29 +26,29 @@ interface LastPick {
 const initialBoardState: Piece[] = [];
 
 for (let i = 0; i < 8; i++){
-    initialBoardState.push({image: "src/assets/pawn_b.png", x: i, y: 6})
+    initialBoardState.push({image: "src/assets/pawn_b.png", x: i, y: 6, id:"♙"})
 }
 for (let i = 0; i < 8; i++){
-    initialBoardState.push({image: "src/assets/pawn_w.png", x: i, y: 1})
+    initialBoardState.push({image: "src/assets/pawn_w.png", x: i, y: 1, id:"♙"})
 }
 
-initialBoardState.push({image: "src/assets/rook_b.png", x: 0, y: 7})
-initialBoardState.push({image: "src/assets/rook_b.png", x: 7, y: 7})
-initialBoardState.push({image: "src/assets/knight_b.png", x: 1, y: 7})
-initialBoardState.push({image: "src/assets/knight_b.png", x: 6, y: 7})
-initialBoardState.push({image: "src/assets/bishop_b.png", x: 2, y: 7})
-initialBoardState.push({image: "src/assets/bishop_b.png", x: 5, y: 7})
-initialBoardState.push({image: "src/assets/queen_b.png", x: 3, y: 7})
-initialBoardState.push({image: "src/assets/king_b.png", x: 4, y: 7})
+initialBoardState.push({image: "src/assets/rook_b.png", x: 0, y: 7, id:"♖"})
+initialBoardState.push({image: "src/assets/rook_b.png", x: 7, y: 7, id:"♖"})
+initialBoardState.push({image: "src/assets/knight_b.png", x: 1, y: 7, id:"♘"})
+initialBoardState.push({image: "src/assets/knight_b.png", x: 6, y: 7, id:"♘"})
+initialBoardState.push({image: "src/assets/bishop_b.png", x: 2, y: 7, id:"♗"})
+initialBoardState.push({image: "src/assets/bishop_b.png", x: 5, y: 7, id:"♗"})
+initialBoardState.push({image: "src/assets/queen_b.png", x: 3, y: 7, id:"♕"})
+initialBoardState.push({image: "src/assets/king_b.png", x: 4, y: 7, id:"♔"})
 
-initialBoardState.push({image: "src/assets/rook_w.png", x: 0, y: 0})
-initialBoardState.push({image: "src/assets/rook_w.png", x: 7, y: 0})
-initialBoardState.push({image: "src/assets/knight_w.png", x: 1, y: 0})
-initialBoardState.push({image: "src/assets/knight_w.png", x: 6, y: 0})
-initialBoardState.push({image: "src/assets/bishop_w.png", x: 2, y: 0})
-initialBoardState.push({image: "src/assets/bishop_w.png", x: 5, y: 0})
-initialBoardState.push({image: "src/assets/queen_w.png", x: 3, y: 0})
-initialBoardState.push({image: "src/assets/king_w.png", x: 4, y: 0})
+initialBoardState.push({image: "src/assets/rook_w.png", x: 0, y: 0, id:"♖"})
+initialBoardState.push({image: "src/assets/rook_w.png", x: 7, y: 0, id:"♖"})
+initialBoardState.push({image: "src/assets/knight_w.png", x: 1, y: 0, id:"♘"})
+initialBoardState.push({image: "src/assets/knight_w.png", x: 6, y: 0, id:"♘"})
+initialBoardState.push({image: "src/assets/bishop_w.png", x: 2, y: 0, id:"♗"})
+initialBoardState.push({image: "src/assets/bishop_w.png", x: 5, y: 0, id:"♗"})
+initialBoardState.push({image: "src/assets/queen_w.png", x: 3, y: 0, id:"♕"})
+initialBoardState.push({image: "src/assets/king_w.png", x: 4, y: 0, id:"♔"})
 
 //get current tile color
 function getColor(back : HTMLElement): string | null{
@@ -194,7 +195,8 @@ export default function Chessboard({ setMoves }: ChessboardProps){
                 //show movements
                 setMoves(prev =>{
                     let tmp = [...prev]
-                    tmp.push(`${horizontalAxis[x]}${verticalAxis[y]}`)
+                    tmp.push(`${activePiece.id}${horizontalAxis[x]}${verticalAxis[y]}`)
+                    console.log(activePiece);
                     return tmp;
                 })
                 setLastPick(null);
@@ -223,13 +225,15 @@ export default function Chessboard({ setMoves }: ChessboardProps){
         for(let i = 0; i < horizontalAxis.length; i++){
             const number = i + j + 2;
             let image = undefined;
+            let id = undefined
             pieces.forEach(p => {
                 if(p.x === i && p.y === j){
                     image = p.image
+                    id = p.id
                 }
             })
 
-            board.push(<Tile key={`${j}, ${i}`} image={image} number={number}></Tile>)
+            board.push(<Tile key={`${j}, ${i}`} image={image} number={number} id={id}></Tile>)
         }
     }
     return(

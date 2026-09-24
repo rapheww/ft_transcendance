@@ -1,11 +1,21 @@
 import Header from "../Navbar/Header";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Chessboard from "./Chessboard";
 
 export default function Chess() {
   const [moves, setMoves] = useState<string[]>([]);
   const movesListRef = useRef<HTMLDivElement>(null);
 
+  const movePairs = useMemo(() => {
+    let tmp:string[][] = [];
+    let j = 0;
+    for(let i = 0; i< moves.length; i+=2){
+      tmp[j] = []
+        tmp[j].push(moves[i], moves[i + 1])
+        j++;
+    }
+    return tmp
+  }, [moves])
   useEffect(() => {
     if(movesListRef.current){
       movesListRef.current.scrollTop = movesListRef.current.scrollHeight; //defini la hauteur a scroll par la hauteur actuelle de l'element
@@ -38,11 +48,13 @@ export default function Chess() {
             <div className={`border-b-2 border-black w-full h-[5%] flex items-center justify-center`}>
               <p className="text-center uppercase">movements</p>
             </div>
-            <div ref={movesListRef} className="moves-list w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth">
-              {moves.map((mov, i) => (
-                <p key={i} className="text-center">
-                  {mov}
-                </p>
+            <div ref={movesListRef} className="moves-list flex flex-col w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth">
+              {movePairs.map((mov, i) => (
+                <div key={i} className="flex flex-row w-full justify-center text-justify gap-2">
+                  <div className="mr-3">{`t${i + 1}:`}</div>
+                  <div className="hover:text-cyan-600 cursor-pointer">{`${mov[0]}`}</div>
+                  <div className={`hover:text-cyan-600 hover:border-white cursor-pointer pl-1 ${mov[1] ? "border-l" : ""}`}>{`${mov[1] ? mov[1] : ""}`}</div>
+                </div>
               ))}
             </div>
           </div>

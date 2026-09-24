@@ -3,9 +3,10 @@ import { darkTile, lightTile } from "../../App";
 interface Props {
   number: number;
   image?: string;
+  id?: string;
 }
 
-export default function Tile({ number, image }: Props) {
+export default function Tile({ number, image, id }: Props) {
   const color = number % 2 === 0 ? darkTile : lightTile;
 
   return (
@@ -14,6 +15,7 @@ export default function Tile({ number, image }: Props) {
       {image && (
         <div
           style={{ backgroundImage: `url(${image})` }}
+          id={id}
           className="chess-piece w-full h-full bg-no-repeat bg-center bg-size-[85%_85%] hover:cursor-pointer active:cursor-grabbing"
         ></div>
       )}
