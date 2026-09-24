@@ -1,8 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Alata&display=swap');
 @import "tailwindcss";
 @plugin "daisyui" {
     themes :
         dark
 };
+
+.alata-regular {
+  font-family: "Alata", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
 
 
 /*bg avec petit points*/
@@ -10,4 +17,58 @@ html {
   height:100%;
   
   background-color: rgb(29, 28, 28);
+}
+
+body {
+  background-size: 50px 50px;
+  background-image:
+    linear-gradient(to right, rgba(128, 128, 128, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(128, 128, 128, 0.12) 1px, transparent 1px);
+  font-family: 'Alata', sans-serif;
+}
+
+.loader {
+  width: 100px;
+  height: 40px;
+  --g: radial-gradient(farthest-side,#0000 calc(95% - 3px),#fff calc(100% - 3px) 98%,#0000 101%) no-repeat;
+  background: var(--g), var(--g), var(--g);
+  background-size: 25px 25px;
+  animation: l9 1s infinite alternate;
+}
+
+/*rgb*/
+@keyframes glowing {
+  0% {
+    background-position: 0 0;
+  }
+
+  50% {
+    background-position: 400% 0;
+  }
+
+  100% {
+    background-position: 0 0;
+  }
+}
+
+/*waiting*/
+@keyframes l9 {
+  0% {
+    background-position: 0 50%, 50% 50%, 100% 50%;
+  }
+  20% {
+    background-position: 0 0, 50% 50%, 100% 50%;
+  }
+  40% {
+    background-position: 0 100%, 50% 0, 100% 50%;
+  }
+  60% {
+    background-position: 0 50%, 50% 100%, 100% 0;
+  }
+  80% {
+    background-position: 0 50%, 50% 50%, 100% 100%;
+  }
+  100% {
+    background-position: 0 50%, 50% 50%, 100% 50%;
+  }
 }

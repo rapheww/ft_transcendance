@@ -16,6 +16,11 @@ type Movements = {
     tile: HTMLElement
 }
 
+interface LastPick {
+    piece: HTMLElement
+    bg: string
+}
+
 //Pieces rendering
 const initialBoardState: Piece[] = [];
 
@@ -60,7 +65,7 @@ export default function Chessboard({ setMoves }: ChessboardProps){
     const [gridY, setGridY] = useState(0);
     const [pieces, setPieces] = useState<Piece[]>(initialBoardState)
     const [tileColor, setTileColor] = useState<Movements[]>([]);
-    
+    const [lastPick, setLastPick] = useState<LastPick | null>(null);
 
     function resetPiece(piece: HTMLElement) {
         piece.style.position = "";
@@ -108,7 +113,19 @@ export default function Chessboard({ setMoves }: ChessboardProps){
         element.style.top = `${e.clientY - rect.top - tileSize / 2}px`;
         element.style.zIndex = "50";
         setActivePiece(element);
-
+        if(!lastPick){
+            setLastPick({piece:element, bg:back.style.backgroundColor});
+        }
+        else{
+            if(element != lastPick.piece){
+                const old = lastPick.piece.parentNode as HTMLElement;
+                if(old){
+                    old.style.backgroundColor = lastPick.bg
+                    setLastPick({piece:element, bg:back.style.backgroundColor});
+                }
+            }
+        }
+            
         // Si la case est déjà suivie (ex: faisait partie du dernier mouvement), on réutilise sa vraie couleur
         const existing = tileColor.find(m => m.tile === back);
         const tmpColor = existing ? existing.bg : getColor(back);
@@ -180,6 +197,7 @@ export default function Chessboard({ setMoves }: ChessboardProps){
                     tmp.push(`${horizontalAxis[x]}${verticalAxis[y]}`)
                     return tmp;
                 })
+                setLastPick(null);
             }
 
             setPieces(value => {

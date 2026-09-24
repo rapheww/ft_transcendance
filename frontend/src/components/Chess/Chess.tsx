@@ -1,9 +1,17 @@
 import Header from "../Navbar/Header";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Chessboard from "./Chessboard";
 
 export default function Chess() {
   const [moves, setMoves] = useState<string[]>([]);
+  const movesListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if(movesListRef.current){
+      movesListRef.current.scrollTop = movesListRef.current.scrollHeight; //defini la hauteur a scroll par la hauteur actuelle de l'element
+    }
+  },[moves] )
+
   return (
     <div className="w-full min-h-screen">
       <Header />
@@ -20,8 +28,6 @@ export default function Chess() {
             lg:w-100 
             h-[min(800px,90vw,calc(100vh-140px))] 
             rounded-md
-            border-2
-            border-black
             shadow-[0_0_6px_#000000]
             bg-mist-800 
             items-center 
@@ -32,7 +38,7 @@ export default function Chess() {
             <div className={`border-b-2 border-black w-full h-[5%] flex items-center justify-center`}>
               <p className="text-center uppercase">movements</p>
             </div>
-            <div className="moves-list w-full h-[95%] max-h-[95%] overflow-scroll">
+            <div ref={movesListRef} className="moves-list w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth">
               {moves.map((mov, i) => (
                 <p key={i} className="text-center">
                   {mov}
@@ -53,8 +59,6 @@ export default function Chess() {
             order-3
             shrink-0 
             w-110 
-            border-2
-            border-black
             shadow-[0_0_6px_#000000]
             rounded-md 
             bg-mist-800 
@@ -71,7 +75,7 @@ export default function Chess() {
               <input
                 type="text"
                 placeholder="type your message here"
-                className={`input input-primary w-full h-full border-black border-t-2 rounded-none`}
+                className={`input input-primary w-full h-full border-black border-t-2 rounded-b-md rounded-t-none`}
               />
             </div>
           </div>

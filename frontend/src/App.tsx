@@ -4,6 +4,8 @@ import Chess from "./components/Chess/Chess";
 import Login from "./components/Account/Login";
 import Register from "./components/Account/Register";
 import Profil from "./components/Account/Profile";
+import Mode from "./components/Matchmaking/Mode";
+import Waiting from "./components/Matchmaking/Waiting";
 
 export const darkTile = "#8A663E";
 export const lightTile = "#E3DDC5";
@@ -18,6 +20,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profil />} />
+          <Route path="/mode" element={<Mode />} />
+          <Route path="/matchmaking" element={<Waiting />} />
+
       </Routes>
     </BrowserRouter>
   )

@@ -9,33 +9,41 @@ const Home = () => {
       <h1 className="text-6xl mt-20 uppercase">Chess</h1>
       <div className="flex flex-col items-center justify-center h-screen">
         <button
-          onClick={() => navigate("/chess")}
+          onClick={() => navigate("/mode")}
           className="
-              relative overflow-hidden
-              rounded-[5px]
-              px-8 py-4
-              font-bold tracking-[5px] uppercase
+              relative z-0
+              w-75 h-13.5
+              border-0 outline-none
+              text-black
+              bg-taupe-300
               cursor-pointer
-              text-[#108ae0] text-[15px]
-              border-2 border-[#108ae0]
-              transition-all duration-700
-              hover:text-white
-              hover:scale-110
-              hover:outline-[#108ae0]
-              hover:shadow-[4px_5px_17px_-4px_#268391]
+              rounded-[10px]
+
               before:content-['']
               before:absolute
-              before:-left-12.5
-              before:top-0
-              before:w-0
-              before:h-full
-              before:bg-[#108ae0]
-              before:skew-x-45
+              before:-top-0.5 before:-left-0.5
               before:-z-10
-              before:transition-[width]
-              before:duration-700
-              hover:before:w-[250%]
-              "
+              before:w-[calc(100%+4px)]
+              before:h-[calc(100%+4px)]
+              before:rounded-[10px]
+              before:bg-[linear-gradient(45deg,#ff0000,#ff7300,#fffb00,#48ff00,#00ffd5,#002bff,#7a00ff,#ff00c8,#ff0000)]
+              before:bg-size-[400%_400%]
+              before:blur-[10px]
+              before:opacity-0
+              before:transition-opacity
+              before:duration-300
+              hover:before:opacity-100
+              before:animate-[glowing_20s_linear_infinite]
+
+              after:content-['']
+              after:absolute
+              after:inset-0
+              after:-z-10
+              after:w-full
+              after:h-full
+              after:rounded-[10px]
+              after:bg-taupe-300
+            "
         >
           Play
         </button>
