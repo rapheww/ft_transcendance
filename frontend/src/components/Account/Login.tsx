@@ -7,12 +7,26 @@ const Login = () => {
       <Header />
 
       <div className="flex justify-center items-center min-h-[calc(100vh-72px)] px-4 py-8">
-        <div className=" flex min-h-100 w-full max-w-xl flex-col justify-center border-2 border-violet-600 bg-gray-500 rounded-md p-6 sm:p-10">
+        <div
+          className="
+            flex
+            min-h-100
+            w-full
+            max-w-xl
+            flex-col
+            justify-center
+            border-2
+            border-white
+            bg-mist-800/75
+            rounded-md
+            p-6
+            sm:p-10"
+        >
           <div className="flex flex-col items-center mb-8">
             <h1 className="text-3xl sm:text-5xl mb-3">Login</h1>
-            <p className="text-center">
+            <p className="text-center text-lg">
               No account ?{" "}
-              <NavLink to="/register" className="text-violet-400">
+              <NavLink to="/register" className="text-gray-400 underline">
                 Register
               </NavLink>
             </p>
@@ -20,16 +34,16 @@ const Login = () => {
           <div className="flex flex-col items-center w-full gap-3">
             <input
               type="text"
-              className="input input-primary w-full"
+              className="input border border-gray-300 w-full"
               placeholder="Username"
             />
             <input
               type="text"
-              className="input input-primary w-full"
+              className="input border border-gray-300 w-full"
               placeholder="Password"
             />
-            <button className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white rounded-md shadow-2xl group">
-              <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-pink-600 via-purple-700 to-blue-400 group-hover:opacity-100"></span>
+            <button className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group">
+              <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>
               <span className="absolute top-0 left-0 w-full bg-linear-to-b from-white to-transparent opacity-5 h-1/3"></span>
               <span className="absolute bottom-0 left-0 w-full h-1/3 bg-linear-to-t from-white to-transparent opacity-5"></span>
               <span className="absolute bottom-0 left-0 w-4 h-full bg-linear-to-r from-white to-transparent opacity-5"></span>

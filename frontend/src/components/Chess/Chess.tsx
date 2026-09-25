@@ -45,15 +45,15 @@ export default function Chess() {
             flex-col
             `}
           >
-            <div className={`border-b-2 border-black w-full h-[5%] flex items-center justify-center`}>
+            <div className={`border-b-2 border-black w-full h-[5%] flex items-center justify-center rounded-t-md`}>
               <p className="text-center uppercase">movements</p>
             </div>
             <div ref={movesListRef} className="moves-list flex flex-col w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth">
               {movePairs.map((mov, i) => (
-                <div key={i} className="flex flex-row w-full justify-center text-justify gap-2">
-                  <div className="mr-3">{`t${i + 1}:`}</div>
-                  <div className="hover:text-cyan-600 cursor-pointer">{`${mov[0]}`}</div>
-                  <div className={`hover:text-cyan-600 hover:border-white cursor-pointer pl-1 ${mov[1] ? "border-l" : ""}`}>{`${mov[1] ? mov[1] : ""}`}</div>
+                <div key={i} className="flex flex-row w-full justify-center text-justify">
+                  <div className="flex justify-center w-[16%] bg-mist-700 ">{`${i + 1}`}</div>
+                  <div className="flex hover:bg-mist-500 cursor-pointer w-[42%] pl-2">{`${mov[0]}`}</div>
+                  <div className={`flex w-[42%] hover:bg-mist-500 cursor-pointer pl-2`}>{`${mov[1] ? mov[1] : ""}`}</div>
                 </div>
               ))}
             </div>
