@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from backend.models.game import Game
 from backend.repositories.game_repository import GameRepository
 from backend.services import user_service
+from backend.exceptions.game import CannotPlayAgainstSelf, GameNotFound, GameNotJoinable
 
 
 def create_game(db: Session, user_id: int) -> Game:
@@ -33,3 +34,45 @@ def create_game(db: Session, user_id: int) -> Game:
     except SQLAlchemyError:
         db.rollback()
         raise
+
+
+def join_game(db: Session, game_id: int, user_id: int) -> Game:
+    try:
+        repository = GameRepository(db)
+
+        game = repository.get_by_id(game_id)
+
+        if game is None:
+            raise GameNotFound()
+
+        user_service.get_user_by_id(db, user_id)
+
+        if game.status != "waiting":
+            raise GameNotJoinable()
+
+        if game.white_player_id == user_id:
+            raise CannotPlayAgainstSelf()
+
+        game.black_player_id = user_id
+        game.status = "active"
+
+        repository.update(game)
+
+        db.commit()
+
+        return game
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+
+
+def get_game(db: Session, game_id: int) -> Game:
+    repository = GameRepository(db)
+
+    game = repository.get_by_id(game_id)
+
+    if game is None:
+        raise GameNotFound()
+
+    return game

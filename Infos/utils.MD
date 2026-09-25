@@ -20,7 +20,7 @@ python -m uvicorn backend.app.main:app --reload
 
 Clean the '__pycache__' folders:
 ```bash
-find . -type d -name "__pycache__" -exec rm -rf {} \;
+find . -type d -name "__pycache__" -exec rm -rf {} \; && rm -rf .pytest_cache
 ```
 
 Tests:
