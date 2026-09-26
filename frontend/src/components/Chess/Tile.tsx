@@ -1,4 +1,3 @@
-import { darkTile, lightTile } from "../../App";
 
 interface Props {
   number: number;
@@ -7,7 +6,7 @@ interface Props {
 }
 
 export default function Tile({ number, image, id }: Props) {
-  const color = number % 2 === 0 ? darkTile : lightTile;
+  const color = number % 2 === 0 ? "var(--dark-tile)" : "var(--light-tile)";
 
   return (
     <div className="aspect-square" style={{ backgroundColor: color }}>

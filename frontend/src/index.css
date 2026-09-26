@@ -11,6 +11,11 @@
   font-style: normal;
 }
 
+:root {
+  --dark-tile: rgb(44, 85, 99);
+  --light-tile: #E3DDC5;
+  --select-tile: #508a52;
+}
 
 /*bg avec petit points*/
 html {
