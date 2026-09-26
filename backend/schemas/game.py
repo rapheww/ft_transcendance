@@ -10,6 +10,10 @@ class GameJoin(BaseModel):
     game_id: int
 
 
+class MoveRequest(BaseModel):
+    move: str
+
+
 class GameResponse(BaseModel):
     id: int
     white_player_id: int
