@@ -271,3 +271,102 @@ def test_stalemate_ends_game_as_draw(db):
     assert result.status == "finished"
     assert result.result == "1/2-1/2"
     assert result.finished_at is not None
+
+
+def test_insufficient_material_ends_game_as_draw(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    fen = "7k/8/8/8/8/8/1B6/K7 w - - 0 1"
+
+    pgn_game = chess.pgn.Game()
+    pgn_game.headers["SetUp"] = "1"
+    pgn_game.headers["FEN"] = fen
+    pgn_game.headers["Result"] = "*"
+
+    game.current_fen = fen
+    game.pgn = str(pgn_game)
+    db.commit()
+
+    result = game_service.make_move(db, game.id, white.id, "b2c3")
+    board = chess.Board(result.current_fen)
+
+    assert board.is_insufficient_material()
+    assert result.status == "finished"
+    assert result.result == "1/2-1/2"
+    assert result.finished_at is not None
+
+
+def test_pgn_reconstructs_move_history(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    game_service.make_move(db, game.id, white.id, "g1f3")
+    game_service.make_move(db, game.id, black.id, "g8f6")
+    game_service.make_move(db, game.id, white.id, "f3g1")
+    game_service.make_move(db, game.id, black.id, "f6g8")
+
+    pgn_game = chess.pgn.read_game(__import__("io").StringIO(game.pgn))
+    board = pgn_game.board()
+
+    for move in pgn_game.mainline_moves():
+        board.push(move)
+
+    assert board.fullmove_number == 3
+    assert board.turn == chess.WHITE
+    assert board.is_fivefold_repetition() is False
+
+
+def test_fivefold_repetition_ends_game_as_draw(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    moves = [(white.id, "g1f3"), (black.id, "g8f6"), (white.id, "f3g1"),
+             (black.id, "f6g8"), (white.id, "g1f3"), (black.id, "g8f6"),
+             (white.id, "f3g1"), (black.id, "f6g8"), (white.id, "g1f3"),
+             (black.id, "g8f6"), (white.id, "f3g1"), (black.id, "f6g8"),
+             (white.id, "g1f3"), (black.id, "g8f6"), (white.id, "f3g1"),
+             (black.id, "f6g8")]
+
+    result = None
+
+    for player_id, move in moves:
+        result = game_service.make_move(db, game.id, player_id, move)
+
+    assert result.status == "finished"
+    assert result.result == "1/2-1/2"
+    assert result.finished_at is not None
+
+
+def test_seventyfive_move_rule_ends_game_as_draw(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    fen = "7k/8/8/8/8/8/1N6/K7 w - - 149 76"
+
+    pgn_game = chess.pgn.Game()
+    pgn_game.headers["SetUp"] = "1"
+    pgn_game.headers["FEN"] = fen
+    pgn_game.headers["Result"] = "*"
+
+    game.current_fen = fen
+    game.pgn = str(pgn_game)
+    db.commit()
+
+    result = game_service.make_move(db, game.id, white.id, "b2c4")
+
+    assert result.status == "finished"
+    assert result.result == "1/2-1/2"
+    assert result.finished_at is not None

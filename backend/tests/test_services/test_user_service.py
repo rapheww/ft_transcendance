@@ -22,6 +22,7 @@ def test_create_user(db):
     assert result.id is not None
     assert result.username == "alice"
     assert result.email == "alice@example.com"
+
     password_hasher = PasswordHasher()
     assert password_hasher.verify(result.password_hash, "password123")
 
@@ -108,7 +109,6 @@ def test_authenticate_user(db):
                            password="password123")
 
     user = user_service.create_user(db, user_data)
-
     result = user_service.authenticate_user(db, "alice", "password123")
 
     assert result.id == user.id
@@ -132,7 +132,6 @@ def test_get_user_by_id(db):
                            password="password123")
 
     created_user = user_service.create_user(db, user_data)
-
     result = user_service.get_user_by_id(db, created_user.id)
 
     assert result.id == created_user.id
@@ -155,7 +154,6 @@ def test_update_user(db):
                            password="password123")
 
     created_user = user_service.create_user(db, user_data)
-
     update_data = UserUpdate(username="alice-new",
                              email="alice-new@example.com")
 
@@ -172,9 +170,7 @@ def test_update_user_email_only(db):
                            password="password123")
 
     created_user = user_service.create_user(db, user_data)
-
     update_data = UserUpdate(email="new@example.com")
-
     result = user_service.update_user(db, created_user.id, update_data)
 
     assert result.id == created_user.id
@@ -193,7 +189,6 @@ def test_update_user_raises_when_username_exists(db):
 
     user_service.create_user(db, first_user)
     second_user = user_service.create_user(db, second_user)
-
     update_data = UserUpdate(username="alice")
 
     with pytest.raises(UserAlreadyExists):
@@ -218,7 +213,6 @@ def test_update_user_raises_when_email_exists(db):
 
     user_service.create_user(db, first_user)
     second_user = user_service.create_user(db, second_user)
-
     update_data = UserUpdate(email="alice@example.com")
 
     with pytest.raises(UserAlreadyExists):

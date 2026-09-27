@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.core.dependencies import get_current_user
 from backend.db.session import get_db
-from backend.exceptions.game import CannotPlayAgainstSelf, GameNotFound, GameNotJoinable
 from backend.models.user import User
-from backend.schemas.game import GameResponse
+from backend.schemas.game import GameResponse, MoveRequest
 from backend.services import game_service
+from backend.exceptions.game import CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive, NotAPlayer, NotYourTurn, IllegalMove
 
 router = APIRouter()
 
@@ -40,3 +40,19 @@ def get_game(game_id: int, db: Session = Depends(get_db)):
 
     except GameNotFound as error:
         raise HTTPException(status_code=404, detail=str(error))
+
+
+@router.post("/{game_id}/move", response_model=GameResponse)
+def make_move(game_id: int,
+              move_request: MoveRequest,
+              current_user: User = Depends(get_current_user),
+              db: Session = Depends(get_db)):
+    try:
+        return game_service.make_move(db, game_id, current_user.id,
+                                      move_request.move)
+
+    except GameNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error))
+
+    except (GameNotActive, NotAPlayer, NotYourTurn, IllegalMove) as error:
+        raise HTTPException(status_code=409, detail=str(error))

@@ -10,7 +10,6 @@ def create_user(client: TestClient, username: str, email: str) -> str:
                            })
 
     assert response.status_code == 201
-
     login_response = client.post("/api/auth/login",
                                  json={
                                      "username": username,
@@ -24,12 +23,10 @@ def create_user(client: TestClient, username: str, email: str) -> str:
 
 def test_create_game(client: TestClient):
     token = create_user(client, "alice", "alice@example.com")
-
     response = client.post("/api/games/",
                            headers={"Authorization": f"Bearer {token}"})
 
     assert response.status_code == 201
-
     body = response.json()
 
     assert body["id"] is not None
@@ -44,12 +41,10 @@ def test_create_game(client: TestClient):
 
 def test_join_game(client: TestClient):
     alice_token = create_user(client, "alice", "alice@example.com")
-
     bob_token = create_user(client, "bob", "bob@example.com")
 
     create_response = client.post(
         "/api/games/", headers={"Authorization": f"Bearer {alice_token}"})
-
     assert create_response.status_code == 201
 
     game = create_response.json()
@@ -60,7 +55,6 @@ def test_join_game(client: TestClient):
         headers={"Authorization": f"Bearer {bob_token}"})
 
     assert join_response.status_code == 200
-
     body = join_response.json()
 
     assert body["id"] == game_id
@@ -73,12 +67,10 @@ def test_join_game(client: TestClient):
 
 def test_get_game(client: TestClient):
     token = create_user(client, "alice", "alice@example.com")
-
     create_response = client.post("/api/games/",
                                   headers={"Authorization": f"Bearer {token}"})
 
     game = create_response.json()
-
     response = client.get(f"/api/games/{game['id']}")
 
     assert response.status_code == 200
@@ -106,12 +98,10 @@ def test_join_game_without_token_returns_401(client: TestClient):
 
 def test_creator_cannot_join_own_game(client: TestClient):
     token = create_user(client, "alice", "alice@example.com")
-
     create_response = client.post("/api/games/",
                                   headers={"Authorization": f"Bearer {token}"})
 
     game_id = create_response.json()["id"]
-
     response = client.post(f"/api/games/{game_id}/join",
                            headers={"Authorization": f"Bearer {token}"})
 
@@ -121,24 +111,142 @@ def test_creator_cannot_join_own_game(client: TestClient):
 
 def test_join_active_game_returns_409(client: TestClient):
     alice_token = create_user(client, "alice", "alice@example.com")
-
     bob_token = create_user(client, "bob", "bob@example.com")
 
     charlie_token = create_user(client, "charlie", "charlie@example.com")
-
     create_response = client.post(
         "/api/games/", headers={"Authorization": f"Bearer {alice_token}"})
 
     game_id = create_response.json()["id"]
-
     first_join = client.post(f"/api/games/{game_id}/join",
                              headers={"Authorization": f"Bearer {bob_token}"})
 
     assert first_join.status_code == 200
-
     second_join = client.post(
         f"/api/games/{game_id}/join",
         headers={"Authorization": f"Bearer {charlie_token}"})
 
     assert second_join.status_code == 409
     assert second_join.json() == {"detail": "Game is not joinable"}
+
+
+def test_make_move(client: TestClient):
+    alice_token = create_user(client, "alice", "alice@example.com")
+    bob_token = create_user(client, "bob", "bob@example.com")
+
+    create_response = client.post(
+        "/api/games/", headers={"Authorization": f"Bearer {alice_token}"})
+
+    game_id = create_response.json()["id"]
+    join_response = client.post(
+        f"/api/games/{game_id}/join",
+        headers={"Authorization": f"Bearer {bob_token}"})
+
+    assert join_response.status_code == 200
+    response = client.post(f"/api/games/{game_id}/move",
+                           json={"move": "e2e4"},
+                           headers={"Authorization": f"Bearer {alice_token}"})
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["id"] == game_id
+    assert body["status"] == "active"
+    assert body["result"] is None
+    assert body["current_fen"] is not None
+    assert "1. e4" in body["pgn"]
+
+
+def test_make_move_without_token_returns_401(client: TestClient):
+    response = client.post("/api/games/1/move", json={"move": "e2e4"})
+
+    assert response.status_code == 401
+
+
+def test_make_move_on_missing_game_returns_404(client: TestClient):
+    token = create_user(client, "alice", "alice@example.com")
+    response = client.post("/api/games/999999/move",
+                           json={"move": "e2e4"},
+                           headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Game not found"}
+
+
+def test_make_move_on_inactive_game_returns_409(client: TestClient):
+    token = create_user(client, "alice", "alice@example.com")
+    create_response = client.post("/api/games/",
+                                  headers={"Authorization": f"Bearer {token}"})
+
+    game_id = create_response.json()["id"]
+    response = client.post(f"/api/games/{game_id}/move",
+                           json={"move": "e2e4"},
+                           headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "Game is not active"}
+
+
+def test_make_move_as_non_player_returns_409(client: TestClient):
+    alice_token = create_user(client, "alice", "alice@example.com")
+    bob_token = create_user(client, "bob", "bob@example.com")
+    charlie_token = create_user(client, "charlie", "charlie@example.com")
+
+    create_response = client.post(
+        "/api/games/", headers={"Authorization": f"Bearer {alice_token}"})
+
+    game_id = create_response.json()["id"]
+    join_response = client.post(
+        f"/api/games/{game_id}/join",
+        headers={"Authorization": f"Bearer {bob_token}"})
+
+    assert join_response.status_code == 200
+    response = client.post(
+        f"/api/games/{game_id}/move",
+        json={"move": "e2e4"},
+        headers={"Authorization": f"Bearer {charlie_token}"})
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "User is not a player in this game"}
+
+
+def test_make_move_out_of_turn_returns_409(client: TestClient):
+    alice_token = create_user(client, "alice", "alice@example.com")
+    bob_token = create_user(client, "bob", "bob@example.com")
+
+    create_response = client.post(
+        "/api/games/", headers={"Authorization": f"Bearer {alice_token}"})
+    game_id = create_response.json()["id"]
+
+    join_response = client.post(
+        f"/api/games/{game_id}/join",
+        headers={"Authorization": f"Bearer {bob_token}"})
+
+    assert join_response.status_code == 200
+    response = client.post(f"/api/games/{game_id}/move",
+                           json={"move": "e7e5"},
+                           headers={"Authorization": f"Bearer {bob_token}"})
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "It is not your turn"}
+
+
+def test_make_illegal_move_returns_409(client: TestClient):
+    alice_token = create_user(client, "alice", "alice@example.com")
+    bob_token = create_user(client, "bob", "bob@example.com")
+
+    create_response = client.post(
+        "/api/games/", headers={"Authorization": f"Bearer {alice_token}"})
+
+    game_id = create_response.json()["id"]
+    join_response = client.post(
+        f"/api/games/{game_id}/join",
+        headers={"Authorization": f"Bearer {bob_token}"})
+
+    assert join_response.status_code == 200
+    response = client.post(f"/api/games/{game_id}/move",
+                           json={"move": "e2e5"},
+                           headers={"Authorization": f"Bearer {alice_token}"})
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "Illegal move"}
