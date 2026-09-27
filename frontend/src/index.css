@@ -22,9 +22,6 @@ html {
   height:100%;
   
   background-color: rgb(29, 28, 28);
-}
-
-body {
   background-size: 50px 50px;
   background-image:
     linear-gradient(to right, rgba(128, 128, 128, 0.12) 1px, transparent 1px),

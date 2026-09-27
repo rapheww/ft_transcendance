@@ -27,15 +27,17 @@ export default function Chess() {
       <Header />
 
       <main className="min-h-[calc(100vh-72px)] flex items-center justify-center px-4">
-        <div className="flex items-stretch justify-center gap-4 lg:gap-6 w-full max-w-450">
+        <div className="flex items-stretch gap-2 justify-center w-full max-w-470 h-[min(900px,90vw,calc(100vh-140px))]">
           <div
             id="mov-resume"
             className={`hidden 
             md:flex 
             order-1 
             shrink-0 
-            w-70 
-            lg:w-100 
+            sm:w-0
+            md:w-[19%]
+            lg:w-[25%]
+            xl:w-[25%] 
             h-[min(800px,90vw,calc(100vh-140px))] 
             rounded-md
             shadow-[0_0_6px_#000000]
@@ -59,7 +61,7 @@ export default function Chess() {
             </div>
           </div>
 
-          <div className={`order-2 flex-1 min-w-0 flex justify-center`}>
+          <div className={`order-2 flex-1 min-w-0 flex items-center justify-center @container-size`}>
             <Chessboard setMoves={setMoves} />
           </div>
 
@@ -69,8 +71,12 @@ export default function Chess() {
             hidden
             xl:flex
             order-3
-            shrink-0 
-            w-110 
+            shrink-0
+            sm:w-0
+            md:w-0
+            lg:w-0
+            xl:w-[15%]
+            2xl:w-[25%]
             shadow-[0_0_6px_#000000]
             rounded-md 
             bg-mist-800 

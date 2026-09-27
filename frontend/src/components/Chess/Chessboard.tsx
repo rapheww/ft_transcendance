@@ -77,36 +77,11 @@ initialBoardState.push({ image: "src/assets/king_b.png", x: 4, y: 7, id: "♔" }
 
 initialBoardState.push({ image: "src/assets/rook_w.png", x: 0, y: 0, id: "♖" });
 initialBoardState.push({ image: "src/assets/rook_w.png", x: 7, y: 0, id: "♖" });
-initialBoardState.push({
-  image: "src/assets/knight_w.png",
-  x: 1,
-  y: 0,
-  id: "♘",
-});
-initialBoardState.push({
-  image: "src/assets/knight_w.png",
-  x: 6,
-  y: 0,
-  id: "♘",
-});
-initialBoardState.push({
-  image: "src/assets/bishop_w.png",
-  x: 2,
-  y: 0,
-  id: "♗",
-});
-initialBoardState.push({
-  image: "src/assets/bishop_w.png",
-  x: 5,
-  y: 0,
-  id: "♗",
-});
-initialBoardState.push({
-  image: "src/assets/queen_w.png",
-  x: 3,
-  y: 0,
-  id: "♕",
-});
+initialBoardState.push({image:"src/assets/knight_w.png", x: 1, y: 0, id: "♘"});
+initialBoardState.push({image: "src/assets/knight_w.png", x: 6, y: 0,id: "♘"});
+initialBoardState.push({image: "src/assets/bishop_w.png",x: 2,y: 0,id: "♗"});
+initialBoardState.push({image: "src/assets/bishop_w.png", x: 5, y: 0, id: "♗"});
+initialBoardState.push({image: "src/assets/queen_w.png", x: 3, y: 0, id: "♕"});
 initialBoardState.push({ image: "src/assets/king_w.png", x: 4, y: 0, id: "♔" });
 
 //get current tile color
@@ -313,7 +288,11 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
       onMouseUp={(e) => dropPiece(e)}
       onMouseLeave={cancelMove}
       id="chessboard"
-      className={`relative bg-black grid grid-cols-8 grid-rows-8 w-full max-w-[min(800px,calc(100vh-140px))] aspect-square select-none rounded-xl overflow-hidden border-2 border-black shadow-[0_0_60px_#000000]`}
+      className={`relative bg-black grid grid-cols-8 grid-rows-8 w-[min(100cqw,100cqh)] h-[min(100cqw,100cqh)] aspect-square select-none rounded-xl overflow-hidden border-2 border-black shadow-[0_0_60px_#000000]`}
+      style={{
+        gridTemplateColumns: "repeat(8, 1fr)",
+        gridTemplateRows: "repeat(8, 1fr)",
+      }}
     >
       {board}
     </div>

@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import ColorPicker from "./ColorPicker";
 import { useState } from "react";
+import Preview from "./Preview";
 
 interface Props {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface Props {
 const Editor = ({ open, onClose }: Props) => {
   const [colorOpen, setColorOpen] = useState<boolean>(false);
   const [color, setColor] = useState<string>("");
+  const [previewOpen, setPreviewOpen] = useState<boolean>(false);
   return (
     <div
       className={`
@@ -36,26 +38,26 @@ const Editor = ({ open, onClose }: Props) => {
               >
                 <X size={30} />
               </button>
-              <h1 className="text-xl font-extrabold">Profile Editor</h1>
+              <h1 className="text-2xl font-extrabold">Profile Editor</h1>
               <div
                 id="pfp-editor"
                 className=" h-1/2 max-h-70 border-b border-mist-700 rounded-sm p-2 flex flex-col justify-center items-center gap-4 w-[80%] min-h-32 sm:min-h-40"
               >
-                <h2 className="">Edit Pfp</h2>
+                <h2 className="text-xl">Edit Pfp</h2>
                 <input className="input" placeholder="New pfp link"></input>
               </div>
               <div
                 id="username-editor"
                 className="h-1/2 max-h-70 rounded-sm w-[80%] border-b border-mist-700 p-2 pt-0 flex flex-col justify-center items-center gap-4 min-h-32 sm:min-h-40"
               >
-                <h2 className="">Edit Username</h2>
+                <h2 className="text-xl">Edit Username</h2>
                 <input className="input" placeholder="New username"></input>
               </div>
               <div
                 id="color-editor"
                 className="h-1/2 max-h-70 rounded-sm w-[80%] mb-2 p-2 pt-0 flex flex-col justify-center items-center gap-4 min-h-32 sm:min-h-40"
               >
-                <h2 className="">ChessBoard Color</h2>
+                <h2 className="text-xl">ChessBoard Color</h2>
                 <div className="flex w-full h-full justify-center items-center gap-5">
                   <div onClick={() => {
                         setColorOpen(true);
@@ -73,7 +75,11 @@ const Editor = ({ open, onClose }: Props) => {
                     className="cursor-pointer w-1/3 bg-gray-500 hover:scale-105 duration-400 text-black rounded-md p-2 text-center"
                 >
                     <p>Dark Tile</p>
-                    </div>    
+                 </div>
+                      
+                </div>
+                <div>
+                  <p onClick={() => setPreviewOpen(true)} className="text-md p-1 hover:bg-gray-400/20 rounded-md cursor-pointer">View ChessBoard</p>
                 </div>
               </div>
               <button className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group">
@@ -90,6 +96,10 @@ const Editor = ({ open, onClose }: Props) => {
                 colorOpen={colorOpen}
                 Color={color}
                 colorOnClose={() => setColorOpen(false)}
+              />
+              <Preview 
+                previewOpen={previewOpen}
+                previewOnClose={() => setPreviewOpen(false)}
               />
             </div>
           </div>

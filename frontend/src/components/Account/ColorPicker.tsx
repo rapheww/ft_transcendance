@@ -39,7 +39,7 @@ const ColorPicker = ({colorOpen , colorOnClose, Color} : ColorProps) => {
       >
         <div className="w-full flex justify-center items-center">
           <div className="mt-10 flex flex-col text-white w-full">
-            <div className="bg-mist-800 max-h-[90vh] flex justify-center items-center flex-col rounded-lg p-5 ">
+            <div className="bg-mist-800 max-h-[90vh] flex justify-center items-center flex-col rounded-lg p-5 gap-5">
               <button
                 onClick={colorOnClose}
                 className="cursor-pointer place-self-end"
@@ -47,7 +47,13 @@ const ColorPicker = ({colorOpen , colorOnClose, Color} : ColorProps) => {
                 <X size={30} />
               </button>
               <h1 className="text-xl font-extrabold">Color Editor</h1>
-                <Sketch color={hex} onChange={(color) => setHex(color.hex)}/>
+              <div style={{ zoom: 1.3 }}>
+                <Sketch 
+                  color={hex} 
+                  onChange={(color) => setHex(color.hex)} 
+                />
+              </div>
+                
               <button 
                 onClick={() => {
                     document.documentElement.style.setProperty(Color, hex);
