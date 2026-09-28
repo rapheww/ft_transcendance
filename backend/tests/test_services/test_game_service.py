@@ -1,6 +1,6 @@
 import chess
 import pytest
-from backend.exceptions.game import CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive, NotAPlayer, NotYourTurn, IllegalMove
+from backend.exceptions.game import CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive, NotAPlayer, IllegalMove, CannotResignFinishedGame
 from backend.models.user import User
 from backend.services import game_service
 
@@ -370,3 +370,87 @@ def test_seventyfive_move_rule_ends_game_as_draw(db):
     assert result.status == "finished"
     assert result.result == "1/2-1/2"
     assert result.finished_at is not None
+
+
+def test_player_can_resign(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+    result = game_service.resign(db, game.id, white.id)
+
+    assert result.status == "finished"
+    assert result.result == "0-1"
+    assert result.finished_at is not None
+
+
+def test_black_resigning_gives_white_the_win(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+    result = game_service.resign(db, game.id, black.id)
+
+    assert result.status == "finished"
+    assert result.result == "1-0"
+    assert result.finished_at is not None
+
+
+def test_outsider_cannot_resign_game(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+    outsider = create_user(db, username="player3", email="player3@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    with pytest.raises(NotAPlayer):
+        game_service.resign(db, game.id, outsider.id)
+
+
+def test_cannot_resign_finished_game(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+    game_service.resign(db, game.id, white.id)
+
+    with pytest.raises(CannotResignFinishedGame):
+        game_service.resign(db, game.id, black.id)
+
+
+def test_finished_game_has_consistent_state_after_resign(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+    result = game_service.resign(db, game.id, white.id)
+
+    assert result.status == "finished"
+    assert result.result is not None
+    assert result.finished_at is not None
+
+
+def test_active_game_has_no_result(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    result = game_service.join_game(db, game.id, black.id)
+
+    assert result.status == "active"
+    assert result.result is None
+    assert result.finished_at is None
+
+
+def test_waiting_game_has_no_result(db):
+    white = create_user(db)
+    game = game_service.create_game(db, white.id)
+
+    assert game.status == "waiting"
+    assert game.result is None
+    assert game.finished_at is None

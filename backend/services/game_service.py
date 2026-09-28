@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from backend.models.game import Game
 from backend.repositories.game_repository import GameRepository
 from backend.services import user_service
-from backend.exceptions.game import CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive, NotAPlayer, NotYourTurn, IllegalMove
+from backend.exceptions.game import CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive, NotAPlayer, NotYourTurn, IllegalMove, CannotResignFinishedGame
 
 
 def _board_from_pgn(pgn: str) -> chess.Board:
@@ -146,11 +146,28 @@ def make_move(db: Session, game_id: int, user_id: int, move: str) -> Game:
         raise
 
 
-def _get_board_from_pgn(pgn: str) -> chess.Board:
-    pgn_game = chess.pgn.read_game(io.StringIO(pgn))
-    board = pgn_game.board()
+def resign(db: Session, game_id: int, user_id: int) -> Game:
+    try:
+        repository = GameRepository(db)
+        game = repository.get_by_id(game_id)
 
-    for move in pgn_game.mainline_moves():
-        board.push(move)
+        if game is None:
+            raise GameNotFound()
+        if game.status != "active":
+            raise CannotResignFinishedGame()
+        if user_id not in (game.white_player_id, game.black_player_id):
+            raise NotAPlayer()
 
-    return board
+        if user_id == game.white_player_id:
+            _finish_game(game, "0-1")
+        else:
+            _finish_game(game, "1-0")
+
+        repository.update(game)
+        db.commit()
+
+        return game
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise

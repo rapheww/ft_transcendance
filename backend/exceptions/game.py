@@ -49,3 +49,10 @@ class IllegalMove(Exception):
 
     def __init__(self, message: str = "Illegal move"):
         super().__init__(message)
+
+
+class CannotResignFinishedGame(Exception):
+    """Raised when trying to resign a finished game."""
+
+    def __init__(self, message: str = "Game is already finished"):
+        super().__init__(message)
