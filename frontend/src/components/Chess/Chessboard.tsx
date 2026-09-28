@@ -1,8 +1,9 @@
 import type React from "react";
 import Tile from "./Tile";
-import { useState } from "react";
+import { useRef, useState } from "react";
 const horizontalAxis: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const verticalAxis: string[] = ["1", "2", "3", "4", "5", "6", "7", "8"];
+import { Chess, type Square } from 'chess.js';
 
 interface Piece {
   image: string;
@@ -74,7 +75,6 @@ initialBoardState.push({
   id: "♕",
 });
 initialBoardState.push({ image: "src/assets/king_b.png", x: 4, y: 7, id: "♔" });
-
 initialBoardState.push({ image: "src/assets/rook_w.png", x: 0, y: 0, id: "♖" });
 initialBoardState.push({ image: "src/assets/rook_w.png", x: 7, y: 0, id: "♖" });
 initialBoardState.push({image:"src/assets/knight_w.png", x: 1, y: 0, id: "♘"});
@@ -94,6 +94,21 @@ interface ChessboardProps {
   setMoves: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
+function getTileElement(x: number, y: number) : HTMLElement | null{
+  const chessboard = document.getElementById("chessboard");
+  if(!chessboard) return null;
+  const index = (7 - y) * 8 + x;
+  return chessboard.children[index] as HTMLElement;
+}
+
+function squareToPos(square: string){
+  if(square.length > 2)
+      square = square.substring(1);
+  const x = horizontalAxis.indexOf(square[0]);
+  const y = verticalAxis.indexOf(square[1]);
+  return {x, y};
+}
+
 export default function Chessboard({ setMoves }: ChessboardProps) {
   const [activePiece, setActivePiece] = useState<HTMLElement | null>(null);
   const [gridX, setGridX] = useState(0);
@@ -101,6 +116,20 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
   const [pieces, setPieces] = useState<Piece[]>(initialBoardState);
   const [tileColor, setTileColor] = useState<Movements[]>([]);
   const [lastPick, setLastPick] = useState<LastPick | null>(null);
+  const [moveTile, setMoveTile] = useState<HTMLElement[]>([]);
+  let newPos: string = "";
+  let oldPos :string = "";
+  const chessRef = useRef(new Chess());
+  let possible : string[] | null = null;
+
+  function removeDot(){
+    for(let i = 0; i < moveTile.length; i++){
+      if(moveTile[i]){
+        moveTile[i].style.backgroundImage = "";
+      }
+    }
+    setMoveTile([]);
+  }
 
   function resetPiece(piece: HTMLElement) {
     piece.style.position = "";
@@ -127,6 +156,21 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
     }
   }
 
+  function possibleMoves(possible: string[]){
+    for(let i = 0; i < possible.length; i++){
+      const {x, y} = squareToPos(possible[i]);
+      const tile = getTileElement(x, y);
+      if(tile){
+        tile.style.backgroundImage = "radial-gradient(circle, rgba(0,0,0,0.2) 20%, transparent 21%)";
+        setMoveTile((prev) => {
+          let newMoveTile = [...prev];
+          newMoveTile.push(tile);
+          return newMoveTile;
+        })
+      }
+    }
+  }
+
   function grabPiece(e: React.MouseEvent) {
     const element = e.target as HTMLElement;
     if (!element.classList.contains("chess-piece")) return;
@@ -138,8 +182,10 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
     const rect = chessboard.getBoundingClientRect();
     const tileSize = rect.width / 8;
 
-    setGridX(Math.floor((e.clientX - rect.left) / tileSize));
-    setGridY(7 - Math.floor((e.clientY - rect.top) / tileSize));
+    const x = Math.floor((e.clientX - rect.left) / tileSize);
+    const y = 7 - Math.floor((e.clientY - rect.top) / tileSize); 
+    setGridX(x);
+    setGridY(y);
 
     element.style.width = `${tileSize}px`;
     element.style.height = `${tileSize}px`;
@@ -148,6 +194,7 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
     element.style.top = `${e.clientY - rect.top - tileSize / 2}px`;
     element.style.zIndex = "50";
     setActivePiece(element);
+    removeDot();
     if (!lastPick) {
       setLastPick({ piece: element, bg: back.style.backgroundColor });
     } else {
@@ -169,6 +216,11 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
       existing ? prev : [...prev, { bg: tmpColor, tile: back }],
     );
     back.style.backgroundColor = "var(--select-tile)";
+
+    const square = `${horizontalAxis[x]}${verticalAxis[y]}` as Square;
+    possible  = chessRef.current.moves({square: square});
+    possibleMoves(possible);
+    console.log(possible);
   }
 
   function movePiece(e: React.MouseEvent) {
@@ -207,6 +259,18 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
         return;
       }
 
+      //verif du mouv
+      newPos = `${horizontalAxis[x]}${verticalAxis[y]}`;
+      oldPos =`${horizontalAxis[gridX]}${verticalAxis[gridY]}`
+      try{
+        chessRef.current.move({ from: `${oldPos}`, to: `${newPos}` });
+      }
+      catch{
+        resetPiece(activePiece);
+        setActivePiece(null);
+        return;
+      }
+
       if (x !== gridX || y !== gridY) {
         const originTile = tileColor.find(
           (m) => m.tile === (activePiece!.parentNode as HTMLElement),
@@ -228,25 +292,28 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
               if (m.bg === "var(--dark-tile)") origineColor = m.bg;
           });
           if (!origineColor) origineColor = "var(--light-tile)";
-          if (origineColor === "var(--dark-tile)") {
+
+          if (origineColor === "var(--dark-tile)")
             originTile.tile.style.backgroundColor = "#738a38";
-          } else originTile.tile.style.backgroundColor = "#97b54a";
+          else
+            originTile.tile.style.backgroundColor = "#97b54a";
+
           if (dest.style.backgroundColor === "var(--dark-tile)")
             dest.style.backgroundColor = "#738a38";
-          else dest.style.backgroundColor = "#97b54a";
+          else 
+            dest.style.backgroundColor = "#97b54a";
           setTileColor([originTile, { bg: destColor, tile: dest }]);
         }
-
         //show movements
+        
         setMoves((prev) => {
           let tmp = [...prev];
-          tmp.push(`${activePiece.id}${horizontalAxis[x]}${verticalAxis[y]}`);
-          console.log(activePiece);
+          tmp.push(`${activePiece.id}${newPos}`);
           return tmp;
         });
         setLastPick(null);
       }
-
+      
       setPieces((value) => {
         const pieces = value.map((p) => {
           if (p.x === gridX && p.y === gridY) {
@@ -257,13 +324,14 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
         });
         return pieces;
       });
+      
       resetPiece(activePiece);
+      removeDot();
       setActivePiece(null);
     }
   }
 
   let board = [];
-
   for (let j = verticalAxis.length - 1; j >= 0; j--) {
     for (let i = 0; i < horizontalAxis.length; i++) {
       const number = i + j + 2;
