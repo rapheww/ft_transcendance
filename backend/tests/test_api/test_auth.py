@@ -18,7 +18,6 @@ def test_login_success(client: TestClient):
                            })
 
     assert response.status_code == 200
-
     body = response.json()
 
     assert "access_token" in body
@@ -72,9 +71,7 @@ def test_get_me_with_valid_token(client: TestClient):
                                  })
 
     assert login_response.status_code == 200
-
     token = login_response.json()["access_token"]
-
     response = client.get("/api/users/me",
                           headers={"Authorization": f"Bearer {token}"})
 
@@ -99,14 +96,12 @@ def test_get_me_with_invalid_token_returns_401(client: TestClient):
 
 
 def test_get_me_with_malformed_subject_returns_401(client: TestClient):
-    token = jwt.encode(
-        {
-            "sub": "not-an-integer",
-            "type": "access",
-        },
-        settings.jwt_secret_key,
-        algorithm=settings.jwt_algorithm,
-    )
+    token = jwt.encode({
+        "sub": "not-an-integer",
+        "type": "access"
+    },
+                       settings.jwt_secret_key,
+                       algorithm=settings.jwt_algorithm)
 
     response = client.get("/api/users/me",
                           headers={"Authorization": f"Bearer {token}"})
@@ -118,7 +113,7 @@ def test_get_me_with_malformed_subject_returns_401(client: TestClient):
 def test_get_me_with_nonexistent_user_returns_401(client: TestClient):
     token = jwt.encode({
         "sub": "999999",
-        "type": "access",
+        "type": "access"
     },
                        settings.jwt_secret_key,
                        algorithm=settings.jwt_algorithm)
@@ -133,7 +128,7 @@ def test_get_me_with_nonexistent_user_returns_401(client: TestClient):
 def test_get_me_with_wrong_token_type_returns_401(client: TestClient):
     token = jwt.encode({
         "sub": "42",
-        "type": "refresh",
+        "type": "refresh"
     },
                        settings.jwt_secret_key,
                        algorithm=settings.jwt_algorithm)
