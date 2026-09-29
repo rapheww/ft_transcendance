@@ -19,4 +19,3 @@ async def game_websocket(websocket: WebSocket, game_id: int):
             })
     except WebSocketDisconnect:
         print("disconnected")
-
