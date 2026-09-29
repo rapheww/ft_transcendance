@@ -20,29 +20,51 @@ async def game_websocket(websocket: WebSocket, game_id: int):
         await websocket.close(code=1008)
         return
     await manager.connect(game_id, user_id, websocket)
-    try:
-        while True:
-            data = await websocket.receive_json()
-            print("Conncected:", data)
-    except WebSocketDisconnect:
-        manager.disconnect(game_id, user_id)
-        print(manager.is_connected(game_id, user_id))
-
-@router.websocket("/test/games/{game_id}/{user_id}")
-async def test_game_websocket(
-    websocket: WebSocket,
-    game_id: int,
-    user_id: int
-):
-    await manager.connect(game_id, user_id, websocket)
-
-    print("Connected:", manager.is_connected(game_id, user_id))
-
+    await manager.broadcast(
+        game_id,
+        {
+            "type": "player joined",
+            "user_id": user_id
+        }
+    )
     try:
         while True:
             data = await websocket.receive_json()
             print("Received:", data)
+    except WebSocketDisconnect:
+        manager.disconnect(game_id, user_id)
+        await manager.broadcast(
+            game_id,
+            {
+                "type": "player_left",
+                "user_id": user_id
+            }
+        )
+
+@router.websocket("/test/games/{game_id}/{user_id}")
+async def test_game_websocket(websocket: WebSocket, game_id: int, user_id: int):
+    await manager.connect(game_id, user_id, websocket)
+    await manager.broadcast(
+        game_id,
+        {
+            "type": "player joined",
+            "user_id": user_id
+        }
+    )
+    try:
+        while True:
+            data = await websocket.receive_json()
+            print("Received:", data)
+            event_type = data.get("type")
+            if manager.valid_event(event_type):
+                await manager.broadcast(game_id, data)
 
     except WebSocketDisconnect:
         manager.disconnect(game_id, user_id)
-        print("Connected:", manager.is_connected(game_id, user_id))
+        await manager.broadcast(
+            game_id,
+            {
+                "type": "player_left",
+                "user_id": user_id
+            }
+        )
