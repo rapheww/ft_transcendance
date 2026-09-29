@@ -9,7 +9,7 @@
     const color = number % 2 === 0 ? "var(--dark-tile)" : "var(--light-tile)";
 
     return (
-      <div className="h-full w-full" style={{ backgroundColor: color }}>
+      <div className="h-full w-full" style={{ backgroundColor: color }} id={color}>
         <div className="test"></div>
         {image && (
           <div
