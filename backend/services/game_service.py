@@ -26,7 +26,8 @@ def _finish_game(game: Game, result: str) -> None:
     game.finished_at = datetime.now(timezone.utc)
 
 
-def create_game(db: Session, user_id: int) -> Game:
+def create_game(db: Session, user_id: int, initial_time_seconds: int = None,
+                increment_seconds: int = 0) -> Game:
     try:
         user_service.get_user_by_id(db, user_id)
         board = chess.Board()
@@ -39,7 +40,12 @@ def create_game(db: Session, user_id: int) -> Game:
                     status="waiting",
                     result=None,
                     current_fen=board.fen(),
-                    pgn=str(game_pgn))
+                    pgn=str(game_pgn),
+                    initial_time_seconds=initial_time_seconds,
+                    increment_seconds=increment_seconds,
+                    white_time_remaining=initial_time_seconds,
+                    black_time_remaining=initial_time_seconds,
+                    last_move_at=None)
 
         repository = GameRepository(db)
         repository.create(game)

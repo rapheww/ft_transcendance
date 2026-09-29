@@ -28,6 +28,11 @@ def test_create_game(db):
     assert game.pgn.rstrip().endswith("*")
     assert game.finished_at is None
 
+    assert game.initial_time_seconds is None
+    assert game.increment_seconds == 0
+    assert game.white_time_remaining is None
+    assert game.black_time_remaining is None
+
 
 def test_create_game_with_unknown_user(db):
     with pytest.raises(Exception):
@@ -454,3 +459,40 @@ def test_waiting_game_has_no_result(db):
     assert game.status == "waiting"
     assert game.result is None
     assert game.finished_at is None
+
+
+def test_create_game_with_custom_time_control(db):
+    user = create_user(db)
+    game = game_service.create_game(db,
+                                    user.id,
+                                    initial_time_seconds=300,
+                                    increment_seconds=5)
+
+    assert game.initial_time_seconds == 300
+    assert game.increment_seconds == 5
+    assert game.white_time_remaining == 300
+    assert game.black_time_remaining == 300
+
+
+def test_create_game_with_different_time_control(db):
+    user = create_user(db)
+    game = game_service.create_game(db,
+                                    user.id,
+                                    initial_time_seconds=600,
+                                    increment_seconds=10)
+
+    assert game.initial_time_seconds == 600
+    assert game.increment_seconds == 10
+
+
+def test_create_game_with_ten_minute_time_control(db):
+    user = create_user(db)
+    game = game_service.create_game(db,
+                                    user.id,
+                                    initial_time_seconds=600,
+                                    increment_seconds=0)
+
+    assert game.initial_time_seconds == 600
+    assert game.increment_seconds == 0
+    assert game.white_time_remaining == 600
+    assert game.black_time_remaining == 600

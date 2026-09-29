@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.db.base import Base
 
@@ -24,6 +24,25 @@ class Game(Base):
     current_fen: Mapped[str] = mapped_column(Text, nullable=False)
 
     pgn: Mapped[str] = mapped_column(Text, nullable=False)
+
+    initial_time_seconds: Mapped[int | None] = mapped_column(Integer,
+                                                             nullable=True,
+                                                             default=None)
+
+    increment_seconds: Mapped[int] = mapped_column(Integer,
+                                                   nullable=False,
+                                                   default=0)
+
+    white_time_remaining: Mapped[int | None] = mapped_column(Integer,
+                                                             nullable=True,
+                                                             default=None)
+
+    black_time_remaining: Mapped[int | None] = mapped_column(Integer,
+                                                             nullable=True,
+                                                             default=None)
+
+    last_move_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
                                                  nullable=False,
