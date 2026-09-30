@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from backend.api import auth, users, games, websocket
-from backend.websocket.connection_manager import router as connection_manager_router
+from backend.websocket.routes import router as connection_manager_router
 
 app = FastAPI(title="ft_transcendence")
 

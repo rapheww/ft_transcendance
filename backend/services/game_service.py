@@ -76,3 +76,38 @@ def get_game(db: Session, game_id: int) -> Game:
         raise GameNotFound()
 
     return game
+
+def make_move(db: Session, game_id: int, user_id: int, from_square: str, to_square: str) -> Game:
+    repository = GameRepository(db)
+
+    try:
+        db.expire_all()
+        
+        game = repository.get_by_id(game_id)
+
+        if game is None:
+            raise GameNotFound()
+        if game.status != "active":
+            raise ValueError("Game is not active")
+        
+        board = chess.Board(game.current_fen)
+        if board.turn == chess.WHITE:
+            if user_id != game.white_player_id:
+                raise ValueError("Not your turn")
+        else:
+            if user_id != game.black_player_id:
+                raise ValueError("Not your turn")
+        move = chess.Move.from_uci(from_square + to_square)
+        if move not in board.legal_moves:
+            raise ValueError("Illegal move")
+
+        board.push(move)
+        game.current_fen = board.fen()
+
+        repository.update(game)
+        db.commit()
+
+        return game
+    except SQLAlchemyError:
+        db.rollback()
+        raise

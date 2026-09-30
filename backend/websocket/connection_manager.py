@@ -1,70 +1,43 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-import jwt
+from fastapi import WebSocket
 
-from backend.core.security import decode_access_token
-from backend.websocket.routes import manager
+class ConnectionManager:
 
-router = APIRouter()
+    def __init__(self):
+        self.connections = {}
 
-@router.websocket("/games/{game_id}")
-async def game_websocket(websocket: WebSocket, game_id: int):
+    async def connect(self, game_id: int, user_id: int, websocket: WebSocket):
+        await websocket.accept()
+        if game_id not in self.connections:
+            self.connections[game_id] = {}
+        self.connections[game_id][user_id] = websocket
+        print("After connect:", self.connections)
 
-    token = websocket.query_params.get("token")
-    if token is None:
-        await websocket.close(code=1008)
-        return
-    try:
-        payload = decode_access_token(token)
-        user_id = int(payload["sub"])
-    except (jwt.InvalidTokenError, KeyError, ValueError):
-        await websocket.close(code=1008)
-        return
-    await manager.connect(game_id, user_id, websocket)
-    await manager.broadcast(
-        game_id,
-        {
-            "type": "player joined",
-            "user_id": user_id
-        }
-    )
-    try:
-        while True:
-            data = await websocket.receive_json()
-            print("Received:", data)
-    except WebSocketDisconnect:
-        manager.disconnect(game_id, user_id)
-        await manager.broadcast(
-            game_id,
-            {
-                "type": "player_left",
-                "user_id": user_id
-            }
-        )
+    def disconnect(self, game_id: int, user_id: int):
+        if game_id not in self.connections:
+            return
+        self.connections[game_id].pop(user_id, None)
+        if not self.connections[game_id]:
+            del self.connections[game_id]
+        print("After disconnect:", self.connections)
 
-@router.websocket("/test/games/{game_id}/{user_id}")
-async def test_game_websocket(websocket: WebSocket, game_id: int, user_id: int):
-    await manager.connect(game_id, user_id, websocket)
-    await manager.broadcast(
-        game_id,
-        {
-            "type": "player joined",
-            "user_id": user_id
-        }
-    )
-    try:
-        while True:
-            data = await websocket.receive_json()
-            print("Received:", data)
-            event_type = data.get("type")
-            if manager.valid_event(event_type):
-                await manager.broadcast(game_id, data)
+    async def broadcast(self, game_id: int, message: dict):
+        if game_id not in self.connections:
+            return
+        for websocket in self.connections[game_id].values():
+            await websocket.send_json(message)
 
-    except WebSocketDisconnect:
-        manager.disconnect(game_id, user_id)
-        await manager.broadcast(
-            game_id,
-            {
-                "type": "player_left",
-                "user_id": user_id
-            }
-        )
+    def valid_event(self, event: str) -> bool:
+        return event in { "move" }
+
+    def is_connected(self, game_id: int, user_id: int) ->bool:
+        return game_id in self.connections and user_id in self.connections[game_id]
+
+    def get_connection(self, game_id: int, user_id: int):
+        return self.connections.get(game_id, {}).get(user_id)
+
+    async def send_personal_message(self, game_id: int, user_id: int, message: dict):
+        websocket = self.connections.get(game_id, {}).get(user_id)
+        if websocket is not None:
+            await websocket.send_json(message)
+
+manager = ConnectionManager()
