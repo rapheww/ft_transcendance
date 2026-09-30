@@ -27,7 +27,7 @@ class ConnectionManager:
             await websocket.send_json(message)
 
     def valid_event(self, event: str) -> bool:
-        return event in { "move" }
+        return event in { "move", "chat" }
 
     def is_connected(self, game_id: int, user_id: int) ->bool:
         return game_id in self.connections and user_id in self.connections[game_id]

@@ -89,6 +89,8 @@ def make_move(db: Session, game_id: int, user_id: int, from_square: str, to_squa
             raise GameNotFound()
         if game.status != "active":
             raise ValueError("Game is not active")
+        if user_id != game.white_player_id and user_id != game.black_player_id:
+            raise ValueError("You are not a player in this game")
         
         board = chess.Board(game.current_fen)
         if board.turn == chess.WHITE:
