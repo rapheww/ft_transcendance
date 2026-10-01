@@ -30,6 +30,7 @@ class GameResponse(BaseModel):
     black_time_remaining: int | None
     last_move_at: datetime | None
 
+    draw_offer_by: int | None
     created_at: datetime
     finished_at: datetime | None
     model_config = {"from_attributes": True}

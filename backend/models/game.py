@@ -41,6 +41,9 @@ class Game(Base):
                                                              nullable=True,
                                                              default=None)
 
+    draw_offer_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"),
+                                                      nullable=True)
+
     last_move_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True)
 
