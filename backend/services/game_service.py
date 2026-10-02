@@ -7,12 +7,11 @@ from datetime import datetime, timezone
 from backend.models.game import Game
 from backend.repositories.game_repository import GameRepository
 from backend.services import user_service
-from backend.exceptions.game import (CannotPlayAgainstSelf, GameNotFound,
-                                     GameNotJoinable, GameNotActive,
-                                     NotAPlayer, NotYourTurn, IllegalMove,
-                                     CannotResignFinishedGame,
-                                     DrawOfferAlreadyExists, NoDrawOffer,
-                                     CannotAcceptOwnDrawOffer)
+from backend.exceptions.game import (
+    CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive,
+    NotAPlayer, NotYourTurn, IllegalMove, CannotResignFinishedGame,
+    DrawOfferAlreadyExists, NoDrawOffer, CannotAcceptOwnDrawOffer,
+    DrawNotClaimable)
 
 
 def _board_from_pgn(pgn: str) -> chess.Board:
@@ -309,6 +308,67 @@ def decline_draw(db: Session, game_id: int, user_id: int) -> Game:
             raise CannotAcceptOwnDrawOffer()
 
         game.draw_offer_by = None
+        repository.update(game)
+        db.commit()
+
+        return game
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+
+
+def claim_threefold_repetition(db: Session, game_id: int,
+                               user_id: int) -> Game:
+    try:
+        repository = GameRepository(db)
+        game = repository.get_by_id(game_id)
+
+        if game is None:
+            raise GameNotFound()
+        if game.status != "active":
+            raise GameNotActive()
+        if user_id not in (game.white_player_id, game.black_player_id):
+            raise NotAPlayer()
+
+        board = _board_from_pgn(game.pgn)
+
+        if not board.can_claim_threefold_repetition():
+            raise DrawNotClaimable()
+
+        _finish_game(game, "1/2-1/2")
+        game.draw_offer_by = None
+
+        repository.update(game)
+        db.commit()
+
+        return game
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+
+
+def claim_fifty_move(db: Session, game_id: int, user_id: int) -> Game:
+    try:
+        repository = GameRepository(db)
+        game = repository.get_by_id(game_id)
+
+        if game is None:
+            raise GameNotFound()
+        if game.status != "active":
+            raise GameNotActive()
+        if user_id not in (game.white_player_id, game.black_player_id):
+            raise NotAPlayer()
+
+        board = _board_from_pgn(game.pgn)
+
+        if not board.can_claim_fifty_moves():
+            raise DrawNotClaimable()
+
+        _finish_game(game, "1/2-1/2")
+        game.draw_offer_by = None
+
         repository.update(game)
         db.commit()
 

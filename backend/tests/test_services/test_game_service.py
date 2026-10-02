@@ -1,10 +1,14 @@
 import chess
 import pytest
-from backend.exceptions.game import CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive, NotAPlayer, IllegalMove, CannotResignFinishedGame
 from backend.models.user import User
 from backend.services import game_service
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
+from backend.exceptions.game import (CannotPlayAgainstSelf, GameNotFound,
+                                     GameNotJoinable, GameNotActive,
+                                     NotAPlayer, IllegalMove,
+                                     CannotResignFinishedGame,
+                                     DrawNotClaimable)
 
 
 def create_user(db, username="player1", email="player1@example.com"):
@@ -919,3 +923,105 @@ def test_draw_offer_is_not_cleared_by_illegal_move(db):
         game_service.make_move(db, game.id, white.id, "e2e5")
 
     assert game.draw_offer_by == white.id
+
+
+def test_player_can_claim_threefold_repetition(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    moves = [(white.id, "g1f3"), (black.id, "g8f6"), (white.id, "f3g1"),
+             (black.id, "f6g8"), (white.id, "g1f3"), (black.id, "g8f6"),
+             (white.id, "f3g1"), (black.id, "f6g8")]
+
+    for player_id, move in moves:
+        game_service.make_move(db, game.id, player_id, move)
+
+    result = game_service.claim_threefold_repetition(db, game.id, white.id)
+
+    assert result.status == "finished"
+    assert result.result == "1/2-1/2"
+    assert result.finished_at is not None
+
+
+def test_threefold_repetition_cannot_be_claimed_too_early(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    game_service.make_move(db, game.id, white.id, "g1f3")
+    game_service.make_move(db, game.id, black.id, "g8f6")
+    game_service.make_move(db, game.id, white.id, "f3g1")
+    game_service.make_move(db, game.id, black.id, "f6g8")
+
+    with pytest.raises(DrawNotClaimable):
+        game_service.claim_threefold_repetition(db, game.id, white.id)
+
+    assert game.status == "active"
+    assert game.result is None
+
+
+def test_player_can_claim_fifty_move_draw(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    fen = "7k/8/8/8/8/8/1N6/K7 w - - 99 50"
+
+    pgn_game = chess.pgn.Game()
+    pgn_game.headers["SetUp"] = "1"
+    pgn_game.headers["FEN"] = fen
+    pgn_game.headers["Result"] = "*"
+
+    game.current_fen = fen
+    game.pgn = str(pgn_game)
+    db.commit()
+
+    result = game_service.claim_fifty_move(db, game.id, white.id)
+
+    assert result.status == "finished"
+    assert result.result == "1/2-1/2"
+    assert result.finished_at is not None
+
+
+def test_fifty_move_draw_cannot_be_claimed_too_early(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    fen = "7k/8/8/8/8/8/1N6/K7 w - - 98 50"
+
+    pgn_game = chess.pgn.Game()
+    pgn_game.headers["SetUp"] = "1"
+    pgn_game.headers["FEN"] = fen
+    pgn_game.headers["Result"] = "*"
+
+    game.current_fen = fen
+    game.pgn = str(pgn_game)
+    db.commit()
+
+    with pytest.raises(DrawNotClaimable):
+        game_service.claim_fifty_move(db, game.id, white.id)
+
+    assert game.status == "active"
+    assert game.result is None
+
+
+def test_outsider_cannot_claim_threefold_repetition(db):
+    white = create_user(db)
+    black = create_user(db, username="player2", email="player2@example.com")
+    outsider = create_user(db, username="player3", email="player3@example.com")
+
+    game = game_service.create_game(db, white.id)
+    game_service.join_game(db, game.id, black.id)
+
+    with pytest.raises(NotAPlayer):
+        game_service.claim_threefold_repetition(db, game.id, outsider.id)

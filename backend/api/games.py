@@ -5,12 +5,11 @@ from backend.db.session import get_db
 from backend.models.user import User
 from backend.schemas.game import GameResponse, MoveRequest, GameCreate
 from backend.services import game_service
-from backend.exceptions.game import (CannotPlayAgainstSelf, GameNotFound,
-                                     GameNotJoinable, GameNotActive,
-                                     NotAPlayer, NotYourTurn, IllegalMove,
-                                     CannotResignFinishedGame,
-                                     DrawOfferAlreadyExists, NoDrawOffer,
-                                     CannotAcceptOwnDrawOffer)
+from backend.exceptions.game import (
+    CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive,
+    NotAPlayer, NotYourTurn, IllegalMove, CannotResignFinishedGame,
+    DrawOfferAlreadyExists, NoDrawOffer, CannotAcceptOwnDrawOffer,
+    DrawNotClaimable)
 
 router = APIRouter()
 
@@ -124,4 +123,33 @@ def decline_draw(game_id: int,
 
     except (GameNotActive, NotAPlayer, NoDrawOffer,
             CannotAcceptOwnDrawOffer) as error:
+        raise HTTPException(status_code=409, detail=str(error))
+
+
+@router.post("/{game_id}/draw-claim/repetition", response_model=GameResponse)
+def claim_threefold_repetition(game_id: int,
+                               current_user: User = Depends(get_current_user),
+                               db: Session = Depends(get_db)):
+    try:
+        return game_service.claim_threefold_repetition(db, game_id,
+                                                       current_user.id)
+
+    except GameNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error))
+
+    except (GameNotActive, NotAPlayer, DrawNotClaimable) as error:
+        raise HTTPException(status_code=409, detail=str(error))
+
+
+@router.post("/{game_id}/draw-claim/fifty-move", response_model=GameResponse)
+def claim_fifty_move(game_id: int,
+                     current_user: User = Depends(get_current_user),
+                     db: Session = Depends(get_db)):
+    try:
+        return game_service.claim_fifty_move(db, game_id, current_user.id)
+
+    except GameNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error))
+
+    except (GameNotActive, NotAPlayer, DrawNotClaimable) as error:
         raise HTTPException(status_code=409, detail=str(error))
