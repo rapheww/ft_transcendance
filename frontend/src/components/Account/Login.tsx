@@ -1,7 +1,44 @@
-import { NavLink } from "react-router-dom";
+import { NavLink} from "react-router-dom";
 import Header from "../Navbar/Header";
+import { useState } from "react";
+import { useAuth } from "../AuthProvider";
 
 const Login = () => {
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+
+  const { login } = useAuth();
+
+  //login handling
+  async function handleLogin(){
+    console.log("login ... wait...");
+    try{
+      const url = "http://127.0.0.1:8000/api/auth/login"
+      const response = await fetch(
+        url,{
+          method: "POST",
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({username: username, password: password}),
+        });
+      
+      //MORE STATUS CODE TO HANDLE
+      if(response.status != 200){
+        console.log("CANT LOGIN");
+        return;
+      }
+      else{
+        console.log('login success');
+        login({
+          username: username,
+          password: password
+        })
+      }
+    }
+    catch{
+      console.log("error fetch");
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -36,13 +73,22 @@ const Login = () => {
               type="text"
               className="input border border-gray-300 w-full"
               placeholder="Username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
             />
             <input
-              type="text"
+              type="password"
               className="input border border-gray-300 w-full"
               placeholder="Password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
             />
-            <button className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group">
+            <button
+              onClick={() => {
+                handleLogin()
+              }}
+              className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group"
+            >
               <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>
               <span className="absolute top-0 left-0 w-full bg-linear-to-b from-white to-transparent opacity-5 h-1/3"></span>
               <span className="absolute bottom-0 left-0 w-full h-1/3 bg-linear-to-t from-white to-transparent opacity-5"></span>

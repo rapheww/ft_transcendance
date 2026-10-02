@@ -5,8 +5,8 @@ import { useState } from "react";
 const NavLinks = () => {
   return (
     <>
-      <NavLink to="/profile" className="hover:text-blue-300">Profile</NavLink>
       <NavLink to="/chess" className="hover:text-blue-300">Play</NavLink>
+      <NavLink to="/profile" className="hover:text-blue-300">Profile</NavLink>
       <NavLink to="/login" className="hover:text-blue-300">Login</NavLink>
     </>
   );
