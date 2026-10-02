@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from backend.api import auth, users, games, stats, tournaments, public
-from backend.core.rate_limit import limiter
+from backend.core.public_api_security import limiter
 
 app = FastAPI(title="ft_transcendence")
 app.state.limiter = limiter

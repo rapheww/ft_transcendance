@@ -1,7 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from backend.core.api_key import PUBLIC_API_KEY
-from backend.core.rate_limit import limiter
+from backend.core.public_api_security import PUBLIC_API_KEY, limiter
 from backend.app.main import app
 from backend.db.session import get_db
 from backend.exceptions.user import UserNotFound

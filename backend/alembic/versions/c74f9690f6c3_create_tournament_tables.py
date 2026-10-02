@@ -52,7 +52,8 @@ def upgrade() -> None:
     sa.Column('joined_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['tournament_id'], ['tournaments.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('tournament_id', 'user_id', name='uq_tournament_participant')
     )
     # ### end Alembic commands ###
 

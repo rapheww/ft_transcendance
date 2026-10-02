@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from backend.core.api_key import require_api_key
-from backend.core.rate_limit import limiter
+from backend.core.public_api_security import limiter, require_api_key
 from backend.db.session import get_db
 from backend.exceptions.tournament import (AlreadyRegistered,
                                            TournamentAlreadyStarted,
