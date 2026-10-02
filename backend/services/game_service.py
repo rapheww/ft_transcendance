@@ -89,85 +89,39 @@ def get_game(db: Session, game_id: int) -> Game:
 
     return game
 
+def make_move(db: Session, game_id: int, user_id: int, from_square: str, to_square: str) -> Game:
+    repository = GameRepository(db)
 
-def make_move(db: Session, game_id: int, user_id: int, move: str) -> Game:
     try:
-        repository = GameRepository(db)
+        db.expire_all()
+        
         game = repository.get_by_id(game_id)
 
         if game is None:
             raise GameNotFound()
         if game.status != "active":
-            raise GameNotActive()
-        if user_id not in (game.white_player_id, game.black_player_id):
-            raise NotAPlayer()
-
-        board = _board_from_pgn(game.pgn)
-        is_white = user_id == game.white_player_id
-
-        if board.turn != is_white:
-            raise NotYourTurn()
-
-        try:
-            chess_move = chess.Move.from_uci(move)
-        except ValueError:
-            raise IllegalMove()
-
-        if chess_move not in board.legal_moves:
-            raise IllegalMove()
-
-        board.push(chess_move)
-
-        if board.is_checkmate():
-            result = "1-0" if board.turn == chess.BLACK else "0-1"
-            _finish_game(game, result)
-
-        elif (board.is_stalemate() or board.is_insufficient_material()
-              or board.is_fivefold_repetition()
-              or board.is_seventyfive_moves()):
-            _finish_game(game, "1/2-1/2")
-
-        pgn_game = chess.pgn.read_game(io.StringIO(game.pgn))
-        pgn_node = pgn_game
-        while pgn_node.variations:
-            pgn_node = pgn_node.variations[0]
-
-        pgn_node.add_main_variation(chess_move)
-        game.current_fen = board.fen()
-        game.pgn = str(pgn_game)
-
-        repository.update(game)
-        db.commit()
-
-        return game
-
-    except SQLAlchemyError:
-        db.rollback()
-        raise
-
-
-def resign(db: Session, game_id: int, user_id: int) -> Game:
-    try:
-        repository = GameRepository(db)
-        game = repository.get_by_id(game_id)
-
-        if game is None:
-            raise GameNotFound()
-        if game.status != "active":
-            raise CannotResignFinishedGame()
-        if user_id not in (game.white_player_id, game.black_player_id):
-            raise NotAPlayer()
-
-        if user_id == game.white_player_id:
-            _finish_game(game, "0-1")
+            raise ValueError("Game is not active")
+        if user_id != game.white_player_id and user_id != game.black_player_id:
+            raise ValueError("You are not a player in this game")
+        
+        board = chess.Board(game.current_fen)
+        if board.turn == chess.WHITE:
+            if user_id != game.white_player_id:
+                raise ValueError("Not your turn")
         else:
-            _finish_game(game, "1-0")
+            if user_id != game.black_player_id:
+                raise ValueError("Not your turn")
+        move = chess.Move.from_uci(from_square + to_square)
+        if move not in board.legal_moves:
+            raise ValueError("Illegal move")
+
+        board.push(move)
+        game.current_fen = board.fen()
 
         repository.update(game)
         db.commit()
 
         return game
-
     except SQLAlchemyError:
         db.rollback()
         raise
