@@ -6,21 +6,27 @@ import Register from "./components/Account/Register";
 import Profil from "./components/Account/Profile";
 import Mode from "./components/Matchmaking/Mode";
 import Waiting from "./components/Matchmaking/Waiting";
+import AuthProvider from "./components/AuthProvider";
+import DefaultLayout from "./components/DefaultLayout";
 
 function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-          <Route path="/" element={<Home />}/>
-          <Route path="/chess" element={<Chess />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<Profil />} />
-          <Route path="/mode" element={<Mode />} />
-          <Route path="/matchmaking" element={<Waiting />} />
+      <AuthProvider>
+        <Routes>
+            <Route path="/" element={<Home />}/>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route element={<DefaultLayout />}>
+              <Route path="/chess" element={<Chess />} />
+              <Route path="/profile" element={<Profil />} />
+              <Route path="/mode" element={<Mode />} />
+              <Route path="/matchmaking" element={<Waiting />} />
+            </Route>
 
-      </Routes>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }
