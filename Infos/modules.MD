@@ -26,6 +26,7 @@ Potential additional modules:
 - Minor: Advanced chat features (enhances the basic chat from "User interaction" module).
 - Major: An organization system.
 - Major: Introduce an AI Opponent for games.
+- Major: Recommandation system using machine learning.
 - Minor: Data export and import functionality.
 
 Total points of bonus modules: 8
