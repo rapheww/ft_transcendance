@@ -1,9 +1,10 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class GameCreate(BaseModel):
-    pass
+    initial_time_seconds: int | None = Field(default=None, gt=0)
+    increment_seconds: int = Field(default=0, ge=0)
 
 
 class GameJoin(BaseModel):
@@ -22,7 +23,14 @@ class GameResponse(BaseModel):
     result: str | None
     current_fen: str
     pgn: str
+
+    initial_time_seconds: int | None
+    increment_seconds: int
+    white_time_remaining: int | None
+    black_time_remaining: int | None
+    last_move_at: datetime | None
+
+    draw_offer_by: int | None
     created_at: datetime
     finished_at: datetime | None
-
     model_config = {"from_attributes": True}

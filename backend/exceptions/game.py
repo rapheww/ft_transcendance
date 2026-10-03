@@ -56,3 +56,31 @@ class CannotResignFinishedGame(Exception):
 
     def __init__(self, message: str = "Game is already finished"):
         super().__init__(message)
+
+
+class DrawOfferAlreadyExists(Exception):
+    """Raised when a game already has a pending draw offer."""
+
+    def __init__(self, message: str = "A draw offer is already pending"):
+        super().__init__(message)
+
+
+class NoDrawOffer(Exception):
+    """Raised when there is no pending draw offer."""
+
+    def __init__(self, message: str = "There is no pending draw offer"):
+        super().__init__(message)
+
+
+class CannotAcceptOwnDrawOffer(Exception):
+    """Raised when a player tries to accept their own draw offer."""
+
+    def __init__(self, message: str = "Cannot accept your own draw offer"):
+        super().__init__(message)
+
+
+class DrawNotClaimable(Exception):
+    """Raised when a requested draw claim is not currently valid."""
+
+    def __init__(self, message: str = "Draw cannot be claimed"):
+        super().__init__(message)
