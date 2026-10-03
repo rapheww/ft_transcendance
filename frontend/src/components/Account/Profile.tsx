@@ -1,39 +1,41 @@
 import Header from "../Navbar/Header";
 import Chart from "./Chart";
 import Editor from "./Editor";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../AuthProvider";
 import { UserRoundPen } from "lucide-react";
 
 type Profil = {
   username: string;
   email: string;
-  pfp: string;
-  darkTile: string;
-  lightTile: string;
+  avatar: string;
+  board_light_color: string;
+  board_dark_color: string;
 };
 
 const Profil = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const { user } = useAuth();
   const [profil, setProfil] = useState<Profil>();
 
+  const { token } = useAuth();
+
+  const getProfilInfos = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) return;
+      const infos = await response.json();
+      setProfil(infos);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [token]);
+
   useEffect(() => {
-    if (!user) return;
-
-    const getProfilInfos = async () => {
-      try {
-        const response = await fetch(`http://127.0.0.1:8000/api/users/${user}`);
-        if (!response.ok) return;
-        const infos = await response.json();
-        setProfil(infos);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
     getProfilInfos();
-  }, [user]);
+  }, [getProfilInfos]);
   return (
     <div>
       <Header />
@@ -62,7 +64,7 @@ const Profil = () => {
           >
             <div className=" w-1/3 h-full flex justify-center items-center">
               <img
-                src={profil?.pfp}
+                src={profil?.avatar}
                 alt="pfp"
                 id="pfp"
                 className="h-[60%] rounded-full hover:brightness-50 cursor-pointer"
@@ -89,7 +91,13 @@ const Profil = () => {
         >
           <Chart />
         </div>
-        {<Editor open={open} onClose={() => setOpen(false)} />}
+        {
+          <Editor
+            open={open}
+            onClose={() => setOpen(false)}
+            onSaved={getProfilInfos}
+          />
+        }
       </div>
     </div>
   );

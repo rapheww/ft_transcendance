@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 type LoginType = {
     username:string;
-    password:string;
+    token:string;
 }
 
 interface ProviderProps{
@@ -28,10 +28,9 @@ const AuthProvider = ({children} : {children : React.ReactNode}) => {
   const navigate = useNavigate();
   
   const login = (data:LoginType) => {
-    const t = "abc123";
     setTimeout(() => {
         setUser(data.username);
-        setToken(t);
+        setToken(data.token);
         navigate('/');
     }, 1000)
   }

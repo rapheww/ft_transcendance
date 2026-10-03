@@ -124,7 +124,7 @@ frontend:
 
 dev:
 	@echo "Starting backend and frontend..."
-	@trap 'kill 0' INT TERM EXIT; \
+	@trap 'trap - INT TERM EXIT; kill $$(jobs -p) 2>/dev/null; wait' INT TERM EXIT; \
 		$(VENV_PYTHON) -m uvicorn backend.app.main:app --reload & \
 		(cd frontend && npm run dev) & \
 		wait

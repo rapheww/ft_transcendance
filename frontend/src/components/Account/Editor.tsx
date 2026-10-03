@@ -2,16 +2,57 @@ import { X } from "lucide-react";
 import ColorPicker from "./ColorPicker";
 import { useState } from "react";
 import Preview from "./Preview";
+import { useAuth } from "../AuthProvider";
 
 interface Props {
   onClose: () => void;
+  onSaved: () => void;
   open: boolean;
 }
 
-const Editor = ({ open, onClose }: Props) => {
+const Editor = ({ open, onClose, onSaved }: Props) => {
   const [colorOpen, setColorOpen] = useState<boolean>(false);
   const [color, setColor] = useState<string>("");
   const [previewOpen, setPreviewOpen] = useState<boolean>(false);
+  const [newUsername, setNewUsername] = useState<string>("");
+  const [newPfp, setNewPfp] = useState<string>("");
+
+  const {token} = useAuth();
+
+  async function ChangeProfil(){
+    try{
+      const url = 'http://127.0.0.1:8000/api/users/me'
+
+      const body : {username?: string, avatar?: string} = {}
+      if (newUsername) body.username = newUsername;
+      if (newPfp) body.avatar = newPfp;
+
+      const response = await fetch(
+        url,{
+          method: 'PATCH',
+          headers:{
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body),
+        }
+      )
+
+      if (response.status != 200){
+          alert("changements error");
+          return false;
+      }
+      console.log('changements success')
+      setNewUsername("");
+      setNewPfp("");
+      onSaved();
+      return true;
+    }
+    catch{
+      console.log('error changes');
+    }
+  }
+
   return (
     <div
       className={`
@@ -44,14 +85,14 @@ const Editor = ({ open, onClose }: Props) => {
                 className=" h-1/2 max-h-70 border-b border-mist-700 rounded-sm p-2 flex flex-col justify-center items-center gap-4 w-[80%] min-h-32 sm:min-h-40"
               >
                 <h2 className="text-xl">Edit Pfp</h2>
-                <input className="input" placeholder="New pfp link"></input>
+                <input value={newPfp} onChange={(event) => {setNewPfp(event.target.value)}} className="input" placeholder="New pfp link"></input>
               </div>
               <div
                 id="username-editor"
                 className="h-1/2 max-h-70 rounded-sm w-[80%] border-b border-mist-700 p-2 pt-0 flex flex-col justify-center items-center gap-4 min-h-32 sm:min-h-40"
               >
                 <h2 className="text-xl">Edit Username</h2>
-                <input className="input" placeholder="New username"></input>
+                <input value={newUsername} onChange={(event) => setNewUsername(event.target.value)} className="input" placeholder="New username"></input>
               </div>
               <div
                 id="color-editor"
@@ -82,7 +123,13 @@ const Editor = ({ open, onClose }: Props) => {
                   <p onClick={() => setPreviewOpen(true)} className="text-md p-1 hover:bg-gray-400/20 rounded-md cursor-pointer">View ChessBoard</p>
                 </div>
               </div>
-              <button className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group">
+              <button 
+                onClick={async () => {
+                  if (await ChangeProfil())
+                    onClose()
+                }}
+                className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group"
+              >
                 <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>
                 <span className="absolute top-0 left-0 w-full bg-linear-to-b from-white to-transparent opacity-5 h-1/3"></span>
                 <span className="absolute bottom-0 left-0 w-full h-1/3 bg-linear-to-t from-white to-transparent opacity-5"></span>

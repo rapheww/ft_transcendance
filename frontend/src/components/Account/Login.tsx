@@ -1,4 +1,4 @@
-import { NavLink} from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import Header from "../Navbar/Header";
 import { useState } from "react";
 import { useAuth } from "../AuthProvider";
@@ -28,9 +28,10 @@ const Login = () => {
       }
       else{
         console.log('login success');
+        const accessData = await response.json();
         login({
           username: username,
-          password: password
+          token: accessData.access_token,
         })
       }
     }
@@ -70,7 +71,7 @@ const Login = () => {
           </div>
           <div className="flex flex-col items-center w-full gap-3">
             <input
-              type="text"
+              type="password"
               className="input border border-gray-300 w-full"
               placeholder="Username"
               value={username}
