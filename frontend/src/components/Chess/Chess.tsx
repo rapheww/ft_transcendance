@@ -47,8 +47,9 @@ export default function Chess() {
             flex-col
             `}
           >
-            <div className={`border-b-2 border-black w-full h-[5%] flex items-center justify-center rounded-t-md`}>
-              <p className="text-center uppercase">movements</p>
+            <div className={`border-b-2 border-black w-full h-[5%] flex items-center justify-center rounded-t-md p-2`}>
+              <p className="text-center uppercase w-1/2 hover:bg-gray-400/20 rounded-md">movements</p>
+              <p className="text-center uppercase w-1/2 hover:bg-gray-400/20 rounded-md">CHAT</p>
             </div>
             <div ref={movesListRef} className="moves-list flex flex-col w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth">
               {movePairs.map((mov, i) => (
