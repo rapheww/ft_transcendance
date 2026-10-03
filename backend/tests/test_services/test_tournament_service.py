@@ -1,11 +1,13 @@
 """Tournament behavior, registration, transactions and PostgreSQL concurrency."""
 
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 from threading import Event, current_thread
 from time import monotonic, sleep
 
 import chess
+import chess.pgn
 import pytest
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.exc import IntegrityError
@@ -134,6 +136,12 @@ def test_start_creates_first_round_matches(db):
         for pid in (match.player1_id, match.player2_id)
     }
     assert paired_ids == {p.id for p in players}
+    for match in view.matches:
+        game = db.get(Game, match.game_id)
+        assert game.initial_time_seconds == tournament_service.TOURNAMENT_INITIAL_TIME_SECONDS
+        assert game.increment_seconds == tournament_service.TOURNAMENT_INCREMENT_SECONDS
+        assert game.white_time_remaining == game.black_time_remaining == game.initial_time_seconds
+        assert game.last_move_at is not None
 
 
 def test_tournament_advances_to_next_round_once_round_is_complete(db):
@@ -154,6 +162,8 @@ def test_tournament_advances_to_next_round_once_round_is_complete(db):
     final_match = next(m for m in view.matches if m.round == 2)
 
     assert {final_match.player1_id, final_match.player2_id} == finalists
+    final_game = db.get(Game, final_match.game_id)
+    assert final_game.initial_time_seconds == tournament_service.TOURNAMENT_INITIAL_TIME_SECONDS
 
 
 def test_tournament_finishes_after_the_final_match(db):
@@ -206,13 +216,15 @@ def test_cancel_missing_tournament_raises(db):
         tournament_service.cancel_tournament(db, 999999)
 
 
-def _finish_as_draw(db, game_id, fen):
+def _finish_as_draw(db, game_id, fen, remaining_times=None):
     from datetime import datetime, timezone
     game = db.query(Game).filter(Game.id == game_id).first()
     game.status = "finished"
     game.result = "1/2-1/2"
     game.current_fen = fen
     game.finished_at = datetime.now(timezone.utc)
+    if remaining_times is not None:
+        game.white_time_remaining, game.black_time_remaining = remaining_times
     db.commit()
 
 
@@ -224,7 +236,7 @@ def test_draw_is_broken_by_material_on_the_board(db):
 
     # White is up a queen: white_material (9) > black_material (0).
     fen = "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"
-    _finish_as_draw(db, match.game_id, fen)
+    _finish_as_draw(db, match.game_id, fen, remaining_times=(10, 590))
 
     view = tournament_service.get_tournament(db, tournament.id)
     resolved = next(m for m in view.matches if m.game_id == match.game_id)
@@ -232,7 +244,73 @@ def test_draw_is_broken_by_material_on_the_board(db):
     assert resolved.winner_id == match.player1_id  # white
 
 
-def test_perfectly_equal_material_draw_is_replayed(db):
+@pytest.mark.parametrize("remaining_times,winner_color", [
+    ((120, 60), "white"),
+    ((60, 120), "black"),
+    ((0, 1), "black"),
+])
+def test_equal_material_draw_is_broken_by_remaining_time(
+        db, monkeypatch, remaining_times, winner_color):
+    players = create_four_players(db)
+    tournament = start_with(db, [p.id for p in players])
+    match = tournament_service.get_tournament(db, tournament.id).matches[0]
+    _finish_as_draw(db, match.game_id, chess.Board().fen(), remaining_times)
+
+    def unexpected_lottery(candidates):
+        raise AssertionError("Unequal clocks must decide without a lottery")
+
+    monkeypatch.setattr(tournament_service.random, "choice", unexpected_lottery)
+
+    first = tournament_service.get_tournament(db, tournament.id)
+    second = tournament_service.get_tournament(db, tournament.id)
+    resolved = next(m for m in first.matches if m.game_id == match.game_id)
+    expected_winner = match.player1_id if winner_color == "white" else match.player2_id
+    assert resolved.winner_id == expected_winner
+    assert first == second
+    assert db.query(Game).count() == 2
+    assert db.get(Game, match.game_id).result == "1/2-1/2"
+
+
+def test_clock_tiebreak_advances_round_and_finishes_final(db):
+    players = create_four_players(db)
+    tournament = start_with(db, [p.id for p in players])
+    round_one = tournament_service.get_tournament(db, tournament.id).matches
+    for match in round_one:
+        _finish_as_draw(db, match.game_id, chess.Board().fen(), (60, 120))
+
+    view = tournament_service.get_tournament(db, tournament.id)
+    final = next(m for m in view.matches if m.round == 2)
+    assert {final.player1_id, final.player2_id} == {m.player2_id for m in round_one}
+    _finish_as_draw(db, final.game_id, chess.Board().fen(), (120, 60))
+
+    first = tournament_service.get_tournament(db, tournament.id)
+    second = tournament_service.get_tournament(db, tournament.id)
+    assert first.status == "finished"
+    assert first.winner_id == final.player1_id
+    assert first == second
+    assert db.query(Game).count() == 3
+
+
+@pytest.mark.parametrize("remaining_times", [(None, None), (None, 60), (60, None)])
+def test_legacy_draw_without_both_clocks_uses_lottery(db, monkeypatch,
+                                                     remaining_times):
+    players = create_four_players(db)
+    tournament = start_with(db, [p.id for p in players])
+    match = tournament_service.get_tournament(db, tournament.id).matches[0]
+    _finish_as_draw(db, match.game_id, chess.Board().fen(), remaining_times)
+    monkeypatch.setattr(tournament_service.random, "choice",
+                        lambda candidates: candidates[1])
+
+    view = tournament_service.get_tournament(db, tournament.id)
+    resolved = next(m for m in view.matches if m.slot == match.slot)
+    assert resolved.winner_id == match.player2_id
+    assert resolved.game_id == match.game_id
+    assert db.query(Game).count() == 2
+
+
+@pytest.mark.parametrize("chosen_index", [0, 1])
+def test_equal_material_and_equal_clocks_draw_uses_lottery(
+        db, monkeypatch, chosen_index):
     players = create_four_players(db)
     tournament = start_with(db, [p.id for p in players])
 
@@ -240,14 +318,69 @@ def test_perfectly_equal_material_draw_is_replayed(db):
     original_game_id = match.game_id
 
     _finish_as_draw(db, match.game_id, chess.Board().fen())
+    choices = []
+
+    def choose(candidates):
+        choices.append(tuple(candidates))
+        return candidates[chosen_index]
+
+    monkeypatch.setattr(tournament_service.random, "choice", choose)
 
     view = tournament_service.get_tournament(db, tournament.id)
     resolved = next(m for m in view.matches
                     if m.round == 1 and {m.player1_id, m.player2_id} ==
                     {match.player1_id, match.player2_id})
 
-    assert resolved.winner_id is None
-    assert resolved.game_id != original_game_id
+    assert resolved.winner_id == (match.player1_id, match.player2_id)[chosen_index]
+    assert resolved.game_id == original_game_id
+    assert tournament_service.get_tournament(db, tournament.id) == view
+    assert choices == [(match.player1_id, match.player2_id)]
+    assert db.query(Game).count() == 2
+
+
+@pytest.mark.parametrize("ending", ["accept_draw", "threefold", "fifty_move"])
+def test_draw_clocks_are_frozen_before_tournament_tiebreak(db, ending):
+    players = create_four_players(db)
+    start = datetime(2026, 10, 3, tzinfo=timezone.utc)
+    with patch("backend.services.game_service.datetime") as game_datetime:
+        game_datetime.now.return_value = start
+        tournament = start_with(db, [p.id for p in players])
+        match = tournament_service.get_tournament(db, tournament.id).matches[0]
+        game = db.get(Game, match.game_id)
+
+        if ending == "accept_draw":
+            game_service.offer_draw(db, game.id, match.player1_id)
+            finish = game_service.accept_draw
+            player_id = match.player2_id
+        elif ending == "threefold":
+            for index, move in enumerate(("g1f3", "g8f6", "f3g1", "f6g8") * 2):
+                player_id = match.player1_id if index % 2 == 0 else match.player2_id
+                game_service.make_move(db, game.id, player_id, move)
+            finish = game_service.claim_threefold_repetition
+            player_id = match.player1_id
+        else:
+            # Equal material; either player may claim the fifty-move draw.
+            pgn = chess.pgn.Game()
+            pgn.setup(chess.Board("7k/8/8/8/8/8/8/K7 w - - 99 50"))
+            game.current_fen = pgn.board().fen()
+            game.pgn = str(pgn)
+            finish = game_service.claim_fifty_move
+            player_id = match.player1_id
+
+        game.white_time_remaining = 120
+        game.black_time_remaining = 115
+        db.commit()
+        game_datetime.now.return_value = start + timedelta(seconds=10)
+        finish(db, game.id, player_id)
+
+    db.refresh(game)
+    assert (game.white_time_remaining, game.black_time_remaining) == (110, 115)
+    first = tournament_service.get_tournament(db, tournament.id)
+    second = tournament_service.get_tournament(db, tournament.id)
+    resolved = next(m for m in first.matches if m.game_id == match.game_id)
+    assert resolved.winner_id == match.player2_id
+    assert first == second
+    assert db.query(Game).count() == 2
 
 
 # Registration integrity
@@ -335,14 +468,7 @@ def test_unrelated_integrity_error_is_not_reported_as_duplicate(
 
 
 @pytest.fixture
-def tournament_db():
-    engine = create_engine("sqlite:///:memory:")
-
-    @event.listens_for(engine, "connect")
-    def enable_foreign_keys(connection, record):
-        connection.execute("PRAGMA foreign_keys=ON")
-
-    Base.metadata.create_all(engine)
+def tournament_db(engine):
     with Session(engine) as db:
         players = [
             User(username=f"player{i}",
@@ -357,7 +483,6 @@ def tournament_db():
         for player_id in player_ids[1:]:
             tournament_service.register(db, tournament_id, player_id)
         yield db, tournament_id, player_ids[0]
-    engine.dispose()
 
 
 def fail_join(monkeypatch, fail_on):
@@ -414,7 +539,7 @@ def test_failed_next_round_preserves_previous_round(tournament_db,
     assert db.query(Game).count() == 3
 
 
-def test_failed_replay_preserves_original_game(tournament_db, monkeypatch):
+def test_failed_tiebreak_preserves_original_match(tournament_db, monkeypatch):
     db, tournament_id, creator_id = tournament_db
     tournament_service.start_tournament(db, tournament_id, creator_id)
     match = tournament_service.get_tournament(db, tournament_id).matches[0]
@@ -423,7 +548,11 @@ def test_failed_replay_preserves_original_game(tournament_db, monkeypatch):
     game.result = "1/2-1/2"
     game.finished_at = datetime.now(timezone.utc)
     db.commit()
-    fail_join(monkeypatch, 1)
+
+    def fail_commit():
+        raise RuntimeError("Simulated commit failure")
+
+    monkeypatch.setattr(db, "commit", fail_commit)
 
     with pytest.raises(RuntimeError, match="Simulated"):
         tournament_service.get_tournament(db, tournament_id)
@@ -434,6 +563,11 @@ def test_failed_replay_preserves_original_game(tournament_db, monkeypatch):
         tournament_id=tournament_id, round=match.round, slot=match.slot).one()
     assert original_match.game_id == match.game_id
     assert original_match.winner_id is None
+    monkeypatch.undo()
+    view = tournament_service.get_tournament(db, tournament_id)
+    resolved = next(m for m in view.matches if m.game_id == match.game_id)
+    assert resolved.winner_id in (match.player1_id, match.player2_id)
+    assert db.query(Game).count() == 2
 
 
 def test_successful_tournament_still_finishes(tournament_db):
@@ -618,25 +752,35 @@ def test_concurrent_registration_is_included_in_bracket(
                 for p in (m.player1_id, m.player2_id)} == set(players[:4])
 
 
-@pytest.mark.parametrize("draw", [False, True])
-def test_concurrent_reads_create_one_next_round_or_replay(
-        engine, setup_tournament, monkeypatch, draw):
+@pytest.mark.parametrize("ending", ["win", "equal_draw", "time_draw"])
+def test_concurrent_reads_resolve_each_tournament_round_once(
+        engine, setup_tournament, monkeypatch, ending):
     tournament_id, players = setup_tournament
     with Session(engine) as db:
         tournament_service.start_tournament(db, tournament_id, players[0])
         view = tournament_service.get_tournament(db, tournament_id)
         original_game_ids = {m.game_id for m in view.matches}
-        if draw:
+        if ending != "win":
             game = db.get(Game, view.matches[0].game_id)
             game.status = "finished"
             game.result = "1/2-1/2"
             game.current_fen = chess.Board().fen()
             game.finished_at = datetime.now(timezone.utc)
+            if ending == "time_draw":
+                game.white_time_remaining = 120
+                game.black_time_remaining = 60
             db.commit()
         else:
             for match in view.matches:
                 game_service.resign(db, match.game_id, match.player2_id)
 
+    choices = []
+
+    def choose(candidates):
+        choices.append(tuple(candidates))
+        return candidates[0]
+
+    monkeypatch.setattr(tournament_service.random, "choice", choose)
     first, second = _run_contended(
         engine,
         monkeypatch,
@@ -649,14 +793,16 @@ def test_concurrent_reads_create_one_next_round_or_replay(
     assert not isinstance(second, Exception)
     assert first == second
     with Session(engine) as db:
-        assert db.query(Game).count() == 3
+        assert db.query(Game).count() == (3 if ending == "win" else 2)
         matches = db.query(TournamentMatch).all()
-        if draw:
-            assert len(matches) == 2
-            assert len({m.game_id for m in matches} - original_game_ids) == 1
-        else:
+        if ending == "win":
             assert len(matches) == 3
             assert sum(m.round == 2 for m in matches) == 1
+        else:
+            assert len(matches) == 2
+            assert {m.game_id for m in matches} == original_game_ids
+            assert sum(m.winner_id is not None for m in matches) == 1
+    assert len(choices) == (1 if ending == "equal_draw" else 0)
 
 
 @pytest.mark.parametrize("first_action", ["start", "delete", "invalid_start"])
