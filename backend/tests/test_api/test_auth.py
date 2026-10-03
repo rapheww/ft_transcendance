@@ -78,7 +78,10 @@ def test_get_me_with_valid_token(client: TestClient):
     assert response.status_code == 200
     assert response.json() == {
         "username": "alice",
-        "email": "alice@example.com"
+        "email": "alice@example.com",
+        "avatar": "https://shorturl.at/Jm5fo",
+        "board_light_color": "#E3DDC5",
+        "board_dark_color": "#2C5563"
     }
 
 
