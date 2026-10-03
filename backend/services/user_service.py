@@ -80,7 +80,6 @@ def get_user(db: Session, username: str) -> User:
 def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User:
     try:
         user = user_repository.get_by_id(db, user_id)
-
         if user is None:
             raise UserNotFound("User not found")
 
@@ -97,13 +96,18 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User:
         if user_data.email is not None:
             existing_email = user_repository.get_by_email(db, user_data.email)
 
-            if (existing_email is not None and existing_email.id != user.id):
+            if existing_email is not None and existing_email.id != user.id:
                 raise UserAlreadyExists("Email already exists")
 
             user.email = user_data.email
 
-        user_repository.update(db, user)
+        if user_data.avatar is not None:
+            user.avatar = user_data.avatar
 
+        if user_data.board_color is not None:
+            user.board_color = user_data.board_color
+
+        user_repository.update(db, user)
         db.commit()
 
         return user
