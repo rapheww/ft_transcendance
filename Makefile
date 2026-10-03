@@ -10,6 +10,19 @@ VENV_PIP := $(VENV)/bin/pip
 
 DB_CONTAINER := transcendence-db
 
+.DEFAULT_GOAL := setup
+
+# ---------------------------------------------------------------------------
+# Main development workflow
+# ---------------------------------------------------------------------------
+
+setup:
+	@echo "Setting up Transcendence..."
+	$(MAKE) install
+	$(MAKE) db
+	$(MAKE) migrate
+	$(MAKE) dev
+
 # ---------------------------------------------------------------------------
 # Help
 # ---------------------------------------------------------------------------
@@ -18,8 +31,9 @@ help:
 	@echo ""
 	@echo "Transcendence development commands:"
 	@echo ""
-	@echo "  make install          Install backend and frontend dependencies"
-	@echo "  make db               Create/start PostgreSQL container"
+	@echo "  make setup           Install, start DB, migrate, and run the app"
+	@echo "  make install         Install backend and frontend dependencies"
+	@echo "  make db              Create/start PostgreSQL container"
 	@echo "  make db-stop         Stop PostgreSQL container"
 	@echo "  make db-status       Show PostgreSQL container status"
 	@echo "  make migrate         Run database migrations"
@@ -69,6 +83,21 @@ db:
 			-p 5432:5432 \
 			-d docker.io/library/postgres:17; \
 	fi
+	@echo "Waiting for PostgreSQL to be ready..."
+	@for i in $$(seq 1 30); do \
+		if podman exec $(DB_CONTAINER) pg_isready \
+			-U transcendence \
+			-d transcendence \
+			-q; then \
+			echo "PostgreSQL is ready!"; \
+			exit 0; \
+		fi; \
+		echo "  PostgreSQL is not ready yet... ($$i/30)"; \
+		sleep 1; \
+	done; \
+	echo "ERROR: PostgreSQL did not become ready."; \
+	podman logs $(DB_CONTAINER); \
+	exit 1
 
 db-stop:
 	@podman stop $(DB_CONTAINER) 2>/dev/null || true
@@ -113,5 +142,25 @@ lint:
 build:
 	cd frontend && npm run build
 
+# ---------------------------------------------------------------------------
+# Cleanup
+# ---------------------------------------------------------------------------
 
-.PHONY: help install install-backend install-frontend db db-stop db-status migrate backend frontend dev test lint build
+clean:
+	@echo "Stopping PostgreSQL..."
+	@podman stop $(DB_CONTAINER) 2>/dev/null || true
+	@echo "Removing build artifacts..."
+	@rm -rf frontend/dist
+	@find . -type d -name "__pycache__" -prune -exec rm -rf {} +
+	@echo "Clean complete."
+
+fclean: clean
+	@echo "Removing PostgreSQL container..."
+	@podman rm -f $(DB_CONTAINER) 2>/dev/null || true
+	@echo "Removing dependencies..."
+	@rm -rf $(VENV)
+	@rm -rf frontend/node_modules
+	@echo "Full clean complete."
+
+
+.PHONY: help setup install install-backend install-frontend db db-stop db-status migrate backend frontend dev test lint build clean fclean
