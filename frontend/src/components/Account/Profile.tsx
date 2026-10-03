@@ -3,9 +3,38 @@ import Chart from "./Chart";
 import Editor from "./Editor";
 import { useState } from "react";
 import { UserRoundPen } from 'lucide-react';
+import { useAuth } from "../AuthProvider";
 
 const Profil = () => {
   const [open, setOpen] = useState<boolean>(false)
+  const {user} = useAuth();
+  const [username, setUsername] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+    
+  async function getProfilInfos(){
+    try{
+      const url = `http://127.0.0.1:8000/api/users/${user}`;
+      const response = await fetch(
+        url,{
+          method: 'GET'
+        }
+      )
+      if(response.status == 422){
+        console.log('error \n', response);
+      }
+      else if(response.status == 200){
+        response.json().then(infos => {
+          setUsername(infos.username)
+          setEmail(infos.email)
+        })
+      }
+    }
+    catch{
+      return;
+    }
+  }
+
+  getProfilInfos();
   return (
     <div>
       <Header />
@@ -42,10 +71,10 @@ const Profil = () => {
               />
             </div>
             <div className=" w-1/3 h-full flex justify-center items-center">
-              <p className="text-center">Username</p>
+              <p className="text-center">{username}</p>
             </div>
             <div className=" w-1/3 h-full flex justify-center items-center">
-              <p className="text-center">Guilde</p>
+              <p className="text-center">{email}</p>
             </div>
               <button onClick={() => setOpen(true)}><UserRoundPen className="mr-5 cursor-pointer hover:bg-gray-400/30 rounded-lg p-1" size={32}/></button>
           </div>

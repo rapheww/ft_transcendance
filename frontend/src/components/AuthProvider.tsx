@@ -30,10 +30,8 @@ const AuthProvider = ({children} : {children : React.ReactNode}) => {
   const login = (data:LoginType) => {
     const t = "abc123";
     setTimeout(() => {
-        const obj = {...data, token: t}
         setUser(data.username);
         setToken(t);
-        localStorage.setItem('user', JSON.stringify(obj))
         navigate('/');
     }, 1000)
   }
@@ -41,7 +39,6 @@ const AuthProvider = ({children} : {children : React.ReactNode}) => {
   const logout = () => {
     setUser(null)
     setToken('')
-    localStorage.removeItem('user');
   }
 
   return (
