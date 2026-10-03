@@ -20,8 +20,12 @@ class User(Base):
 
     avatar: Mapped[str] = mapped_column(String(500),
                                         nullable=False,
-                                        default="default")
+                                        default="https://shorturl.at/Jm5fo")
 
-    board_color: Mapped[str] = mapped_column(String(7),
-                                             nullable=False,
-                                             default="#2C5563")
+    board_light_color: Mapped[str] = mapped_column(String(7),
+                                                   nullable=False,
+                                                   default="#E3DDC5")
+
+    board_dark_color: Mapped[str] = mapped_column(String(7),
+                                                  nullable=False,
+                                                  default="#2C5563")

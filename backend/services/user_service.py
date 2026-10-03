@@ -104,8 +104,11 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User:
         if user_data.avatar is not None:
             user.avatar = user_data.avatar
 
-        if user_data.board_color is not None:
-            user.board_color = user_data.board_color
+        if user_data.board_light_color is not None:
+            user.board_light_color = user_data.board_light_color
+
+        if user_data.board_dark_color is not None:
+            user.board_dark_color = user_data.board_dark_color
 
         user_repository.update(db, user)
         db.commit()
