@@ -18,7 +18,10 @@ const Mode = () => {
           {modes.map((mode) => (
             <button
               key={mode}
-              onClick={() => navigate("/matchmaking")}
+              onClick={() =>{
+                
+                navigate("/matchmaking");
+              }}
               className="btn bg-mist-700 hover:bg-mist-600 md:hover:shadow-[0px_0px_15px_#fff] transition-colors
                          w-full sm:w-60 lg:w-100
                          h-28 sm:h-40 lg:h-50

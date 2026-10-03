@@ -1,13 +1,21 @@
 import { NavLink } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../AuthProvider";
 
 const NavLinks = () => {
+  const { token } = useAuth();
+  const isLogged : boolean = token != '' ? true : false;
   return (
     <>
       <NavLink to="/chess" className="hover:text-blue-300">Play</NavLink>
-      <NavLink to="/profile" className="hover:text-blue-300">Profile</NavLink>
-      <NavLink to="/login" className="hover:text-blue-300">Login</NavLink>
+      {
+        isLogged ? (
+          <NavLink to="/profile" className="hover:text-blue-300">Profile</NavLink>
+        ) : (
+          <NavLink to="/login" className="hover:text-blue-300">Login</NavLink>
+        )
+      }
     </>
   );
 };
@@ -20,7 +28,7 @@ const Navbar = () => {
   return (
     <>
       <nav className="flex justify-end w-1/3">
-        <div className="hidden w-full justify-between md:flex">
+        <div className="hidden w-full justify-end gap-60 md:flex lg:mr-15 md:mr-10 sm:mr-5">
           <NavLinks />
         </div>
         <div className="md:hidden">
