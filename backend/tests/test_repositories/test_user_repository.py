@@ -88,3 +88,45 @@ def test_update_user(db):
     assert result.id == created_user.id
     assert result.username == "alice"
     assert result.email == "new@example.com"
+
+
+def test_update_user_customization(db):
+    user = User(username="alice",
+                email="alice@example.com",
+                password_hash="test-password-hash")
+
+    created_user = user_repository.create(db, user)
+
+    created_user.avatar = "custom-avatar"
+    created_user.board_light_color = "#FFFFFF"
+    created_user.board_dark_color = "#000000"
+
+    result = user_repository.update(db, created_user)
+
+    assert result.id == created_user.id
+    assert result.avatar == "custom-avatar"
+    assert result.board_light_color == "#FFFFFF"
+    assert result.board_dark_color == "#000000"
+
+
+def test_update_user_keeps_unchanged_fields(db):
+    user = User(username="alice",
+                email="alice@example.com",
+                password_hash="test-password-hash")
+
+    created_user = user_repository.create(db, user)
+
+    original_username = created_user.username
+    original_email = created_user.email
+    original_avatar = created_user.avatar
+    original_light_color = created_user.board_light_color
+    original_dark_color = created_user.board_dark_color
+
+    created_user.email = "new@example.com"
+    result = user_repository.update(db, created_user)
+
+    assert result.username == original_username
+    assert result.email == "new@example.com"
+    assert result.avatar == original_avatar
+    assert result.board_light_color == original_light_color
+    assert result.board_dark_color == original_dark_color

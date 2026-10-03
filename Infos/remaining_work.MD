@@ -98,9 +98,9 @@ This checklist covers only the mandatory modules listed in `modules.MD`. Optiona
 
 - [ ] **Complete user interaction and customization support**
 	- [ ] Confirm the user-facing flows have backend operations: authenticated profile read/update, game creation/joining, and in-game chat through the game WebSocket.
-	- [SOON] Add avatar and board-color fields to the user model/schema and an Alembic migration if these are the selected customization options; define validation and sensible defaults.
-	- [ ] Extend the authenticated user read/update endpoints to return and persist those fields, and ensure one user's settings cannot be changed by another user.
-	- [ ] Add/update service and repository tests for valid changes, invalid values, unchanged fields, and unauthorized requests.
+	- [x] Add avatar and board-color fields to the user model/schema and an Alembic migration if these are the selected customization options; define validation and sensible defaults.
+	- [x] Extend the authenticated user read/update endpoints to return and persist those fields, and ensure one user's settings cannot be changed by another user.
+	- [x] Add/update service and repository tests for valid changes, invalid values, unchanged fields, and unauthorized requests.
 	- [ ] If the project chooses a different player interaction such as invitations or matchmaking queue, define its API/WebSocket contract and add persistence/authorization as needed; current game APIs only support creating and joining by ID.
 	- **Done when:** frontend-required profile settings survive database reloads and user-to-user game/chat flows are authorized and usable.
 

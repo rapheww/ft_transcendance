@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 from backend.exceptions.user import UserAlreadyExists, UserNotFound, InvalidCredentials
 from backend.schemas.user import UserCreate, UserUpdate
 from backend.services import user_service
@@ -217,3 +218,83 @@ def test_update_user_raises_when_email_exists(db):
 
     with pytest.raises(UserAlreadyExists):
         user_service.update_user(db, second_user.id, update_data)
+
+
+def test_update_user_customization(db):
+    user_data = UserCreate(username="alice",
+                           email="alice@example.com",
+                           password="password123")
+
+    created_user = user_service.create_user(db, user_data)
+
+    update_data = UserUpdate(avatar="avatar-2",
+                             board_light_color="#FFFFFF",
+                             board_dark_color="#000000")
+
+    result = user_service.update_user(db, created_user.id, update_data)
+
+    assert result.avatar == "avatar-2"
+    assert result.board_light_color == "#FFFFFF"
+    assert result.board_dark_color == "#000000"
+
+
+def test_update_user_customization_is_persisted(db):
+    user_data = UserCreate(username="alice",
+                           email="alice@example.com",
+                           password="password123")
+
+    created_user = user_service.create_user(db, user_data)
+    update_data = UserUpdate(avatar="avatar-2",
+                             board_light_color="#FFFFFF",
+                             board_dark_color="#000000")
+
+    user_service.update_user(db, created_user.id, update_data)
+    result = user_repository.get_by_id(db, created_user.id)
+
+    assert result.avatar == "avatar-2"
+    assert result.board_light_color == "#FFFFFF"
+    assert result.board_dark_color == "#000000"
+
+
+def test_update_user_keeps_unchanged_fields(db):
+    user_data = UserCreate(username="alice",
+                           email="alice@example.com",
+                           password="password123")
+
+    created_user = user_service.create_user(db, user_data)
+
+    original_username = created_user.username
+    original_email = created_user.email
+    original_avatar = created_user.avatar
+    original_dark_color = created_user.board_dark_color
+
+    update_data = UserUpdate(board_light_color="#FFFFFF")
+    result = user_service.update_user(db, created_user.id, update_data)
+
+    assert result.username == original_username
+    assert result.email == original_email
+    assert result.avatar == original_avatar
+    assert result.board_light_color == "#FFFFFF"
+    assert result.board_dark_color == original_dark_color
+
+
+def test_update_user_customization(db):
+    user_data = UserCreate(username="alice",
+                           email="alice@example.com",
+                           password="password123")
+
+    created_user = user_service.create_user(db, user_data)
+    update_data = UserUpdate(avatar="custom-avatar",
+                             board_light_color="#FFFFFF",
+                             board_dark_color="#000000")
+
+    result = user_service.update_user(db, created_user.id, update_data)
+
+    assert result.avatar == "custom-avatar"
+    assert result.board_light_color == "#FFFFFF"
+    assert result.board_dark_color == "#000000"
+
+
+def test_user_update_rejects_avatar_too_long():
+    with pytest.raises(ValidationError):
+        UserUpdate(avatar="a" * 501)
