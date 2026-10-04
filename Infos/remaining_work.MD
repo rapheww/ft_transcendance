@@ -93,7 +93,7 @@ This checklist covers only the mandatory modules listed in `modules.MD`. Optiona
 	- [ ] Confirm all five public routes appear with correct methods, paths, path/body parameters, response models, and success/error status codes.
 	- [ ] Document `X-API-Key`: how clients send it, expected missing/invalid-key responses, and how an operator configures `PUBLIC_API_KEY` without committing the secret.
 	- [ ] Document the rate limit and what response clients receive when it is exceeded; ensure each public route remains rate limited.
-	- [ ] Add concise project-facing examples for calling the routes, including representative request and response payloads where applicable.
+	- [ ] Add concise project-facing examples zfor calling the routes, including representative request and response payloads where applicable.
 	- **Done when:** a developer can find the docs, understand all five endpoints and their security requirements, and successfully call them with a configured key.
 
 - [ ] **Complete user interaction and customization support**
