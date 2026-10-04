@@ -8,34 +8,42 @@ const Login = () => {
   const [password, setPassword] = useState<string>("");
 
   const { login } = useAuth();
-
   //login handling
-  async function handleLogin(){
+  async function handleLogin() {
     console.log("login ... wait...");
-    try{
-      const url = "http://127.0.0.1:8000/api/auth/login"
-      const response = await fetch(
-        url,{
-          method: "POST",
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({username: username, password: password}),
-        });
-      
+    try {
+      const url = "http://127.0.0.1:8000/api/auth/login";
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username, password: password }),
+      });
+
       //MORE STATUS CODE TO HANDLE
-      if(response.status != 200){
+      if (response.status != 200) {
         console.log("CANT LOGIN");
         return;
-      }
-      else{
-        console.log('login success');
+      } else {
+        console.log("login success");
         const accessData = await response.json();
         login({
           username: username,
           token: accessData.access_token,
-        })
+        });
+        
+        //set css color
+        const token = accessData.access_token;
+        const profilResponse = await fetch("http://127.0.0.1:8000/api/users/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if(profilResponse.status == 200){
+          const profil = await profilResponse.json();
+          document.documentElement.style.setProperty("--dark-tile", profil.board_dark_color);
+          document.documentElement.style.setProperty("--light-tile", profil.board_light_color);
+          console.log('color saved');
+        }
       }
-    }
-    catch{
+    } catch {
       console.log("error fetch");
     }
   }
@@ -86,7 +94,7 @@ const Login = () => {
             />
             <button
               onClick={() => {
-                handleLogin()
+                handleLogin();
               }}
               className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group"
             >
