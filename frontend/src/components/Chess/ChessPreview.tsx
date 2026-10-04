@@ -1,5 +1,6 @@
-import Tile from "./Tile";
+import { useAuth } from "../AuthProvider";
 import { useState } from "react";
+import PreviewTile from "./TilePreview";
 const horizontalAxis: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const verticalAxis: string[] = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
@@ -38,26 +39,30 @@ initialBoardState.push({image: "src/assets/bishop_w.png", x: 5, y: 0, id: "♗"}
 initialBoardState.push({image: "src/assets/queen_w.png", x: 3, y: 0, id: "♕"});
 initialBoardState.push({ image: "src/assets/king_w.png", x: 4, y: 0, id: "♔" });
 
+interface PreviewProps{
+  dark: string | null;
+  light: string | null;
+}
 
-export default function ChessPreview() {
+export default function ChessPreview({dark, light}: PreviewProps) {
   const [pieces] = useState<Piece[]>(initialBoardState);
-
+  const {profil} = useAuth();
   let board = [];
+
+  if(profil) console.log("profil loading...");
 
   for (let j = verticalAxis.length - 1; j >= 0; j--) {
     for (let i = 0; i < horizontalAxis.length; i++) {
       const number = i + j + 2;
       let image = undefined;
-      let id = undefined;
       pieces.forEach((p) => {
         if (p.x === i && p.y === j) {
           image = p.image;
-          id = p.id;
         }
       });
 
       board.push(
-        <Tile key={`${j}, ${i}`} image={image} number={number} id={id}></Tile>,
+        <PreviewTile key={`${j}, ${i}`} image={image} number={number} dark={dark} light={light} />,
       );
     }
   }

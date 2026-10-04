@@ -12,9 +12,26 @@ type LoginType = {
   token: string;
 };
 
+export type ProfilType = {
+  username: string;
+  email: string;
+  avatar: string;
+  board_light_color: string;
+  board_dark_color: string;
+};
+
+const emptyProfil: ProfilType = {
+  username: "",
+  email: "",
+  avatar: "",
+  board_light_color: "",
+  board_dark_color: "",
+};
+
 interface ProviderProps {
   user: string | null;
   token: string;
+  profil: ProfilType;
   login(data: LoginType): void;
   logout(): void;
 }
@@ -22,11 +39,13 @@ interface ProviderProps {
 const AuthContext = createContext<ProviderProps>({
   user: null,
   token: "",
+  profil: emptyProfil,
   login: () => {},
   logout: () => {},
 });
 
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [profil, setProfil] = useState<ProfilType>(emptyProfil);
   const storedInfo = localStorage.getItem("user")
     ? JSON.parse(localStorage.getItem("user") || "{}")
     : null;
@@ -47,7 +66,9 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = useCallback(() => {
     setUser(null);
     setToken("");
+    setProfil(emptyProfil);
     localStorage.removeItem("user");
+    console.log("logout appelé");
     navigate("/login");
   }, [navigate]);
 
@@ -62,6 +83,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (!response.ok) {
           logout();
         }
+        if(response.ok) setProfil(await response.json());
       } catch {
         console.log("error");
       }
@@ -70,7 +92,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [token, logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, profil}}>
       {children}
     </AuthContext.Provider>
   );

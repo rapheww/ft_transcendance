@@ -9,7 +9,8 @@ const Login = () => {
 
   const { login } = useAuth();
   //login handling
-  async function handleLogin() {
+  async function handleLogin(event : any) {
+    if (event) event.preventDefault();
     console.log("login ... wait...");
     try {
       const url = "http://127.0.0.1:8000/api/auth/login";
@@ -21,7 +22,10 @@ const Login = () => {
 
       //MORE STATUS CODE TO HANDLE
       if (response.status != 200) {
-        console.log("CANT LOGIN");
+        alert("Invalid Username or password");
+        const divReg = document.getElementById("login")
+        if (!divReg) return;
+        divReg.className = "flex min-h-100 w-full max-w-xl flex-col justify-center border-2 border-red-300 shadow-xl shadow-red-500 bg-mist-800/75 rounded-md p-6 sm:p-10"
         return;
       } else {
         console.log("login success");
@@ -30,18 +34,6 @@ const Login = () => {
           username: username,
           token: accessData.access_token,
         });
-        
-        //set css color
-        const token = accessData.access_token;
-        const profilResponse = await fetch("http://127.0.0.1:8000/api/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if(profilResponse.status == 200){
-          const profil = await profilResponse.json();
-          document.documentElement.style.setProperty("--dark-tile", profil.board_dark_color);
-          document.documentElement.style.setProperty("--light-tile", profil.board_light_color);
-          console.log('color saved');
-        }
       }
     } catch {
       console.log("error fetch");
@@ -54,6 +46,7 @@ const Login = () => {
 
       <div className="flex justify-center items-center min-h-[calc(100vh-72px)] px-4 py-8">
         <div
+          id="login"
           className="
             flex
             min-h-100
@@ -77,7 +70,10 @@ const Login = () => {
               </NavLink>
             </p>
           </div>
-          <div className="flex flex-col items-center w-full gap-3">
+          <form
+            onSubmit={handleLogin}
+            className="flex flex-col items-center w-full gap-3"
+          >
             <input
               type="password"
               className="input border border-gray-300 w-full"
@@ -93,9 +89,7 @@ const Login = () => {
               onChange={(event) => setPassword(event.target.value)}
             />
             <button
-              onClick={() => {
-                handleLogin();
-              }}
+              type="submit"
               className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group"
             >
               <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>
@@ -107,7 +101,7 @@ const Login = () => {
               <span className="absolute w-0 h-0 transition-all duration-350 ease-out bg-white rounded-full group-hover:w-56 group-hover:h-56 opacity-5"></span>
               <span className="relative">Login</span>
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>

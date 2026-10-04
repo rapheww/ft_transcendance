@@ -5,9 +5,11 @@ import ChessPreview from "../Chess/ChessPreview";
 interface PreviewProps {
   previewOnClose: () => void;
   previewOpen: boolean;
+  dark: string | null;
+  light: string | null;
 }
 
-const Preview = ({ previewOpen, previewOnClose }: PreviewProps) => {
+const Preview = ({ previewOpen, previewOnClose, dark, light }: PreviewProps) => {
   return createPortal(
     <div
       className={`
@@ -35,7 +37,7 @@ const Preview = ({ previewOpen, previewOnClose }: PreviewProps) => {
                 <X size={30} />
               </button>
               <h1 className="text-xl font-extrabold">ChessBoard Preview</h1>
-              <ChessPreview />
+              <ChessPreview dark={dark} light={light} />
             </div>
           </div>
         </div>

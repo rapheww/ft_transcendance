@@ -163,6 +163,8 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
               <Preview 
                 previewOpen={previewOpen}
                 previewOnClose={() => setPreviewOpen(false)}
+                dark={dark}
+                light={light}
               />
             </div>
           </div>

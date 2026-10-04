@@ -5,13 +5,17 @@ import { useAuth } from "../AuthProvider";
 
 const NavLinks = () => {
   const { token } = useAuth();
+  const { logout } = useAuth();
   const isLogged : boolean = token != '' ? true : false;
   return (
     <>
       <NavLink to="/chess" className="hover:text-blue-300">Play</NavLink>
       {
         isLogged ? (
-          <NavLink to="/profile" className="hover:text-blue-300">Profile</NavLink>
+          <div className="flex w-full justify-between">
+            <NavLink to="/profile" className="hover:text-blue-300">Profile</NavLink>
+            <NavLink onClick={logout} to="/" className="hover:text-blue-300">Logout</NavLink>
+          </div>
         ) : (
           <NavLink to="/login" className="hover:text-blue-300">Login</NavLink>
         )

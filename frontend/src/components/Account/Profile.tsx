@@ -2,20 +2,13 @@ import Header from "../Navbar/Header";
 import Chart from "./Chart";
 import Editor from "./Editor";
 import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "../AuthProvider";
+import { useAuth, type ProfilType } from "../AuthProvider";
 import { UserRoundPen } from "lucide-react";
 
-type Profil = {
-  username: string;
-  email: string;
-  avatar: string;
-  board_light_color: string;
-  board_dark_color: string;
-};
 
 const Profil = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [profil, setProfil] = useState<Profil>();
+  const [profil, setProfil] = useState<ProfilType>();
 
   const { token } = useAuth();
 
