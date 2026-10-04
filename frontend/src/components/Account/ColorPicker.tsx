@@ -1,15 +1,16 @@
 import { Sketch } from "@uiw/react-color";
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { createPortal } from "react-dom";
 
 interface ColorProps {
   colorOnClose: () => void;
   colorOpen: boolean;
-  Color: string
+  Color: string;
+  setter: Dispatch<SetStateAction<string>>;
 }
 
-const ColorPicker = ({colorOpen , colorOnClose, Color} : ColorProps) => {
+const ColorPicker = ({colorOpen , colorOnClose, Color, setter} : ColorProps) => {
     const [hex, setHex] = useState<string>(Color);
 
     useEffect(() => {
@@ -56,7 +57,7 @@ const ColorPicker = ({colorOpen , colorOnClose, Color} : ColorProps) => {
                 
               <button 
                 onClick={() => {
-                    document.documentElement.style.setProperty(Color, hex);
+                    setter(hex);
                     colorOnClose()
                 }}
                 className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group">

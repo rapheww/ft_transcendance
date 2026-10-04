@@ -11,11 +11,14 @@ interface Props {
 }
 
 const Editor = ({ open, onClose, onSaved }: Props) => {
-  const [colorOpen, setColorOpen] = useState<boolean>(false);
+  const [darkOpen, setDarkOpen] = useState<boolean>(false);
+  const [lightOpen, setLightOpen] = useState<boolean>(false);
   const [color, setColor] = useState<string>("");
   const [previewOpen, setPreviewOpen] = useState<boolean>(false);
   const [newUsername, setNewUsername] = useState<string>("");
   const [newPfp, setNewPfp] = useState<string>("");
+  const [dark, setDark] = useState<string>("");
+  const [light, setLight] = useState<string>("");
 
   const {token} = useAuth();
 
@@ -23,9 +26,11 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
     try{
       const url = 'http://127.0.0.1:8000/api/users/me'
 
-      const body : {username?: string, avatar?: string} = {}
+      const body : {username?: string, avatar?: string, board_light_color?: string, board_dark_color?: string} = {}
       if (newUsername) body.username = newUsername;
       if (newPfp) body.avatar = newPfp;
+      if (dark) body.board_dark_color = dark;
+      if (light) body.board_light_color = light;
 
       const response = await fetch(
         url,{
@@ -45,6 +50,10 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
       console.log('changements success')
       setNewUsername("");
       setNewPfp("");
+      if (body.board_dark_color)
+        document.documentElement.style.setProperty("--dark-tile", body.board_dark_color);
+      if(body.board_light_color)
+        document.documentElement.style.setProperty("--light-tile", body.board_light_color);
       onSaved();
       return true;
     }
@@ -101,7 +110,7 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
                 <h2 className="text-xl">ChessBoard Color</h2>
                 <div className="flex w-full h-full justify-center items-center gap-5">
                   <div onClick={() => {
-                        setColorOpen(true);
+                        setLightOpen(true);
                         setColor("--light-tile");
                       }}
                       className="cursor-pointer w-1/3 bg-white hover:scale-105 duration-400 text-black rounded-md p-2 text-center">
@@ -110,7 +119,7 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
                     </p>
                 </div>
                 <div onClick={() => {
-                      setColorOpen(true);
+                      setDarkOpen(true);
                       setColor("--dark-tile");
                     }}
                     className="cursor-pointer w-1/3 bg-gray-500 hover:scale-105 duration-400 text-black rounded-md p-2 text-center"
@@ -140,9 +149,16 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
                 <span className="relative">Save</span>
               </button>
               <ColorPicker
-                colorOpen={colorOpen}
+                colorOpen={darkOpen}
                 Color={color}
-                colorOnClose={() => setColorOpen(false)}
+                colorOnClose={() => setDarkOpen(false)}
+                setter={setDark}
+              />
+              <ColorPicker
+                colorOpen={lightOpen}
+                Color={color}
+                colorOnClose={() => setLightOpen(false)}
+                setter={setLight}
               />
               <Preview 
                 previewOpen={previewOpen}
