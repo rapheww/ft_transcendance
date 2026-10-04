@@ -88,12 +88,12 @@ This checklist covers only the mandatory modules listed in `modules.MD`. Optiona
 
 ### To finish
 
-- [ ] **Complete the public API requirement**
-	- [ ] Open `/openapi.json` and `/docs` in the running application and confirm both are available in the expected deployment configuration.
-	- [ ] Confirm all five public routes appear with correct methods, paths, path/body parameters, response models, and success/error status codes.
-	- [ ] Document `X-API-Key`: how clients send it, expected missing/invalid-key responses, and how an operator configures `PUBLIC_API_KEY` without committing the secret.
-	- [ ] Document the rate limit and what response clients receive when it is exceeded; ensure each public route remains rate limited.
-	- [ ] Add concise project-facing examples zfor calling the routes, including representative request and response payloads where applicable.
+- [x] **Complete the public API requirement**
+	- [x] Open `/openapi.json` and `/docs` in the running application and confirm both are available in the expected deployment configuration.
+	- [x] Confirm all five public routes appear with correct methods, paths, path/body parameters, response models, and success/error status codes.
+	- [x] Document `X-API-Key`: how clients send it, expected missing/invalid-key responses, and how an operator configures `PUBLIC_API_KEY` without committing the secret.
+	- [x] Document the rate limit and what response clients receive when it is exceeded; ensure each public route remains rate limited.
+	- [x] Add concise project-facing examples for calling the routes, including representative request and response payloads where applicable.
 	- **Done when:** a developer can find the docs, understand all five endpoints and their security requirements, and successfully call them with a configured key.
 
 - [ ] **Complete user interaction and customization support**
