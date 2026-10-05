@@ -15,6 +15,14 @@ class Game(Base):
     black_player_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"),
                                                         nullable=True)
 
+    opponent_type: Mapped[str] = mapped_column(String(20),
+                                               nullable=False,
+                                               default="human")
+
+    ai_difficulty: Mapped[str | None] = mapped_column(String(20),
+                                                      nullable=True,
+                                                      default=None)
+
     status: Mapped[str] = mapped_column(String(20),
                                         nullable=False,
                                         default="waiting")
