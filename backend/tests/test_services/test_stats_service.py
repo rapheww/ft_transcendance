@@ -57,8 +57,13 @@ def test_get_player_stats_counts_wins_losses_and_draws(db):
     create_finished_game(db, bob, alice, "0-1")  # alice (black) wins
     create_finished_game(db, alice, bob, "1/2-1/2")  # draw
 
+    alice.elo = 1234
+    db.commit()
+
     stats = stats_service.get_player_stats(db, alice.id)
 
+    assert stats.elo == 1234
+    assert stats_service.get_player_stats(db, alice.id).elo == 1234
     assert stats.games_played == 3
     assert stats.wins == 2
     assert stats.losses == 0
@@ -71,6 +76,7 @@ def test_get_player_stats_with_no_games(db):
 
     stats = stats_service.get_player_stats(db, alice.id)
 
+    assert stats.elo == 1000
     assert stats.games_played == 0
     assert stats.win_rate == 0.0
 
@@ -104,7 +110,7 @@ def test_get_match_history_orders_most_recent_first(db):
     assert history[1].moves_played == 3
 
 
-def test_get_leaderboard_ranks_players_by_wins(db):
+def test_get_leaderboard_ranks_by_elo_even_with_fewer_wins(db):
     alice = create_user(db, "alice", "alice@example.com")
     bob = create_user(db, "bob", "bob@example.com")
 
@@ -112,9 +118,27 @@ def test_get_leaderboard_ranks_players_by_wins(db):
     create_finished_game(db, alice, bob, "1-0")
     create_finished_game(db, alice, bob, "0-1")
 
+    bob.elo = 1200
+    db.commit()
+
     leaderboard = stats_service.get_leaderboard(db)
 
-    assert leaderboard[0].username == "alice"
-    assert leaderboard[0].wins == 2
-    assert leaderboard[1].username == "bob"
-    assert leaderboard[1].wins == 1
+    assert leaderboard[0].username == "bob"
+    assert leaderboard[0].elo == 1200
+    assert leaderboard[0].wins == 1
+    assert leaderboard[1].username == "alice"
+    assert leaderboard[1].elo == 1000
+    assert leaderboard[1].wins == 2
+
+
+def test_equal_elo_is_sorted_by_username_without_replaying_history(db):
+    vigo = create_user(db, "Vigo", "vigo@example.com")
+    louis = create_user(db, "Louis", "louis@example.com")
+    create_finished_game(db, vigo, louis, "1-0")
+
+    first = stats_service.get_leaderboard(db)
+    second = stats_service.get_leaderboard(db)
+
+    assert [entry.username for entry in first] == ["Louis", "Vigo"]
+    assert [entry.elo for entry in first] == [1000, 1000]
+    assert first == second

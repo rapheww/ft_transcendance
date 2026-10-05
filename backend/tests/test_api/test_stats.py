@@ -2,9 +2,11 @@ from datetime import datetime, timezone
 
 import chess
 import chess.pgn
+import pytest
 from fastapi.testclient import TestClient
 from backend.models.game import Game
 from backend.models.user import User
+from backend.services import game_service
 
 
 def register(client: TestClient, db, username: str,
@@ -61,22 +63,31 @@ def test_get_my_history_without_token_returns_401(client: TestClient):
     assert response.status_code == 401
 
 
-def test_get_my_stats_api(client: TestClient, db):
+@pytest.mark.parametrize("finished,expected_games,expected_elo", [
+    (False, 0, 1000),
+    (True, 1, 1016),
+])
+def test_get_my_stats_api(client: TestClient, db, finished, expected_games,
+                         expected_elo):
     alice_id, alice_token = register(client, db, "alice", "alice@example.com")
     bob_id, _ = register(client, db, "bob", "bob@example.com")
 
-    create_finished_game(db, alice_id, bob_id, "1-0")
+    if finished:
+        game = game_service.create_game(db, alice_id)
+        game_service.join_game(db, game.id, bob_id)
+        game_service.resign(db, game.id, bob_id)
 
     response = client.get("/api/stats/me",
                           headers={"Authorization": f"Bearer {alice_token}"})
 
     assert response.status_code == 200
     assert response.json() == {
-        "games_played": 1,
-        "wins": 1,
+        "elo": expected_elo,
+        "games_played": expected_games,
+        "wins": expected_games,
         "losses": 0,
         "draws": 0,
-        "win_rate": 1.0
+        "win_rate": float(expected_games)
     }
 
 
@@ -112,4 +123,5 @@ def test_get_leaderboard_api(client: TestClient, db):
     body = response.json()
 
     assert body[0]["username"] == "alice"
+    assert body[0]["elo"] == 1000
     assert body[0]["wins"] == 1

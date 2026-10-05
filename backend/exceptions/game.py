@@ -84,3 +84,18 @@ class DrawNotClaimable(Exception):
 
     def __init__(self, message: str = "Draw cannot be claimed"):
         super().__init__(message)
+
+class NotAIGame(Exception):
+    """Raised when an AI-only action is requested for a non-AI game."""
+    def __init__(self, message: str = "Game is not an AI game"):
+        super().__init__(message)
+
+class InvalidDifficulty(Exception):
+    """Raised when an unsupported AI difficulty is requested."""
+    def __init__(self, message: str = "Invalid AI difficulty"):
+        super().__init__(message)
+
+class InvalidOpponent(Exception):
+    """Raised when an unsupported opponent type is requested."""
+    def __init__(self, message: str = "Invalid opponent type"):
+        super().__init__(message)

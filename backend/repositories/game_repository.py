@@ -16,6 +16,10 @@ class GameRepository:
     def get_by_id(self, game_id: int) -> Game | None:
         return (self.db.query(Game).filter(Game.id == game_id).first())
 
+    def get_by_id_for_update(self, game_id: int) -> Game | None:
+        return (self.db.query(Game).filter(Game.id == game_id).populate_existing()
+                .with_for_update().first())
+
     def update(self, game: Game) -> Game:
         self.db.flush()
         self.db.refresh(game)

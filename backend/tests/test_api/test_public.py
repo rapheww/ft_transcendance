@@ -56,6 +56,7 @@ def test_get_leaderboard_returns_200(client: TestClient, db):
     response = client.get("/api/public/leaderboard", headers=api_headers())
 
     assert response.status_code == 200
+    assert response.json()[0]["elo"] == 1000
 
 
 def test_get_missing_tournament_returns_404(client: TestClient):

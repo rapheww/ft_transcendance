@@ -6,12 +6,12 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from backend.models.game import Game
 from backend.repositories.game_repository import GameRepository
-from backend.services import user_service
+from backend.services import elo_service, user_service
 from backend.exceptions.game import (
     CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive,
     NotAPlayer, NotYourTurn, IllegalMove, CannotResignFinishedGame,
     DrawOfferAlreadyExists, NoDrawOffer, CannotAcceptOwnDrawOffer,
-    DrawNotClaimable)
+    DrawNotClaimable, NotAIGame, InvalidDifficulty, InvalidOpponent)
 
 
 def _board_from_pgn(pgn: str) -> chess.Board:
@@ -24,7 +24,10 @@ def _board_from_pgn(pgn: str) -> chess.Board:
     return board
 
 
-def _finish_game(game: Game, result: str) -> None:
+def _finish_game(db: Session, game: Game, result: str) -> None:
+    if game.opponent_type != "ai":
+        elo_service.update_ratings(db, game.white_player_id, game.black_player_id,
+                                result)
     game.status = "finished"
     game.result = result
     game.finished_at = datetime.now(timezone.utc)
@@ -48,11 +51,21 @@ def _update_clock(game: Game, board: chess.Board, now: datetime) -> bool:
     game.black_time_remaining = max(0, game.black_time_remaining - elapsed)
     return game.black_time_remaining == 0
 
-
 def create_game(db: Session,
                 user_id: int,
                 initial_time_seconds: int = None,
-                increment_seconds: int = 0) -> Game:
+                increment_seconds: int = 0,
+                opponent_type: str = "human",
+                ai_difficulty: str = None) -> Game:
+    if opponent_type not in ("human", "ai"):
+        raise InvalidOpponent()
+    if opponent_type == "human":
+        ai_difficulty = None
+    else:
+        if ai_difficulty not in ("easy", "medium", "strong"):
+            raise InvalidDifficulty()
+        initial_time_seconds = None
+        increment_seconds = 0
     try:
         user_service.get_user_by_id(db, user_id)
         board = chess.Board()
@@ -60,9 +73,13 @@ def create_game(db: Session,
         game_pgn = chess.pgn.Game()
         game_pgn.headers["Result"] = "*"
 
+        status = "active" if opponent_type == "ai" else "waiting"
+
         game = Game(white_player_id=user_id,
                     black_player_id=None,
-                    status="waiting",
+                    opponent_type=opponent_type,
+                    ai_difficulty=ai_difficulty,
+                    status=status,
                     result=None,
                     current_fen=board.fen(),
                     pgn=str(game_pgn),
@@ -127,7 +144,7 @@ def get_game(db: Session, game_id: int) -> Game:
 def make_move(db: Session, game_id: int, user_id: int, move: str) -> Game:
     try:
         repository = GameRepository(db)
-        game = repository.get_by_id(game_id)
+        game = repository.get_by_id_for_update(game_id)
 
         if game is None:
             raise GameNotFound()
@@ -147,7 +164,7 @@ def make_move(db: Session, game_id: int, user_id: int, move: str) -> Game:
 
         if timed_out:
             result = "0-1" if board.turn == chess.WHITE else "1-0"
-            _finish_game(game, result)
+            _finish_game(db, game, result)
 
             repository.update(game)
             db.commit()
@@ -175,12 +192,12 @@ def make_move(db: Session, game_id: int, user_id: int, move: str) -> Game:
 
         if board.is_checkmate():
             result = "1-0" if board.turn == chess.BLACK else "0-1"
-            _finish_game(game, result)
+            _finish_game(db, game, result)
 
         elif (board.is_stalemate() or board.is_insufficient_material()
               or board.is_fivefold_repetition()
               or board.is_seventyfive_moves()):
-            _finish_game(game, "1/2-1/2")
+            _finish_game(db, game, "1/2-1/2")
 
         pgn_game = chess.pgn.read_game(io.StringIO(game.pgn))
         pgn_node = pgn_game
@@ -196,15 +213,61 @@ def make_move(db: Session, game_id: int, user_id: int, move: str) -> Game:
 
         return game
 
-    except SQLAlchemyError:
+    except Exception:
         db.rollback()
         raise
 
+def make_ai_move(db: Session, game_id: int, ai_move: chess.Move) -> Game:
+    try:
+        repository = GameRepository(db)
+        game = repository.get_by_id_for_update(game_id)
+
+        if game is None:
+            raise GameNotFound()
+        if game.status != "active":
+            raise GameNotActive()
+        if game.opponent_type != "ai":
+            raise NotAIGame()
+        
+        board = _board_from_pgn(game.pgn)
+
+        if board.turn != chess.BLACK:
+            raise NotYourTurn()
+        if ai_move not in board.legal_moves:
+            raise IllegalMove()
+
+        board.push(ai_move)
+        game.draw_offer_by = None
+
+        if board.is_checkmate():
+            result = "1-0" if board.turn == chess.BLACK else "0-1"
+            _finish_game(db, game, result)
+
+        elif (board.is_stalemate() or board.is_insufficient_material()
+                or board.is_fivefold_repetition()
+                or board.is_seventyfive_moves()):
+            _finish_game(db, game, "1/2-1/2")
+
+        pgn_game = chess.pgn.read_game(io.StringIO(game.pgn))
+        pgn_node = pgn_game
+        while pgn_node.variations:
+            pgn_node = pgn_node.variations[0]
+
+        pgn_node.add_main_variation(ai_move)
+        game.current_fen = board.fen()
+        game.pgn = str(pgn_game)
+        
+        repository.update(game)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return game
 
 def resign(db: Session, game_id: int, user_id: int) -> Game:
     try:
         repository = GameRepository(db)
-        game = repository.get_by_id(game_id)
+        game = repository.get_by_id_for_update(game_id)
 
         if game is None:
             raise GameNotFound()
@@ -218,16 +281,16 @@ def resign(db: Session, game_id: int, user_id: int) -> Game:
         _update_clock(game, board, now)
 
         if user_id == game.white_player_id:
-            _finish_game(game, "0-1")
+            _finish_game(db, game, "0-1")
         else:
-            _finish_game(game, "1-0")
+            _finish_game(db, game, "1-0")
 
         repository.update(game)
         db.commit()
 
         return game
 
-    except SQLAlchemyError:
+    except Exception:
         db.rollback()
         raise
 
@@ -261,7 +324,7 @@ def offer_draw(db: Session, game_id: int, user_id: int) -> Game:
 def accept_draw(db: Session, game_id: int, user_id: int) -> Game:
     try:
         repository = GameRepository(db)
-        game = repository.get_by_id(game_id)
+        game = repository.get_by_id_for_update(game_id)
 
         if game is None:
             raise GameNotFound()
@@ -276,7 +339,8 @@ def accept_draw(db: Session, game_id: int, user_id: int) -> Game:
         if game.draw_offer_by == user_id:
             raise CannotAcceptOwnDrawOffer()
 
-        _finish_game(game, "1/2-1/2")
+        _update_clock(game, _board_from_pgn(game.pgn), datetime.now(timezone.utc))
+        _finish_game(db, game, "1/2-1/2")
         game.draw_offer_by = None
 
         repository.update(game)
@@ -284,7 +348,7 @@ def accept_draw(db: Session, game_id: int, user_id: int) -> Game:
 
         return game
 
-    except SQLAlchemyError:
+    except Exception:
         db.rollback()
         raise
 
@@ -322,7 +386,7 @@ def claim_threefold_repetition(db: Session, game_id: int,
                                user_id: int) -> Game:
     try:
         repository = GameRepository(db)
-        game = repository.get_by_id(game_id)
+        game = repository.get_by_id_for_update(game_id)
 
         if game is None:
             raise GameNotFound()
@@ -336,7 +400,8 @@ def claim_threefold_repetition(db: Session, game_id: int,
         if not board.can_claim_threefold_repetition():
             raise DrawNotClaimable()
 
-        _finish_game(game, "1/2-1/2")
+        _update_clock(game, board, datetime.now(timezone.utc))
+        _finish_game(db, game, "1/2-1/2")
         game.draw_offer_by = None
 
         repository.update(game)
@@ -344,7 +409,7 @@ def claim_threefold_repetition(db: Session, game_id: int,
 
         return game
 
-    except SQLAlchemyError:
+    except Exception:
         db.rollback()
         raise
 
@@ -352,7 +417,7 @@ def claim_threefold_repetition(db: Session, game_id: int,
 def claim_fifty_move(db: Session, game_id: int, user_id: int) -> Game:
     try:
         repository = GameRepository(db)
-        game = repository.get_by_id(game_id)
+        game = repository.get_by_id_for_update(game_id)
 
         if game is None:
             raise GameNotFound()
@@ -366,7 +431,8 @@ def claim_fifty_move(db: Session, game_id: int, user_id: int) -> Game:
         if not board.can_claim_fifty_moves():
             raise DrawNotClaimable()
 
-        _finish_game(game, "1/2-1/2")
+        _update_clock(game, board, datetime.now(timezone.utc))
+        _finish_game(db, game, "1/2-1/2")
         game.draw_offer_by = None
 
         repository.update(game)
@@ -374,6 +440,6 @@ def claim_fifty_move(db: Session, game_id: int, user_id: int) -> Game:
 
         return game
 
-    except SQLAlchemyError:
+    except Exception:
         db.rollback()
         raise

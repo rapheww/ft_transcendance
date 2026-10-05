@@ -5,9 +5,8 @@ touches chess rules directly. A round only advances once every match in it
 has a winner; that check runs on read (get_tournament), not on a timer or a
 webhook.
 
-A drawn match is broken by material on the board (standard piece values) so
-the bracket always has a single winner per match; a position with perfectly
-equal material is replayed between the same two players.
+A drawn match is broken by material, then by remaining clock time.
+If both are equal, or clocks are unavailable, a draw of lots decides.
 """
 
 import random
@@ -21,9 +20,14 @@ from backend.exceptions.tournament import (AlreadyRegistered,
                                            TournamentAlreadyStarted,
                                            TournamentNotFound)
 from backend.models.tournament import Tournament, TournamentMatch, TournamentParticipant
+from backend.models.game import Game
 from backend.repositories.tournament_repository import TournamentRepository
 from backend.schemas.tournament import MatchResponse, TournamentResponse
 from backend.services import game_service, user_service
+
+# Each tournament player starts with 10 minutes and no increment.
+TOURNAMENT_INITIAL_TIME_SECONDS = 600
+TOURNAMENT_INCREMENT_SECONDS = 0
 
 _PIECE_VALUES = {
     chess.PAWN: 1,
@@ -69,7 +73,20 @@ def _winner_by_material(fen: str, match: TournamentMatch) -> int | None:
     if black_material > white_material:
         return match.player2_id
 
-    return None  # perfectly equal material: the match gets replayed
+    return None
+
+
+def _winner_by_remaining_time(game: Game, match: TournamentMatch) -> int | None:
+    white_time = game.white_time_remaining
+    black_time = game.black_time_remaining
+
+    if white_time is None or black_time is None:
+        return None
+    if white_time > black_time:
+        return match.player1_id
+    if black_time > white_time:
+        return match.player2_id
+    return None
 
 
 def create_tournament(db: Session, creator_id: int) -> Tournament:
@@ -161,7 +178,10 @@ def _create_tournament_game(db: Session, white_id: int, black_id: int) -> int:
     with Session(bind=db.connection(),
                  join_transaction_mode="rollback_only",
                  expire_on_commit=False) as game_db:
-        game = game_service.create_game(game_db, white_id)
+        game = game_service.create_game(
+            game_db, white_id,
+            initial_time_seconds=TOURNAMENT_INITIAL_TIME_SECONDS,
+            increment_seconds=TOURNAMENT_INCREMENT_SECONDS)
         game_service.join_game(game_db, game.id, black_id)
         return game.id
 
@@ -201,12 +221,11 @@ def _resolve_match(db: Session, match: TournamentMatch) -> None:
         return
 
     winner_id = _winner_by_material(game.current_fen, match)
-    if winner_id is not None:
-        match.winner_id = winner_id
-        return
-
-    match.game_id = _create_tournament_game(db, match.player1_id,
-                                            match.player2_id)
+    if winner_id is None:
+        winner_id = _winner_by_remaining_time(game, match)
+    if winner_id is None:
+        winner_id = random.choice([match.player1_id, match.player2_id])
+    match.winner_id = winner_id
 
 
 def _advance_if_ready(db: Session, tournament: Tournament) -> None:

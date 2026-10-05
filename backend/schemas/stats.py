@@ -11,6 +11,7 @@ class MatchHistoryEntry(BaseModel):
 
 
 class PlayerStats(BaseModel):
+    elo: int
     games_played: int
     wins: int
     losses: int
@@ -20,5 +21,6 @@ class PlayerStats(BaseModel):
 
 class LeaderboardEntry(BaseModel):
     username: str
+    elo: int
     wins: int
     games_played: int

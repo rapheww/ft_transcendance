@@ -59,6 +59,7 @@ def get_match_history(db: Session, user_id: int) -> list[MatchHistoryEntry]:
 
 
 def get_player_stats(db: Session, user_id: int) -> PlayerStats:
+    user = user_service.get_user_by_id(db, user_id)
     games = StatsRepository(db).list_finished_for_player(user_id)
     outcomes = [_outcome_for_player(game, user_id) for game in games]
 
@@ -68,7 +69,8 @@ def get_player_stats(db: Session, user_id: int) -> PlayerStats:
     draws = outcomes.count("draw")
     win_rate = round(wins / games_played, 3) if games_played else 0.0
 
-    return PlayerStats(games_played=games_played,
+    return PlayerStats(elo=user.elo,
+                       games_played=games_played,
                        wins=wins,
                        losses=losses,
                        draws=draws,
@@ -82,7 +84,8 @@ def get_leaderboard(db: Session) -> list[LeaderboardEntry]:
         stats = get_player_stats(db, user.id)
         entries.append(
             LeaderboardEntry(username=user.username,
+                             elo=stats.elo,
                              wins=stats.wins,
                              games_played=stats.games_played))
 
-    return sorted(entries, key=lambda entry: entry.wins, reverse=True)
+    return sorted(entries, key=lambda entry: (-entry.elo, entry.username))

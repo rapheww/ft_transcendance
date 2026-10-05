@@ -1,6 +1,7 @@
-from sqlalchemy import String
+from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.db.base import Base
+from backend.services.elo_service import INITIAL_ELO
 
 
 class User(Base):
@@ -29,3 +30,8 @@ class User(Base):
     board_dark_color: Mapped[str] = mapped_column(String(7),
                                                   nullable=False,
                                                   default="#2C5563")
+
+    elo: Mapped[int] = mapped_column(Integer,
+                                     nullable=False,
+                                     default=INITIAL_ELO,
+                                     server_default=str(INITIAL_ELO))
