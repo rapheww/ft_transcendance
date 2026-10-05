@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.api import auth, users, games, stats, tournaments, public
 from backend.websocket import routes as websocket
 from backend.core.public_api_security import limiter
+from backend.api import matchmaking
 
 app = FastAPI(title="ft_transcendence")
 
@@ -25,3 +26,4 @@ app.include_router(stats.router, prefix="/api/stats")
 app.include_router(tournaments.router, prefix="/api/tournaments")
 app.include_router(public.router, prefix="/api/public")
 app.include_router(websocket.router, prefix="/ws")
+app.include_router(matchmaking.router, prefix="/api/matchmaking")

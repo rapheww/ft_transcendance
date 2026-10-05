@@ -320,53 +320,8 @@ def offer_draw(db: Session, game_id: int, user_id: int) -> Game:
         return game
 
     except SQLAlchemyError:
-        import io
-
-    try:
-        repository = GameRepository(db)
-        game = repository.get_by_id_for_update(game_id)
-
-        if game is None:
-            raise GameNotFound()
-        if game.status != "active":
-            raise GameNotActive()
-        if game.opponent_type != "ai":
-            raise NotAIGame()
-
-        board = _board_from_pgn(game.pgn)
-
-        if board.turn != chess.BLACK:
-            raise NotYourTurn()
-        if ai_move not in board.legal_moves:
-            raise IllegalMove()
-
-        board.push(ai_move)
-        game.draw_offer_by = None
-
-        if board.is_checkmate():
-            result = "1-0" if board.turn == chess.BLACK else "0-1"
-            _finish_game(db, game, result)
-
-        elif (board.is_stalemate() or board.is_insufficient_material()
-              or board.is_fivefold_repetition()
-              or board.is_seventyfive_moves()):
-            _finish_game(db, game, "1/2-1/2")
-
-        pgn_game = chess.pgn.read_game(io.StringIO(game.pgn))
-        pgn_node = pgn_game
-        while pgn_node.variations:
-            pgn_node = pgn_node.variations[0]
-
-        pgn_node.add_main_variation(ai_move)
-        game.current_fen = board.fen()
-        game.pgn = str(pgn_game)
-
-        repository.update(game)
-        db.commit()
-    except Exception:
         db.rollback()
         raise
-    return game
 
 
 def accept_draw(db: Session, game_id: int, user_id: int) -> Game:
@@ -493,5 +448,31 @@ def claim_fifty_move(db: Session, game_id: int, user_id: int) -> Game:
         db.rollback()
         raise
 
-        db.rollback()
-        raise
+
+def create_human_game(db: Session, white_player_id: int, black_player_id: int,
+                      initial_time_seconds: int | None,
+                      increment_seconds: int) -> Game:
+    board = chess.Board()
+
+    game_pgn = chess.pgn.Game()
+    game_pgn.headers["Result"] = "*"
+
+    game = Game(white_player_id=white_player_id,
+                black_player_id=black_player_id,
+                opponent_type="human",
+                ai_difficulty=None,
+                status="active",
+                result=None,
+                current_fen=board.fen(),
+                pgn=str(game_pgn),
+                initial_time_seconds=initial_time_seconds,
+                increment_seconds=increment_seconds,
+                white_time_remaining=initial_time_seconds,
+                black_time_remaining=initial_time_seconds,
+                last_move_at=(datetime.now(timezone.utc)
+                              if initial_time_seconds is not None else None))
+
+    repository = GameRepository(db)
+    repository.create(game)
+
+    return game
