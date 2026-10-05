@@ -10,7 +10,7 @@ const Home = () => {
       <div className="flex flex-col justify-center items-center flex-1 w-full px-4">
         <h1 className="text-4xl sm:text-6xl md:text-7xl m-6 sm:m-10 uppercase">Chess</h1>
         <div className="flex flex-col items-center justify-start gap-0 w-full">
-            <ChessPreview />
+            <ChessPreview dark={""} light={""}/>
           <div className="flex flex-col items-center m-6 sm:m-9 gap-4 w-full max-w-75">
             <select  defaultValue="" className="select select-primary w-full h-10.5">
               <option value="" disabled>

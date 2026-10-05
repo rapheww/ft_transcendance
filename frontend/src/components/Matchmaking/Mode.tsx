@@ -9,7 +9,7 @@ const Mode = () => {
   return (
     <div>
       <Header />
-      <div className="w-full min-h-[calc(100vh-72px)] flex flex-col justify-center items-center px-4">
+      <div className="w-full min-h-[calc(100vh-56px)] flex flex-col justify-center items-center px-4">
         <p className="uppercase m-6 sm:m-10 text-sm sm:text-base tracking-wide">
           Select a mode :
         </p>

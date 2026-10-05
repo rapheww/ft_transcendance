@@ -44,7 +44,7 @@ const Login = () => {
     <div className="min-h-screen">
       <Header />
 
-      <div className="flex justify-center items-center min-h-[calc(100vh-72px)] px-4 py-8">
+      <div className="flex justify-center items-center min-h-[calc(100vh-56px)] px-4 py-8">
         <div
           id="login"
           className="
@@ -90,6 +90,11 @@ const Login = () => {
             />
             <button
               type="submit"
+              id="log-btn"
+              // onClick={() => {
+              //   const btn = document.getElementById("log-btn");
+              //   if(!btn) return;
+              // }}
               className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group"
             >
               <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>

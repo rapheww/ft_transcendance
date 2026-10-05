@@ -7,7 +7,7 @@ const Waiting = () => {
   return (
     <div>
       <Header />
-      <div className="w-full min-h-[calc(100vh-72px)] flex flex-col justify-center items-center">
+      <div className="w-full min-h-[calc(100vh-56px)] flex flex-col justify-center items-center">
         <p className="uppercase text-3xl">Waiting for opponent</p>
         <div className="loader m-10"
             >

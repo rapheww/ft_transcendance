@@ -75,7 +75,7 @@ const Register = () => {
     <div className="min-h-screen">
       <Header />
 
-      <div className="flex justify-center items-center min-h-[calc(100vh-72px)] px-4 py-8">
+      <div className="flex justify-center items-center min-h-[calc(100vh-56px)] px-4 py-8">
         <div
           id="register"
           className=" 

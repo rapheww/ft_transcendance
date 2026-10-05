@@ -35,7 +35,7 @@ const Profil = () => {
       <div
         className="
           w-full 
-          min-h-[calc(100vh-72px)] 
+          min-h-[calc(100vh-56px)] 
           flex 
           flex-col 
           justify-center 

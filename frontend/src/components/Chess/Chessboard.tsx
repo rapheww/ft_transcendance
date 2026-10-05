@@ -1,6 +1,6 @@
 import type React from "react";
 import Tile from "./Tile";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 const horizontalAxis: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const verticalAxis: string[] = ["1", "2", "3", "4", "5", "6", "7", "8"];
 import { Chess, type Square } from "chess.js";
@@ -24,6 +24,8 @@ function getColor(back: HTMLElement): string | null {
 
 interface ChessboardProps {
   setMoves: React.Dispatch<React.SetStateAction<string[]>>;
+  setBTurn: React.Dispatch<React.SetStateAction<boolean>>;
+  setWTurn: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function getTileElement(x: number, y: number): HTMLElement | null {
@@ -40,7 +42,7 @@ function squareToPos(square: string) {
   return { x, y };
 }
 
-export default function Chessboard({ setMoves }: ChessboardProps) {
+export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardProps) {
   const chessRef = useRef(new Chess());
 
   const [activePiece, setActivePiece] = useState<HTMLElement | null>(null);
@@ -79,6 +81,18 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
       {duration: 200, easing: "ease-out"},
     )
   }, [fen]);
+
+
+  useEffect(() => {
+    const turn = chessRef.current.turn();
+    if(turn === "w"){
+        setBTurn(false);
+        setWTurn(true);
+    } else{
+      setBTurn(true);
+      setWTurn(false);
+    }
+  },[fen])
 
   function removeDot() {
     for (let i = 0; i < moveTile.length; i++) {
@@ -331,7 +345,7 @@ export default function Chessboard({ setMoves }: ChessboardProps) {
       onMouseLeave={cancelMove}
       onContextMenu={(e) => e.preventDefault()}
       id="chessboard"
-      className={`relative bg-black grid grid-cols-8 grid-rows-8 w-[min(100cqw,100cqh)] h-[min(100cqw,100cqh)] aspect-square select-none rounded-xl overflow-hidden border-2 border-black shadow-[0_0_60px_#000000]`}
+      className={`relative bg-black grid grid-cols-8 grid-rows-8 w-[min(100cqw,100cqh)] h-[min(100cqw,100cqh)] aspect-square select-none rounded-xl overflow-hidden border-2 border-black shadow-[0_0_30px_#000000]`}
       style={{
         gridTemplateColumns: "repeat(8, 1fr)",
         gridTemplateRows: "repeat(8, 1fr)",
