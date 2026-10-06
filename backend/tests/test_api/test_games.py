@@ -615,29 +615,3 @@ def test_player_can_claim_fifty_move_draw(client: TestClient, db):
     assert body["status"] == "finished"
     assert body["result"] == "1/2-1/2"
     assert body["finished_at"] is not None
-
-
-def test_player_can_claim_fifty_move_draw(client: TestClient, db):
-    alice_token = create_user(client, "alice", "alice@example.com")
-    bob_token = create_user(client, "bob", "bob@example.com")
-
-    create_response = client.post(
-        "/api/games/", headers={"Authorization": f"Bearer {alice_token}"})
-    game_id = create_response.json()["id"]
-
-    client.post(f"/api/games/{game_id}/join",
-                headers={"Authorization": f"Bearer {bob_token}"})
-
-    fen = "7k/8/8/8/8/8/1N6/K7 w - - 99 50"
-    set_game_position(db, game_id, fen)
-
-    response = client.post(f"/api/games/{game_id}/draw-claim/fifty-move",
-                           headers={"Authorization": f"Bearer {alice_token}"})
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert body["status"] == "finished"
-    assert body["result"] == "1/2-1/2"
-    assert body["finished_at"] is not None
