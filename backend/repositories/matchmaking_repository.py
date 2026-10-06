@@ -35,7 +35,6 @@ class MatchmakingRepository:
             return None
 
         entry, _ = min(entries, key=lambda pair: abs(pair[1] - player_elo))
-
         return entry
 
     def delete(self, entry: MatchmakingQueue) -> None:

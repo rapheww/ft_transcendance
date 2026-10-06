@@ -305,9 +305,7 @@ def test_find_match_prefers_closest_elo(db):
     game = matchmaking_service.find_match(db, player1.id, 600, 5)
 
     assert game is not None
-    assert {game.white_player_id,
-            game.black_player_id} == {player1.id, player3.id}
-
+    assert {game.white_player_id, game.black_player_id} == {player1.id, player3.id}
     assert matchmaking_service.get_queue_entry(db, player2.id) is not None
 
 
@@ -329,6 +327,5 @@ def test_find_match_prefers_closest_elo(db):
     game = matchmaking_service.find_match(db, player1.id, 600, 5)
     assert game is not None
 
-    assert {game.white_player_id,
-            game.black_player_id} == {player1.id, player3.id}
+    assert {game.white_player_id, game.black_player_id} == {player1.id, player3.id}
     assert matchmaking_service.get_queue_entry(db, player2.id) is not None

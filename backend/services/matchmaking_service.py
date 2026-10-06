@@ -100,13 +100,13 @@ def find_match(db: Session, user_id: int, initial_time_seconds: int | None,
             opponent = repository.get_closest_compatible(
                 user_id, initial_time_seconds, increment_seconds, min_elo,
                 max_elo, player.elo)
-
             if opponent is None:
                 return None
 
             if random.choice([True, False]):
                 white_player_id = user_id
                 black_player_id = opponent.user_id
+
             else:
                 white_player_id = opponent.user_id
                 black_player_id = user_id
