@@ -26,8 +26,8 @@ def _board_from_pgn(pgn: str) -> chess.Board:
 
 def _finish_game(db: Session, game: Game, result: str) -> None:
     if game.opponent_type != "ai":
-        elo_service.update_ratings(db, game.white_player_id, game.black_player_id,
-                                result)
+        game.white_elo_after, game.black_elo_after = elo_service.update_ratings(
+            db, game.white_player_id, game.black_player_id, result)
     game.status = "finished"
     game.result = result
     game.finished_at = datetime.now(timezone.utc)

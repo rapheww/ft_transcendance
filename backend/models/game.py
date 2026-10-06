@@ -29,6 +29,9 @@ class Game(Base):
 
     result: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
+    white_elo_after: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    black_elo_after: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     current_fen: Mapped[str] = mapped_column(Text, nullable=False)
 
     pgn: Mapped[str] = mapped_column(Text, nullable=False)
