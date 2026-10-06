@@ -51,8 +51,8 @@ def create_finished_game(db, white_id: int, black_id: int,
     return game
 
 
-def test_get_my_stats_without_token_returns_401(client: TestClient):
-    response = client.get("/api/stats/me")
+def test_get_player_profile_without_token_returns_401(client: TestClient):
+    response = client.get("/api/stats/player/Vigo")
 
     assert response.status_code == 401
 
@@ -67,8 +67,8 @@ def test_get_my_history_without_token_returns_401(client: TestClient):
     (False, 0, 1000),
     (True, 1, 1016),
 ])
-def test_get_my_stats_api(client: TestClient, db, finished, expected_games,
-                         expected_elo):
+def test_get_player_profile_api(client: TestClient, db, finished, expected_games,
+                                expected_elo):
     alice_id, alice_token = register(client, db, "alice", "alice@example.com")
     bob_id, _ = register(client, db, "bob", "bob@example.com")
 
@@ -77,11 +77,18 @@ def test_get_my_stats_api(client: TestClient, db, finished, expected_games,
         game_service.join_game(db, game.id, bob_id)
         game_service.resign(db, game.id, bob_id)
 
-    response = client.get("/api/stats/me",
+    response = client.get("/api/stats/player/alice",
                           headers={"Authorization": f"Bearer {alice_token}"})
 
     assert response.status_code == 200
-    assert response.json() == {
+    body = response.json()
+    history = body.pop("elo_history")
+    assert len(history) == expected_games
+    if finished:
+        assert history == [{"date": game.finished_at.isoformat().replace("+00:00", "Z"),
+                            "elo": expected_elo}]
+    assert body == {
+        "username": "alice",
         "elo": expected_elo,
         "games_played": expected_games,
         "wins": expected_games,
@@ -125,3 +132,40 @@ def test_get_leaderboard_api(client: TestClient, db):
     assert body[0]["username"] == "alice"
     assert body[0]["elo"] == 1000
     assert body[0]["wins"] == 1
+
+
+def test_logged_in_player_can_read_another_profile(client: TestClient, db):
+    vigo_id, token = register(client, db, "Vigo", "vigo@example.com")
+    louis_id, _ = register(client, db, "Louis", "louis@example.com")
+    game = game_service.create_game(db, vigo_id)
+    game_service.join_game(db, game.id, louis_id)
+    game_service.resign(db, game.id, louis_id)
+
+    response = client.get("/api/stats/player/Louis",
+                          headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["username"] == "Louis"
+    assert body["elo"] == 984
+    assert body["losses"] == 1
+    assert body["elo_history"][0]["elo"] == 984
+    assert "email" not in body
+    assert "password_hash" not in body
+
+
+def test_unknown_profile_returns_404(client: TestClient, db):
+    _, token = register(client, db, "Vigo", "vigo@example.com")
+    response = client.get("/api/stats/player/Unknown",
+                          headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 404
+
+
+def test_invalid_token_cannot_read_profile(client: TestClient):
+    response = client.get("/api/stats/player/Vigo",
+                          headers={"Authorization": "Bearer invalid-token"})
+    assert response.status_code == 401
+
+
+def test_old_stats_me_route_is_removed(client: TestClient):
+    assert client.get("/api/stats/me").status_code == 404

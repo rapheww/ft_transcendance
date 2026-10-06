@@ -1,4 +1,6 @@
-from sqlalchemy import or_
+from datetime import datetime
+
+from sqlalchemy import case, or_
 from sqlalchemy.orm import Session
 from backend.models.game import Game
 from backend.models.user import User
@@ -14,6 +16,17 @@ class StatsRepository:
             or_(Game.white_player_id == user_id,
                 Game.black_player_id == user_id)).order_by(
                     Game.finished_at.desc()).all())
+
+    def list_elo_history(self, user_id: int) -> list[tuple[datetime, int]]:
+        player_elo = case(
+            (Game.white_player_id == user_id, Game.white_elo_after),
+            else_=Game.black_elo_after)
+        return (self.db.query(Game.finished_at, player_elo).filter(
+            Game.status == "finished", Game.opponent_type == "human",
+            or_(Game.white_player_id == user_id,
+                Game.black_player_id == user_id),
+            Game.finished_at.is_not(None), player_elo.is_not(None)).order_by(
+                Game.finished_at, Game.id).all())
 
     def get_players_for_update(self, player_ids: list[int]) -> list[User]:
         # All games acquire player locks in the same order to avoid deadlocks.

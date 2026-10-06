@@ -41,8 +41,8 @@ def calculate_ratings(rating_a: int, rating_b: int,
 
 
 def update_ratings(db: Session, white_player_id: int, black_player_id: int,
-                   result: str) -> None:
-    """Update both ratings within the locked game's finishing transaction."""
+                   result: str) -> tuple[int, int]:
+    """Update and return both ratings within the finishing transaction."""
     # Import here because the User model imports INITIAL_ELO from this module.
     from backend.repositories.stats_repository import StatsRepository
 
@@ -61,3 +61,4 @@ def update_ratings(db: Session, white_player_id: int, black_player_id: int,
     black = players_by_id[black_player_id]
     white.elo, black.elo = calculate_ratings(white.elo, black.elo,
                                              _WHITE_SCORE_BY_RESULT[result])
+    return white.elo, black.elo

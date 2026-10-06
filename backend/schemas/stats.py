@@ -19,6 +19,16 @@ class PlayerStats(BaseModel):
     win_rate: float
 
 
+class EloHistoryPoint(BaseModel):
+    date: datetime
+    elo: int
+
+
+class PlayerProfile(PlayerStats):
+    username: str
+    elo_history: list[EloHistoryPoint]
+
+
 class LeaderboardEntry(BaseModel):
     username: str
     elo: int
