@@ -8,19 +8,19 @@ class ConnectionManager:
 
     async def connect(self, game_id: int, user_id: int, websocket: WebSocket):
         await websocket.accept()
-        # create a connection group for this game if needed
         if game_id not in self.connections:
             self.connections[game_id] = {}
         # ---- RECONNECTION / DUPLICATE CONNECTION CASE ----
         # if the same user reconnects, close the old socket
         # and replace it with the new one
         old_socket = self.connections[game_id].get(user_id)
+        # register the new socket first, so nothing is sent to the old one
+        self.connections[game_id][user_id] = websocket
         if old_socket is not None and old_socket is not websocket:
             try:
                 await old_socket.close(code=4001, reason="replaced by new connection")
             except Exception:
                 pass
-        self.connections[game_id][user_id] = websocket
 
     def disconnect(self, game_id: int, user_id: int, websocket: WebSocket) -> bool:
         game_connections = self.connections.get(game_id)
@@ -57,7 +57,7 @@ class ConnectionManager:
             self.disconnect(game_id, user_id, websocket)
 
     def valid_event(self, event: str) -> bool:
-        return event in { "move", "chat" }
+        return isinstance(event, str) and event in { "move", "chat" }
 
     def is_connected(self, game_id: int, user_id: int) -> bool:
         return game_id in self.connections and user_id in self.connections[game_id]

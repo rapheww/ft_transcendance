@@ -5,6 +5,7 @@ from backend.db.session import get_db
 from backend.models.user import User
 from backend.schemas.game import GameResponse, MoveRequest, GameCreate
 from backend.services import game_service
+from backend.websocket.connection_manager import manager
 from backend.exceptions.game import (
     CannotPlayAgainstSelf, GameNotFound, GameNotJoinable, GameNotActive,
     NotAPlayer, NotYourTurn, IllegalMove, CannotResignFinishedGame,
@@ -69,17 +70,22 @@ def make_move(game_id: int,
 
 
 @router.post("/{game_id}/resign", response_model=GameResponse)
-def resign_game(game_id: int,
+async def resign_game(game_id: int,
                 current_user: User = Depends(get_current_user),
                 db: Session = Depends(get_db)):
     try:
-        return game_service.resign(db, game_id, current_user.id)
+        game = game_service.resign(db, game_id, current_user.id)
 
     except GameNotFound as error:
         raise HTTPException(status_code=404, detail=str(error))
 
     except (CannotResignFinishedGame, NotAPlayer) as error:
         raise HTTPException(status_code=409, detail=str(error))
+
+    # tell both players's browsers the game is over
+    await manager.broadcast(game_id, {"type": "game_state", "fen": game.current_fen})
+    await manager.broadcast(game_id, {"type": "game_over", "result": game.result})
+    return game
 
 
 @router.post("/{game_id}/draw-offer", response_model=GameResponse)
