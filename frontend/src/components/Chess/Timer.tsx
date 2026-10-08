@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 interface Props{
     time: number;
     turn: boolean;
+    bonus: number;
+    toAdd: boolean;
 }
 
-const Timer = ({time, turn}: Props) => {
+const Timer = ({time, turn, bonus, toAdd}: Props) => {
     const [timeLeft, setTimeLeft] = useState<number>(time);
 
     useEffect(() => {
@@ -14,6 +16,14 @@ const Timer = ({time, turn}: Props) => {
         const id = setTimeout( () => setTimeLeft((t) => t - 1), 1000);
         return () => clearTimeout(id);
     }, [timeLeft, turn]);
+
+    useEffect(() =>{
+        if (toAdd){
+            console.log('adding time');
+            setTimeLeft((t) => t + bonus);
+            console.log(`${bonus}`);
+        }
+    }, [toAdd]);
 
     const minuts = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;

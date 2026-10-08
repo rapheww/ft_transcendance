@@ -26,6 +26,8 @@ interface ChessboardProps {
   setMoves: React.Dispatch<React.SetStateAction<string[]>>;
   setBTurn: React.Dispatch<React.SetStateAction<boolean>>;
   setWTurn: React.Dispatch<React.SetStateAction<boolean>>;
+  setBBonus: React.Dispatch<React.SetStateAction<boolean>>;
+  setWBonus: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function getTileElement(x: number, y: number): HTMLElement | null {
@@ -42,18 +44,24 @@ function squareToPos(square: string) {
   return { x, y };
 }
 
-export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardProps) {
+export default function Chessboard({
+  setMoves,
+  setBTurn,
+  setWTurn,
+  setBBonus,
+  setWBonus,
+}: ChessboardProps) {
   const chessRef = useRef(new Chess());
 
   const [activePiece, setActivePiece] = useState<HTMLElement | null>(null);
   const [gridX, setGridX] = useState(0);
   const [gridY, setGridY] = useState(0);
-  const [fen, setFen] = useState<string>(chessRef.current.fen())
+  const [fen, setFen] = useState<string>(chessRef.current.fen());
   const [tileColor, setTileColor] = useState<Movements[]>([]);
   const [lastPick, setLastPick] = useState<LastPick | null>(null);
   const [moveTile, setMoveTile] = useState<HTMLElement[]>([]);
   const [open, setOpen] = useState<boolean>(false);
-  const lastMove = useRef<{from: string, to:string} | null>(null)
+  const lastMove = useRef<{ from: string; to: string } | null>(null);
   let newPos: string = "";
   let oldPos: string = "";
   let possible: string[] | null = null;
@@ -61,38 +69,38 @@ export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardP
   //moving animation
   useLayoutEffect(() => {
     const m = lastMove.current; //tmp to get the lastmove
-    if(!m) return;
+    if (!m) return;
     lastMove.current = null; //set the value to null
 
     const from = squareToPos(m.from); //getting the from pos
     const to = squareToPos(m.to); // getting the to pos
     const tf = getTileElement(from.x, from.y); //getting the element from
     const tt = getTileElement(to.x, to.y); // getting the element to
-    
-    if(!tf || !tt) return;
+
+    if (!tf || !tt) return;
 
     const a = tf.getBoundingClientRect(); //getting the coordonates of the element from
     const b = tt.getBoundingClientRect(); //getting the coordonates of the element to
-    tt.querySelector(".chess-piece")?.animate( //animation of the class chess-piece
+    tt.querySelector(".chess-piece")?.animate(
+      //animation of the class chess-piece
       [
-        {transform: `translate(${a.left - b.left}px, ${a.top - b.top}px)`},
-        {transform: 'none'}
+        { transform: `translate(${a.left - b.left}px, ${a.top - b.top}px)` },
+        { transform: "none" },
       ] /*this is this animation translate from a to b*/,
-      {duration: 200, easing: "ease-out"},
-    )
+      { duration: 200, easing: "ease-out" },
+    );
   }, [fen]);
-
 
   useEffect(() => {
     const turn = chessRef.current.turn();
-    if(turn === "w"){
-        setBTurn(false);
-        setWTurn(true);
-    } else{
+    if (turn === "w") {
+      setBTurn(false);
+      setWTurn(true);
+    } else {
       setBTurn(true);
       setWTurn(false);
     }
-  },[fen])
+  }, [fen]);
 
   function removeDot() {
     for (let i = 0; i < moveTile.length; i++) {
@@ -165,7 +173,7 @@ export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardP
       }
     }
 
-    if(e.button === 2){
+    if (e.button === 2) {
       console.log("arrow");
       //arrow code
       return;
@@ -210,7 +218,9 @@ export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardP
     back.style.backgroundColor = "var(--select-tile)";
 
     const square = `${horizontalAxis[x]}${verticalAxis[y]}` as Square;
-    possible = chessRef.current.moves({ square: square, verbose: true }).map((m) => m.to);
+    possible = chessRef.current
+      .moves({ square: square, verbose: true })
+      .map((m) => m.to);
     possibleMoves(possible);
   }
 
@@ -242,7 +252,7 @@ export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardP
   ) {
     const active = piece ?? activePiece;
     if (active && (e || target)) {
-      let played : string = ""; 
+      let played: string = "";
       const chessboard = document.getElementById("chessboard");
       if (!chessboard) return;
       const chessboardRect = chessboard.getBoundingClientRect();
@@ -264,7 +274,10 @@ export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardP
       newPos = `${horizontalAxis[x]}${verticalAxis[y]}`;
       oldPos = `${horizontalAxis[gridX]}${verticalAxis[gridY]}`;
       try {
-        played = chessRef.current.move({ from: `${oldPos}`, to: `${newPos}` }).san;
+        played = chessRef.current.move({
+          from: `${oldPos}`,
+          to: `${newPos}`,
+        }).san;
       } catch {
         resetPiece(active);
         setActivePiece(null);
@@ -277,7 +290,7 @@ export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardP
         );
         const dest = chessboard.children[(7 - y) * 8 + x] as HTMLElement;
         const destExisting = tileColor.find((m) => m.tile === dest);
-        const destColor = destExisting ? destExisting.tile.id : getColor(dest);
+        const destColor = destExisting ? destExisting.bg : getColor(dest);
 
         tileColor.forEach((m) => {
           if (m.tile !== originTile?.tile && m.tile !== dest) {
@@ -286,21 +299,13 @@ export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardP
         });
 
         if (originTile && destColor) {
-          let origineColor: string | null = null;
-          tileColor.forEach((m) => {
-            if (m.tile === originTile.tile)
-              if (m.tile.id === "var(--dark-tile)") origineColor = m.tile.id;
-          });
-          if (!origineColor) origineColor = "var(--light-tile)";
-
-          if (origineColor === "var(--dark-tile)")
-            originTile.tile.style.backgroundColor = "#738a38";
-          else originTile.tile.style.backgroundColor = "#97b54a";
-
-          if (dest.id === "var(--dark-tile)")
-            dest.style.backgroundColor = "#738a38";
-          else dest.style.backgroundColor = "#97b54a";
-          setTileColor([originTile, { bg: destColor, tile: dest }]);
+          if (originTile && destColor) {
+            originTile.tile.style.backgroundColor =
+              originTile.tile.dataset.dark === "true" ? "#738a38" : "#97b54a";
+            dest.style.backgroundColor =
+              dest.dataset.dark === "true" ? "#738a38" : "#97b54a";
+            setTileColor([originTile, { bg: destColor, tile: dest }]);
+          }
         }
         //show movements
 
@@ -313,9 +318,18 @@ export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardP
       }
 
       setFen(chessRef.current.fen());
+
       resetPiece(active);
       removeDot();
       setActivePiece(null);
+      const turn = chessRef.current.turn();
+      if (turn === "w") {
+        setBBonus(true);
+        setWBonus(false);
+      } else {
+        setWBonus(true);
+        setBBonus(false);
+      }
       if (chessRef.current.isGameOver()) {
         setOpen(true);
         console.log("MAT");
@@ -325,15 +339,29 @@ export default function Chessboard({ setMoves, setBTurn, setWTurn }: ChessboardP
 
   //render du board
   const grid = chessRef.current.board();
-  const names = {p: "pawn", n: "knight", b: "bishop", k: "king", q: "queen", r: "rook"};
+  const names = {
+    p: "pawn",
+    n: "knight",
+    b: "bishop",
+    k: "king",
+    q: "queen",
+    r: "rook",
+  };
 
   let board = [];
   for (let j = 7; j >= 0; j--) {
     for (let i = 0; i < 8; i++) {
       const p = grid[7 - j][i];
-      const image = p ?  `src/assets/${names[p.type]}_${p.color}.png` : undefined;
+      const image = p
+        ? `/src/assets/${names[p.type]}_${p.color}.png`
+        : undefined;
       board.push(
-        <Tile key={`${j}, ${i}`} image={image} number={i + j + 2} id={p?.type} />,
+        <Tile
+          key={`${j}, ${i}`}
+          image={image}
+          number={i + j + 2}
+          id={p?.type}
+        />,
       );
     }
   }

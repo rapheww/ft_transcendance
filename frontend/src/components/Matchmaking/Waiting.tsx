@@ -1,9 +1,13 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Header from "../Navbar/Header";
 import "/src/index.css";
 
 const Waiting = () => {
   const navigate = useNavigate();
+  const {timer,  bonus} = useParams<{timer: string; bonus: string}>();
+  const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
+  const chrono = timer === "5" || timer === "10" ? Number(timer) : 0;
+
   return (
     <div>
       <Header />
@@ -13,7 +17,7 @@ const Waiting = () => {
             >
         </div>
         <button
-              onClick={() => navigate("/chess")}
+              onClick={() => navigate(`/chess/${chrono}/${add}`)}
               className="btn bg-mist-700 hover:bg-mist-600  transition-colors
                          w-25 sm:w-30 lg:w-30
                          h-15 sm:h-15 lg:h-15

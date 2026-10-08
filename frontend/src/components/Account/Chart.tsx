@@ -1,43 +1,115 @@
+import { useEffect, useState } from "react";
 import { Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
+import { useAuth } from "../AuthProvider";
 
-const data = [
-  { name: "A", value: 400 },
-  { name: "B", value: 300 },
-  { name: "C", value: 500 },
-  { name: "D", value: 50 },
-  { name: "E", value: 145 },
-  { name: "F", value: 140 },
-  { name: "G", value: 570 },
-  { name: "H", value: 410 },
-  { name: "I", value: 3000 },
-];
+type StatsProfil = {
+  elo: number;
+  games_played: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  win_rate: number;
+  username: string;
+  elo_history: [
+    {
+      date: string;
+      elo: number;
+    },
+  ];
+};
 
-export default function Step1() {
-  return (
-    <div className="w-full h-full flex justify-center items-center">
-      <LineChart
-        style={{ width: "100%", aspectRatio: 1.618, maxWidth: 600 }}
-        responsive
-        data={data}
-        margin={{
-          top: 20,
-          right: 20,
-          bottom: 5,
-          left: 0,
-        }}
-      >
-        <Line
-          type="monotone"
-          dataKey="value"
-          strokeWidth={3}
-          stroke="#fff"
-          dot={{ stroke: "#22292b", strokeWidth: 2, fill: "#c36fed", r: 6 }}
-          name="Elo"
-        />
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-      </LineChart>
-    </div>
-  );
+const emptyStats: StatsProfil = {
+  elo: 0,
+  games_played: 0,
+  wins: 0,
+  losses: 0,
+  draws: 0,
+  win_rate: 0,
+  username: "unknown",
+  elo_history: [
+    {
+      date: "today",
+      elo: 0,
+    },
+  ],
+};
+
+interface ChartProps {
+  username: string;
+}
+
+export default function Chart({ username }: ChartProps) {
+  const [stats, setStats] = useState<StatsProfil>(emptyStats);
+  const { token } = useAuth();
+
+  useEffect(() => {
+    if (!username) return;
+    (async () => {
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/stats/player/${username}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        if (!response.ok) return;
+        const infos = await response.json();
+        setStats(infos);
+        setStats(infos);
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  }, [username]);
+
+  const chartData = stats.elo_history;
+  console.log("test");
+  console.log(chartData);
+
+  if (chartData.length > 1) {
+    return (
+      <div className="w-full h-full flex justify-center items-center">
+        <LineChart
+          style={{ width: "100%", aspectRatio: 1.618, maxWidth: 600 }}
+          responsive
+          data={chartData}
+          margin={{
+            top: 20,
+            right: 20,
+            bottom: 5,
+            left: 0,
+          }}
+        >
+          <Line
+            type="monotone"
+            dataKey="elo"
+            strokeWidth={3}
+            stroke="#fff"
+            name="Elo"
+          />
+          <XAxis dataKey="date" />
+          <YAxis />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "#fff",
+              border: "1px solid #ccc",
+              color: "#000",
+            }}
+            labelStyle={{
+              color: "#000",
+            }}
+            itemStyle={{
+              color: "#000",
+            }}
+          />
+        </LineChart>
+      </div>
+    );
+  } else {
+    return (
+      <div className="w-full h-full flex justify-center items-center">
+        <p>{`Current elo : ${stats.elo} --> play games to get more stats`}</p>
+      </div>
+    );
+  }
 }

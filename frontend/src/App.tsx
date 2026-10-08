@@ -19,10 +19,10 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route element={<DefaultLayout />}>
-              <Route path="/chess" element={<Chess />} />
+              <Route path="/chess/:timer/:bonus" element={<Chess />} />
               <Route path="/profile" element={<Profil />} />
               <Route path="/mode" element={<Mode />} />
-              <Route path="/matchmaking" element={<Waiting />} />
+              <Route path="/matchmaking/:timer/:bonus" element={<Waiting />} />
             </Route>
 
         </Routes>

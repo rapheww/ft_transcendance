@@ -55,12 +55,12 @@ const Profil = () => {
               justify-center
               rounded-t-md"
           >
-            <div className=" w-1/3 h-full flex justify-center items-center">
+            <div className={`w-1/3 h-full flex justify-center items-center`}>
               <img
                 src={profil?.avatar}
                 alt="pfp"
                 id="pfp"
-                className="h-[60%] rounded-full hover:brightness-50 cursor-pointer"
+                className="h-[65%] aspect-square rounded-full hover:brightness-50 cursor-pointer object-cover"
                 onClick={() => setOpen(true)}
               />
             </div>
@@ -82,7 +82,7 @@ const Profil = () => {
           id="profil-banner"
           className="bg-mist-900 rounded-b-md h-100 w-[75%] flex justify-center items-center"
         >
-          <Chart />
+          <Chart username={profil ? profil.username : ""}/>
         </div>
         {
           <Editor

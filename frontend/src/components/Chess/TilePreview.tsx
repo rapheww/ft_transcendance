@@ -9,7 +9,6 @@ interface Props {
 
 export default function PreviewTile({ number, image, dark, light }: Props) {
   const { profil } = useAuth();
-  if(profil) console.log("profil loading...");
 
   const isDark = number % 2 === 0;
   const color = isDark

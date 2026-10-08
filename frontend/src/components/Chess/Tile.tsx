@@ -14,6 +14,7 @@ export default function Tile({ number, image, id }: Props) {
   return (
     <div
       className="h-full w-full"
+      data-dark={isDark}
       style={{ backgroundColor: color }}
     >
       <div className="test"></div>

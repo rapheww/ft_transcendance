@@ -3,6 +3,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Chessboard from "./Chessboard";
 import { Flag } from "lucide-react";
 import Timer from "./Timer";
+import { useParams } from "react-router-dom";
+import { useAuth } from "../AuthProvider";
+import ProfilePreview from "./ProfilePreview";
 
 export default function Chess() {
   const [showMoves, setShowMoves] = useState<boolean>(true);
@@ -10,7 +13,18 @@ export default function Chess() {
   const [bTurn, setBturn] = useState<boolean>(false);
   const [wTurn, setWturn] = useState<boolean>(false);
   const [moves, setMoves] = useState<string[]>([]);
+  const [wBonus, setWBonus] = useState<boolean>(false);
+  const [bBonus, setBBonus] = useState<boolean>(false);
+  const [open, setOpen] = useState<boolean>(false);
+  const [username, setUsername] = useState<string>("");
   const movesListRef = useRef<HTMLDivElement>(null);
+  const { timer, bonus } = useParams<{ timer: string; bonus: string }>();
+  const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
+  const chrono = timer === "5" || timer === "10" ? Number(timer) : 0;
+
+  const { user } = useAuth();
+  //a delete
+  const user1 = "Bob";
 
   const movePairs = useMemo(() => {
     let tmp: string[][] = [];
@@ -36,39 +50,81 @@ export default function Chess() {
         <div className="flex flex-col md:flex-row lg:grid lg:grid-cols-[1fr_auto_1fr] items-center md:items-stretch lg:items-center gap-2 md:gap-3 justify-center w-full max-w-470 md:h-[calc(100dvh-72px-2rem)]">
           <div className="flex flex-col h-full w-full justify-center items-center order-1 lg:col-start-2 lg:row-start-1 lg:-translate-x-20 gap-2 md:w-auto md:h-full md:max-w-[calc(100%-clamp(240px,26vw,420px)-0.75rem)] md:shrink lg:h-auto lg:max-w-none">
             <div className="flex flex-row justify-between items-center w-full h-10 shrink-0 p-3 rounded-sm bg-mist-400/10">
-              <p className="text-lg font-semibold">joueur 1</p>
-              <Timer time={5 * 60} turn={bTurn}/>
+              <p
+                onClick={() => {
+                  setOpen(true)
+                  if (user1)
+                    setUsername(user1)
+                }} 
+                className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
+              >
+                {user1}
+              </p>
+              <div
+                id="timer-1"
+                className={`${bTurn ? "bg-white/90   rounded-sm p-1 pl-2 pr-2 text-mist-700" : ""}`}
+              >
+                <Timer
+                  time={chrono * 60}
+                  turn={bTurn}
+                  bonus={add}
+                  toAdd={bBonus}
+                />
+              </div>
               {/* time a changer en fonction du mode donc passage en props */}
             </div>
             <div className="w-full aspect-square max-h-[65dvh] md:max-h-none md:h-auto md:w-[calc(100dvh-72px-8rem)] lg:h-auto lg:w-[min(calc(100dvh-72px-8rem),calc(100vw-2*clamp(240px,26vw,420px)-14.5rem))] flex items-center justify-center @container-size">
-              <Chessboard setMoves={setMoves} setBTurn={setBturn} setWTurn={setWturn}/>
+              <Chessboard
+                setMoves={setMoves}
+                setBTurn={setBturn}
+                setWTurn={setWturn}
+                setBBonus={setBBonus}
+                setWBonus={setWBonus}
+              />
             </div>
             <div className="flex flex-row justify-between items-center w-full h-10 shrink-0 p-3 rounded-sm bg-mist-400/10">
-              <p className="text-lg font-semibold">joueur 2</p>
-              <Timer time={5 * 60} turn={wTurn}/> 
-              {/* time a changer en fonction du mode donc passage en props */}
+              <p
+                onClick={() => {
+                  setOpen(true)
+                  if (user)
+                    setUsername(user)
+                }}
+                className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
+              >
+                {user}
+              </p>
+              <div
+                id="timer-2"
+                className={`${wTurn ? "bg-white/90 rounded-sm p-1 pl-2 pr-2 text-mist-700" : ""}`}
+              >
+                <Timer
+                  time={chrono * 60}
+                  turn={wTurn}
+                  bonus={add}
+                  toAdd={wBonus}
+                />
+              </div>
             </div>
           </div>
-
           <div
             id="mov-resume"
             className={`flex 
-            order-2 
-            shrink-0 
-            w-full
-            md:h-full
-            md:max-h-[80%]
-            md:w-[clamp(240px,26vw,520px)]
-            lg:col-start-3
-            lg:row-start-1
-            lg:justify-self-start
-            rounded-md
-            shadow-[0_0_6px_#000000]
-            bg-mist-800 
-            items-center 
-            justify-center 
-            flex-col
-            `}
+              order-2 
+              shrink-0 
+              w-full
+              md:h-full
+              md:max-h-[80%]
+              md:w-[clamp(240px,26vw,520px)]
+              lg:col-start-3
+              lg:row-start-1
+              lg:justify-self-start
+              rounded-md
+              shadow-[0_0_6px_#000000]
+              bg-mist-800 
+              items-center 
+              justify-center 
+              flex-col
+              `}
           >
             <div
               className={`w-full h-[5%] min-h-10 flex items-center justify-center rounded-t-md p-2 bg-mist-900/70`}
@@ -142,6 +198,7 @@ export default function Chess() {
             </div>
           </div>
         </div>
+        <ProfilePreview onClose={() => setOpen(false)} open={open} username={username}/>
       </main>
     </div>
   );

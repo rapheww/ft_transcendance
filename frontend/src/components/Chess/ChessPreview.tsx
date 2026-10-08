@@ -1,4 +1,3 @@
-import { useAuth } from "../AuthProvider";
 import { useState } from "react";
 import PreviewTile from "./TilePreview";
 const horizontalAxis: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -46,10 +45,7 @@ interface PreviewProps{
 
 export default function ChessPreview({dark, light}: PreviewProps) {
   const [pieces] = useState<Piece[]>(initialBoardState);
-  const {profil} = useAuth();
   let board = [];
-
-  if(profil) console.log("profil loading...");
 
   for (let j = verticalAxis.length - 1; j >= 0; j--) {
     for (let i = 0; i < horizontalAxis.length; i++) {

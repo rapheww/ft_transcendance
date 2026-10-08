@@ -84,7 +84,7 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
             <div className="bg-mist-800 max-h-[90vh] flex justify-center items-center flex-col rounded-lg p-5 ">
               <button
                 onClick={onClose}
-                className="cursor-pointer place-self-end"
+                className="cursor-pointer place-self-end rounded-lg hover:bg-gray-400/30"
               >
                 <X size={30} />
               </button>

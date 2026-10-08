@@ -4,7 +4,7 @@ import Header from "../Navbar/Header";
 const Mode = () => {
   const navigate = useNavigate();
 
-  const modes = ["Mode 1", "Mode 2", "Mode 3"];
+  const modes = ["5+0", "10+0", "10+5"];
 
   return (
     <div>
@@ -19,8 +19,9 @@ const Mode = () => {
             <button
               key={mode}
               onClick={() =>{
-                
-                navigate("/matchmaking");
+                const timer = mode.split('+');
+                if(!timer[0] || !timer[1]) return;
+                navigate(`/matchmaking/${timer[0]}/${timer[1]}`);
               }}
               className="btn bg-mist-700 hover:bg-mist-600 md:hover:shadow-[0px_0px_15px_#fff] transition-colors
                          w-full sm:w-60 lg:w-100
