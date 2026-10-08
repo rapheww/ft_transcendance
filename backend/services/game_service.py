@@ -26,8 +26,8 @@ def _board_from_pgn(pgn: str) -> chess.Board:
 
 def _finish_game(db: Session, game: Game, result: str) -> None:
     if game.opponent_type != "ai":
-        elo_service.update_ratings(db, game.white_player_id, game.black_player_id,
-                                result)
+        game.white_elo_after, game.black_elo_after = elo_service.update_ratings(
+            db, game.white_player_id, game.black_player_id, result)
     game.status = "finished"
     game.result = result
     game.finished_at = datetime.now(timezone.utc)
@@ -50,6 +50,7 @@ def _update_clock(game: Game, board: chess.Board, now: datetime) -> bool:
 
     game.black_time_remaining = max(0, game.black_time_remaining - elapsed)
     return game.black_time_remaining == 0
+
 
 def create_game(db: Session,
                 user_id: int,
@@ -217,6 +218,7 @@ def make_move(db: Session, game_id: int, user_id: int, move: str) -> Game:
         db.rollback()
         raise
 
+
 def make_ai_move(db: Session, game_id: int, ai_move: chess.Move) -> Game:
     try:
         repository = GameRepository(db)
@@ -228,7 +230,7 @@ def make_ai_move(db: Session, game_id: int, ai_move: chess.Move) -> Game:
             raise GameNotActive()
         if game.opponent_type != "ai":
             raise NotAIGame()
-        
+
         board = _board_from_pgn(game.pgn)
 
         if board.turn != chess.BLACK:
@@ -244,8 +246,8 @@ def make_ai_move(db: Session, game_id: int, ai_move: chess.Move) -> Game:
             _finish_game(db, game, result)
 
         elif (board.is_stalemate() or board.is_insufficient_material()
-                or board.is_fivefold_repetition()
-                or board.is_seventyfive_moves()):
+              or board.is_fivefold_repetition()
+              or board.is_seventyfive_moves()):
             _finish_game(db, game, "1/2-1/2")
 
         pgn_game = chess.pgn.read_game(io.StringIO(game.pgn))
@@ -256,13 +258,14 @@ def make_ai_move(db: Session, game_id: int, ai_move: chess.Move) -> Game:
         pgn_node.add_main_variation(ai_move)
         game.current_fen = board.fen()
         game.pgn = str(pgn_game)
-        
+
         repository.update(game)
         db.commit()
     except Exception:
         db.rollback()
         raise
     return game
+
 
 def resign(db: Session, game_id: int, user_id: int) -> Game:
     try:
@@ -339,7 +342,8 @@ def accept_draw(db: Session, game_id: int, user_id: int) -> Game:
         if game.draw_offer_by == user_id:
             raise CannotAcceptOwnDrawOffer()
 
-        _update_clock(game, _board_from_pgn(game.pgn), datetime.now(timezone.utc))
+        _update_clock(game, _board_from_pgn(game.pgn),
+                      datetime.now(timezone.utc))
         _finish_game(db, game, "1/2-1/2")
         game.draw_offer_by = None
 
@@ -443,3 +447,32 @@ def claim_fifty_move(db: Session, game_id: int, user_id: int) -> Game:
     except Exception:
         db.rollback()
         raise
+
+
+def create_human_game(db: Session, white_player_id: int, black_player_id: int,
+                      initial_time_seconds: int | None,
+                      increment_seconds: int) -> Game:
+    board = chess.Board()
+
+    game_pgn = chess.pgn.Game()
+    game_pgn.headers["Result"] = "*"
+
+    game = Game(white_player_id=white_player_id,
+                black_player_id=black_player_id,
+                opponent_type="human",
+                ai_difficulty=None,
+                status="active",
+                result=None,
+                current_fen=board.fen(),
+                pgn=str(game_pgn),
+                initial_time_seconds=initial_time_seconds,
+                increment_seconds=increment_seconds,
+                white_time_remaining=initial_time_seconds,
+                black_time_remaining=initial_time_seconds,
+                last_move_at=(datetime.now(timezone.utc)
+                              if initial_time_seconds is not None else None))
+
+    repository = GameRepository(db)
+    repository.create(game)
+
+    return game

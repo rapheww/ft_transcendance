@@ -142,3 +142,63 @@ def test_equal_elo_is_sorted_by_username_without_replaying_history(db):
     assert [entry.username for entry in first] == ["Louis", "Vigo"]
     assert [entry.elo for entry in first] == [1000, 1000]
     assert first == second
+
+
+def test_profile_history_selects_color_and_orders_by_date_then_id(db):
+    vigo = create_user(db, "Vigo", "vigo@example.com")
+    louis = create_user(db, "Louis", "louis@example.com")
+    date = datetime(2026, 10, 6, tzinfo=timezone.utc)
+    later = create_finished_game(db, louis, vigo, "0-1", finished_at=date)
+    earlier_date = datetime(2026, 10, 5, tzinfo=timezone.utc)
+    earlier = create_finished_game(db, vigo, louis, "1-0", finished_at=earlier_date)
+    same_date = create_finished_game(db, vigo, louis, "1-0", finished_at=date)
+    earlier.white_elo_after, earlier.black_elo_after = 1016, 984
+    later.white_elo_after, later.black_elo_after = 969, 1031
+    same_date.white_elo_after, same_date.black_elo_after = 1044, 956
+    db.commit()
+
+    profile = stats_service.get_player_profile(db, "Vigo")
+    assert [(point.date, point.elo) for point in profile.elo_history] == [
+        (earlier_date, 1016), (date, 1031), (date, 1044)]
+    assert all(point.date.utcoffset().total_seconds() == 0
+               for point in profile.elo_history)
+
+
+def test_profile_history_excludes_legacy_ai_active_and_other_players(db):
+    vigo = create_user(db, "Vigo", "vigo@example.com")
+    louis = create_user(db, "Louis", "louis@example.com")
+    raph = create_user(db, "Raph", "raph@example.com")
+    # Old games still count in statistics but have no recorded Elo.
+    create_finished_game(db, vigo, louis, "1-0")
+    ai = create_finished_game(db, vigo, louis, "1-0")
+    ai.opponent_type, ai.black_player_id = "ai", None
+    active = create_finished_game(db, vigo, louis, "1-0")
+    active.status = "active"
+    other = create_finished_game(db, louis, raph, "1-0")
+    for game in (ai, active, other):
+        game.white_elo_after, game.black_elo_after = 1016, 984
+    db.commit()
+
+    profile = stats_service.get_player_profile(db, "Vigo")
+    assert profile.elo_history == []
+    assert profile.elo == 1000
+    assert profile.games_played == 2
+
+
+def test_new_player_profile_has_empty_history(db):
+    create_user(db, "Chikako", "chikako@example.com")
+    profile = stats_service.get_player_profile(db, "Chikako")
+    assert profile.elo == 1000
+    assert profile.elo_history == []
+
+
+def test_leaderboard_does_not_load_elo_history(db, monkeypatch):
+    from backend.repositories.stats_repository import StatsRepository
+
+    create_user(db)
+
+    def unexpected_history(*args):
+        raise AssertionError("The leaderboard must not load profile history")
+
+    monkeypatch.setattr(StatsRepository, "list_elo_history", unexpected_history)
+    assert len(stats_service.get_leaderboard(db)) == 1

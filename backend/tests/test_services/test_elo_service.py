@@ -130,6 +130,8 @@ def test_all_natural_game_endings_update_elo(db, fen, moves, final_move,
     assert game.status == "finished"
     assert game.result == result
     assert (white.elo, black.elo) == expected
+    db.refresh(game)
+    assert (game.white_elo_after, game.black_elo_after) == expected
 
 
 def test_active_game_and_illegal_move_do_not_change_elo(db):
@@ -182,6 +184,8 @@ def test_game_result_and_ratings_roll_back_together(db, monkeypatch,
     assert game.status == "active"
     assert game.result is None
     assert game.finished_at is None
+    assert game.white_elo_after is None
+    assert game.black_elo_after is None
     assert game.pgn == original_pgn
     assert (white.elo, black.elo) == (1000, 1000)
 
@@ -418,6 +422,9 @@ def test_two_finishes_of_same_game_change_elo_once(engine, players,
     assert first == "finished"
     assert isinstance(second, CannotResignFinishedGame)
     with Session(engine) as db:
+        game = db.get(Game, game_id)
+        assert (game.white_elo_after, game.black_elo_after) == (1016, 984)
+        assert len(stats_service.get_player_profile(db, "Vigo").elo_history) == 1
         assert (db.get(User, vigo_id).elo, db.get(User,
                                                   louis_id).elo) == (1016, 984)
 
@@ -438,6 +445,11 @@ def test_concurrent_games_with_reversed_colors_preserve_both_updates(
         assert (db.get(User, vigo_id).elo, db.get(User,
                                                   louis_id).elo) == expected
         assert expected == (1031, 969)
+        first_game, second_game = db.get(Game, first_id), db.get(Game, second_id)
+        assert (first_game.white_elo_after, first_game.black_elo_after) == (1016, 984)
+        assert (second_game.white_elo_after, second_game.black_elo_after) == (969, 1031)
+        assert [point.elo for point in
+                stats_service.get_player_profile(db, "Vigo").elo_history] == [1016, 1031]
 
 
 def test_invalid_move_releases_game_lock_for_waiting_finish(
@@ -454,3 +466,73 @@ def test_invalid_move_releases_game_lock_for_waiting_finish(
     with Session(engine) as db:
         assert (db.get(User, vigo_id).elo, db.get(User,
                                                   louis_id).elo) == (1016, 984)
+
+
+def test_recorded_elo_survives_later_rating_changes(db):
+    white, black = create_players(db)
+    first = active_game(db, white, black)
+    game_service.resign(db, first.id, black.id)
+    second = active_game(db, white, black)
+    game_service.resign(db, second.id, black.id)
+    db.refresh(first)
+    db.refresh(second)
+    assert (first.white_elo_after, first.black_elo_after) == (1016, 984)
+    assert (second.white_elo_after, second.black_elo_after) == (1031, 969)
+
+
+def test_equal_rating_draw_records_an_unchanged_elo(db):
+    white, black = create_players(db)
+    game = active_game(db, white, black)
+    assert game.white_elo_after is None and game.black_elo_after is None
+    game_service.offer_draw(db, game.id, white.id)
+    game_service.accept_draw(db, game.id, black.id)
+    db.refresh(game)
+    assert (game.white_elo_after, game.black_elo_after) == (1000, 1000)
+    history = stats_service.get_player_profile(db, "Vigo").elo_history
+    assert len(history) == 1
+    assert history[0].elo == 1000
+    assert history[0].date == game.finished_at
+
+
+def test_ai_game_finishes_without_recording_or_changing_elo(db):
+    white, _ = create_players(db)
+    game = game_service.create_game(db, white.id, opponent_type="ai",
+                                    ai_difficulty="easy")
+    game_service.resign(db, game.id, white.id)
+    db.refresh(white)
+    db.refresh(game)
+    assert game.status == "finished"
+    assert white.elo == 1000
+    assert game.white_elo_after is None and game.black_elo_after is None
+    assert stats_service.get_player_profile(db, "Vigo").elo_history == []
+
+
+def test_game_elo_history_migration_preserves_old_games_and_is_reversible(engine):
+    migration_path = Path(__file__).parents[2] / (
+        "alembic/versions/f3c92a781b60_add_game_elo_history.py")
+    spec = importlib.util.spec_from_file_location("add_game_elo_history", migration_path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    schema = "elo_history_test_" + uuid4().hex
+
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        try:
+            connection.execute(text("CREATE SCHEMA " + schema))
+            connection.execute(text("SET LOCAL search_path TO " + schema))
+            connection.execute(text("CREATE TABLE games (id INTEGER PRIMARY KEY, result TEXT)"))
+            connection.execute(text("INSERT INTO games VALUES (1, '1-0')"))
+            with Operations.context(MigrationContext.configure(connection)):
+                migration.upgrade()
+                assert tuple(connection.execute(text(
+                    "SELECT result, white_elo_after, black_elo_after FROM games WHERE id = 1"
+                )).one()) == ("1-0", None, None)
+                connection.execute(text(
+                    "UPDATE games SET white_elo_after = 1016, black_elo_after = 984 WHERE id = 1"))
+                migration.downgrade()
+                columns = {column["name"] for column in inspect(connection).get_columns(
+                    "games", schema=schema)}
+                assert columns == {"id", "result"}
+                assert connection.scalar(text("SELECT result FROM games WHERE id = 1")) == "1-0"
+        finally:
+            transaction.rollback()

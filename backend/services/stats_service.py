@@ -6,6 +6,7 @@ instead of a dedicated counter, using python-chess.
 """
 
 import io
+from datetime import timezone
 from typing import Literal
 
 import chess.pgn
@@ -14,7 +15,8 @@ from sqlalchemy.orm import Session
 from backend.models.game import Game
 from backend.models.user import User
 from backend.repositories.stats_repository import StatsRepository
-from backend.schemas.stats import LeaderboardEntry, MatchHistoryEntry, PlayerStats
+from backend.schemas.stats import (
+    EloHistoryPoint, LeaderboardEntry, MatchHistoryEntry, PlayerProfile, PlayerStats)
 from backend.services import user_service
 
 Outcome = Literal["win", "loss", "draw"]
@@ -75,6 +77,19 @@ def get_player_stats(db: Session, user_id: int) -> PlayerStats:
                        losses=losses,
                        draws=draws,
                        win_rate=win_rate)
+
+
+def get_player_profile(db: Session, username: str) -> PlayerProfile:
+    """Return a player's statistics and recorded Elo history."""
+    user = user_service.get_user(db, username)
+    stats = get_player_stats(db, user.id)
+    history = StatsRepository(db).list_elo_history(user.id)
+    return PlayerProfile(
+        **stats.model_dump(), username=user.username,
+        elo_history=[
+            EloHistoryPoint(date=date.astimezone(timezone.utc), elo=elo)
+            for date, elo in history
+        ])
 
 
 def get_leaderboard(db: Session) -> list[LeaderboardEntry]:
