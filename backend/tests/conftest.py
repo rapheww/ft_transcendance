@@ -15,6 +15,11 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 if TEST_DATABASE_URL is None:
     raise RuntimeError("TEST_DATABASE_URL is not set")
 
+@pytest.fixture(autouse=True)
+def disable_tournament_scheduler(monkeypatch):
+    monkeypatch.setattr(app.state, "tournament_scheduler_enabled", False, raising=False)
+
+
 @pytest.fixture
 def engine():
     engine = create_engine(TEST_DATABASE_URL)

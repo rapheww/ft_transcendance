@@ -6,6 +6,7 @@ from backend.models.user import User
 from backend.services import matchmaking_service
 from backend.repositories.game_repository import GameRepository
 from backend.exceptions.matchmaking import AlreadyInMatchmaking, NotInMatchmaking
+from backend.exceptions.tournament import PlayerUnavailable
 from backend.schemas.matchmaking import MatchmakingRequest, MatchmakingResponse
 
 router = APIRouter()
@@ -44,7 +45,7 @@ def join_matchmaking(request: MatchmakingRequest,
             increment_seconds=entry.increment_seconds,
             created_at=entry.created_at)
 
-    except AlreadyInMatchmaking as error:
+    except (AlreadyInMatchmaking, PlayerUnavailable) as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail=str(error))
 

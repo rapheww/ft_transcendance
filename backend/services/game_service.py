@@ -3,7 +3,7 @@ import chess
 import chess.pgn
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from backend.models.game import Game
 from backend.repositories.game_repository import GameRepository
 from backend.services import elo_service, user_service
@@ -476,3 +476,47 @@ def create_human_game(db: Session, white_player_id: int, black_player_id: int,
     repository.create(game)
 
     return game
+
+
+def expire_clock(db: Session,
+                 game_id: int,
+                 now: datetime | None = None) -> dict | None:
+    """Finish an expired timed game once; return a notification after commit."""
+    try:
+        game = GameRepository(db).get_by_id_for_update(game_id)
+        if game is None or game.status != "active" or game.initial_time_seconds is None:
+            db.rollback()
+            return None
+        now = now or datetime.now(timezone.utc)
+        board = _board_from_pgn(game.pgn)
+        reference = game.last_move_at
+        if reference is None:
+            db.rollback()
+            return None
+        if reference.tzinfo is None:
+            reference = reference.replace(tzinfo=timezone.utc)
+        remaining = game.white_time_remaining if board.turn == chess.WHITE else game.black_time_remaining
+        if (now - reference).total_seconds() < remaining:
+            db.rollback()
+            return None
+        # Finish at the actual deadline, so round pauses don't depend on polling delay.
+        deadline = reference + timedelta(seconds=remaining)
+        game.last_move_at = reference
+        _update_clock(game, board, now)
+        result = "0-1" if board.turn == chess.WHITE else "1-0"
+        _finish_game(db, game, result)
+        game.finished_at = deadline
+        game.draw_offer_by = None
+        pgn_game = chess.pgn.read_game(io.StringIO(game.pgn))
+        pgn_game.headers["Result"] = result
+        game.pgn = str(pgn_game)
+        notification = {
+            "game_id": game.id,
+            "fen": game.current_fen,
+            "result": game.result
+        }
+        db.commit()
+        return notification
+    except Exception:
+        db.rollback()
+        raise

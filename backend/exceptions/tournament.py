@@ -34,5 +34,20 @@ class InvalidParticipantCount(Exception):
     def __init__(
         self,
         message:
-        str = "Number of participants must be a power of two (at least 2)"):
+        str = "At least two participants are required"):
         super().__init__(message)
+
+
+class NotTournamentOrganizer(Exception):
+    def __init__(self):
+        super().__init__("Only the tournament organizer can perform this action")
+
+
+class TournamentExpired(Exception):
+    def __init__(self):
+        super().__init__("Tournament registration has expired")
+
+
+class PlayerUnavailable(Exception):
+    def __init__(self):
+        super().__init__("Player is already in a tournament, matchmaking or an unfinished game")
