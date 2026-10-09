@@ -98,9 +98,18 @@ export default function Chess() {
     }
   }, [moves]);
 
-  function sendResign(){
+  async function sendResign(){
     try{
-      console.log('resign');
+      const response = await fetch(`http://127.0.0.1:8000/api/games/${id}/resign`, {
+        method: 'POST',
+        headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+        },
+      })
+      const resignState = await response.json();
+      setResult(resignState.result);
+      setGameOver(true);
     }
     catch{
       console.log('error resign');
