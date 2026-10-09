@@ -329,6 +329,28 @@ def test_worker_expires_game_once_and_recovers_with_new_sessions(engine, db):
     assert db.get(User, match.player1_id).elo == 984
 
 
+def test_worker_expires_non_tournament_game(engine, db):
+    white, black = create_players(db, 2)
+    game = game_service.create_game(db, white.id, initial_time_seconds=600)
+    game_service.join_game(db, game.id, black.id)
+    
+    reference = datetime.now(timezone.utc) - timedelta(seconds=605)
+    game.last_move_at = reference
+    db.commit()
+
+    events = tournament_scheduler.run_tick(sessionmaker(bind=engine))
+
+    assert events == [{
+        "game_id": game.id,
+        "fen": game.current_fen,
+        "result": "0-1"
+    }]
+    db.refresh(game)
+    assert game.status == "finished"
+    assert game.finished_at.replace(
+        tzinfo=timezone.utc) == (reference + timedelta(seconds=600))
+
+
 def test_worker_does_not_subtract_elapsed_twice(db):
     tournament = start_with(db, [p.id for p in create_players(db, 2)])
     game = db.get(Game, active_matches(db, tournament.id)[0].game_id)

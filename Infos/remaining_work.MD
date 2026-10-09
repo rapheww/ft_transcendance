@@ -3,8 +3,8 @@
 - finir tournaments (backend)
 - implementer tournaments sur le frontend -> page tournaments, leaderboards tournaments page d'accueil
 - implementer websockets frontend
-- systeme recommandation machine learning
 - mode spectateur
+- systeme recommandation machine learning
 - faire du parsing pour ce qui est password, email et username
 - peaufiner ce qui est deja present (front et back)
 

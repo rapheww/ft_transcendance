@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from backend.db.session import SessionLocal
 from backend.models.game import Game
-from backend.models.tournament import Tournament, TournamentMatch
+from backend.models.tournament import Tournament
 from backend.services import game_service, tournament_service
 from backend.websocket.connection_manager import manager
 
@@ -21,9 +21,9 @@ def run_tick(session_factory=SessionLocal,
     notifications = []
     with session_factory() as db:
         game_ids = [
-            gid for gid, in db.query(Game.id).join(
-                TournamentMatch, TournamentMatch.game_id == Game.id).filter(
-                    Game.status == "active").all()
+            gid for gid, in db.query(Game.id).filter(
+                Game.status == "active", Game.initial_time_seconds.is_not(
+                    None)).all()
         ]
         tournament_ids = [
             tid for tid, in db.query(Tournament.id).filter(
