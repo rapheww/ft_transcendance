@@ -2,7 +2,6 @@ import pytest
 import jwt
 from datetime import datetime, timedelta, timezone
 from jwt import InvalidTokenError
-
 from backend.core.security import (create_access_token, decode_access_token)
 from backend.core.config import settings
 
@@ -35,7 +34,27 @@ def test_decode_access_token_rejects_expired_token():
     }
 
     token = jwt.encode(payload,
-                       settings.jwt_secret_key,
+                       settings.jwt_secret_key.get_secret_value(),
+                       algorithm=settings.jwt_algorithm)
+
+    with pytest.raises(InvalidTokenError):
+        decode_access_token(token)
+
+
+@pytest.mark.parametrize(
+    "payload", [{
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+        "type": "access"
+    }, {
+        "sub": "42",
+        "type": "access"
+    }, {
+        "sub": "42",
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=5)
+    }])
+def test_decode_access_token_rejects_missing_required_claims(payload):
+    token = jwt.encode(payload,
+                       settings.jwt_secret_key.get_secret_value(),
                        algorithm=settings.jwt_algorithm)
 
     with pytest.raises(InvalidTokenError):

@@ -155,13 +155,13 @@ def test_update_user(db):
                            password="password123")
 
     created_user = user_service.create_user(db, user_data)
-    update_data = UserUpdate(username="alice-new",
+    update_data = UserUpdate(username="alice_new",
                              email="alice-new@example.com")
 
     result = user_service.update_user(db, created_user.id, update_data)
 
     assert result.id == created_user.id
-    assert result.username == "alice-new"
+    assert result.username == "alice_new"
     assert result.email == "alice-new@example.com"
 
 

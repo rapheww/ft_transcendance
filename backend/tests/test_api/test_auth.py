@@ -103,7 +103,7 @@ def test_get_me_with_malformed_subject_returns_401(client: TestClient):
         "sub": "not-an-integer",
         "type": "access"
     },
-                       settings.jwt_secret_key,
+                       settings.jwt_secret_key.get_secret_value(),
                        algorithm=settings.jwt_algorithm)
 
     response = client.get("/api/users/me",
@@ -118,7 +118,7 @@ def test_get_me_with_nonexistent_user_returns_401(client: TestClient):
         "sub": "999999",
         "type": "access"
     },
-                       settings.jwt_secret_key,
+                       settings.jwt_secret_key.get_secret_value(),
                        algorithm=settings.jwt_algorithm)
 
     response = client.get("/api/users/me",
@@ -133,7 +133,7 @@ def test_get_me_with_wrong_token_type_returns_401(client: TestClient):
         "sub": "42",
         "type": "refresh"
     },
-                       settings.jwt_secret_key,
+                       settings.jwt_secret_key.get_secret_value(),
                        algorithm=settings.jwt_algorithm)
 
     response = client.get("/api/users/me",
