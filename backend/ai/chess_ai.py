@@ -3,6 +3,32 @@ import random
 import math
 from backend.exceptions.game import InvalidDifficulty
 
+STYLE_WEIGHTS = {
+    "aggressive": {
+        "material": 1.0,
+        "mobility": 1.5,
+        "center": 1.4,
+        "king_safety": 0.7,
+        "development": 1.2,
+    },
+
+    "balanced": {
+        "material": 1.0,
+        "mobility": 1.0,
+        "center": 1.0,
+        "king_safety": 1.0,
+        "development": 1.0,
+    },
+
+    "defensive": {
+        "material": 1.2,
+        "mobility": 0.8,
+        "center": 0.8,
+        "king_safety": 1.5,
+        "development": 1.0,
+    },
+}
+
 def count_mobility(board, color):
     tmp_board = board.copy()
     tmp_board.turn = color
@@ -61,7 +87,9 @@ def is_open_file(board, file):
             return False
     return True
 
-def evaluate(board, maximizing_color, difficulty):
+def evaluate(board, maximizing_color, difficulty, style):
+    weights = STYLE_WEIGHTS[style]
+
     # check checkmate and draw
     if board.is_checkmate():
         if board.turn == maximizing_color:
@@ -88,8 +116,8 @@ def evaluate(board, maximizing_color, difficulty):
         chess.KING: 0,
     }
     for piece_type, value in piece_values.items():
-        white_score += len(board.pieces(piece_type, chess.WHITE)) * value
-        black_score += len(board.pieces(piece_type, chess.BLACK)) * value
+        white_score += len(board.pieces(piece_type, chess.WHITE)) * value * weights["material"]
+        black_score += len(board.pieces(piece_type, chess.BLACK)) * value * weights["material"]
 
     # check center control
     center = [
@@ -102,30 +130,34 @@ def evaluate(board, maximizing_color, difficulty):
         piece = board.piece_at(square)
         if piece:
             if piece.color == chess.WHITE:
-                white_score += 3
+                white_score += 3 * weights["center"]
             else:   
-                black_score += 3
+                black_score += 3 * weights["center"]
 
     # check mobility
     white_mobility = count_mobility(board, chess.WHITE)
     black_mobility = count_mobility(board, chess.BLACK)
-    white_score += white_mobility * 0.2
-    black_score += black_mobility * 0.2
+    white_score += white_mobility * 0.2 * weights["mobility"]
+    black_score += black_mobility * 0.2 * weights["mobility"]
 
     # penalize undeveloped pieces
-    white_score -= get_penalty(board, chess.WHITE)
-    black_score -= get_penalty(board, chess.BLACK)
+    white_score -= get_penalty(board, chess.WHITE) * weights["development"]
+    black_score -= get_penalty(board, chess.BLACK) * weights["development"]
 
     # check king safety
+    white_king = 0
+    black_king = 0
     if board.king(chess.WHITE) in [chess.G1, chess.C1]:
-        white_score += 5
+        white_king += 5
     if board.king(chess.BLACK) in [chess.G8, chess.C8]:
-        black_score += 5
+        black_king += 5
     if board.is_check():
         if board.turn == chess.WHITE:
-            white_score -= 5
+            white_king -= 5
         else:
-            black_score -= 5
+            black_king -= 5
+    white_score += white_king * weights["king_safety"]
+    black_score += black_king * weights["king_safety"]
 
     # add piece-square tables last
 
@@ -140,11 +172,11 @@ def evaluate(board, maximizing_color, difficulty):
         -5, -4, -3, -3, -3, -3, -4, -5,
     ]
     for square in board.pieces(chess.KNIGHT, chess.WHITE):
-        white_score += KNIGHT_TABLE[square]
+        white_score += KNIGHT_TABLE[square] * weights["development"]
     for square in board.pieces(chess.KNIGHT, chess.BLACK):
-        black_score += KNIGHT_TABLE[chess.square_mirror(square)]
+        black_score += KNIGHT_TABLE[chess.square_mirror(square)] * weights["development"]
 
-    if difficulty == "strong":
+    if difficulty == "hard":
         # check passed pawns
         for square in board.pieces(chess.PAWN, chess.WHITE):
             if is_passed_pawn(board, square, chess.WHITE):
@@ -175,20 +207,20 @@ def evaluate(board, maximizing_color, difficulty):
         score = black_score - white_score
     return score
 
-def minmax(board, depth, alpha, beta, maximizing_player, maximizing_color, difficulty):
+def minmax(board, depth, alpha, beta, maximizing_player, maximizing_color, difficulty, style):
     if depth == 0 or board.is_game_over():
-        return None, evaluate(board, maximizing_color, difficulty) #(best_move, best_score)
+        return None, evaluate(board, maximizing_color, difficulty, style) #(best_move, best_score)
     
     legal_moves = list(board.legal_moves)
     if not legal_moves:
-        return None, evaluate(board, maximizing_color, difficulty)
+        return None, evaluate(board, maximizing_color, difficulty, style)
     best_move = random.choice(legal_moves)
 
     if maximizing_player:
         max_eval = -math.inf
         for move in legal_moves:
             board.push(move)
-            current_eval = minmax(board, depth - 1, alpha, beta, False, maximizing_color, difficulty)[1]
+            current_eval = minmax(board, depth - 1, alpha, beta, False, maximizing_color, difficulty, style)[1]
             board.pop()
             if current_eval > max_eval:
                 max_eval = current_eval
@@ -202,7 +234,7 @@ def minmax(board, depth, alpha, beta, maximizing_player, maximizing_color, diffi
         min_eval = math.inf
         for move in legal_moves:
             board.push(move)
-            current_eval = minmax(board, depth - 1, alpha, beta, True, maximizing_color, difficulty)[1]
+            current_eval = minmax(board, depth - 1, alpha, beta, True, maximizing_color, difficulty, style)[1]
             board.pop()
             if current_eval < min_eval:
                 min_eval = current_eval
@@ -212,13 +244,13 @@ def minmax(board, depth, alpha, beta, maximizing_player, maximizing_color, diffi
                 break
         return best_move, min_eval
 
-def get_scored_moves(board, depth, difficulty):
+def get_scored_moves(board, depth, difficulty, style):
     maximizing_color = board.turn
     scored_moves = []
 
     for move in list(board.legal_moves):
         board.push(move)
-        _, score = minmax(board, depth - 1, -math.inf, math.inf, False, maximizing_color, difficulty)
+        _, score = minmax(board, depth - 1, -math.inf, math.inf, False, maximizing_color, difficulty, style)
         board.pop()
         scored_moves.append((move, score))
 
@@ -226,7 +258,7 @@ def get_scored_moves(board, depth, difficulty):
 
     return scored_moves
 
-def choose_ai_move(board, difficulty):
+def choose_ai_move(board, difficulty, style="balanced"):
     legal_moves = list(board.legal_moves)
     if not legal_moves:
         return None
@@ -236,33 +268,33 @@ def choose_ai_move(board, difficulty):
     if difficulty == "medium":
         depth = 2
         mistake_chance = 0.25
-    elif difficulty == "strong":
-        depth = 4
+    elif difficulty == "hard":
+        depth = 2
         mistake_chance = 0.05
     else:
         raise InvalidDifficulty()
 
     if random.random() < mistake_chance:        
-        scored_moves = get_scored_moves(board, depth, difficulty)
+        scored_moves = get_scored_moves(board, depth, difficulty, style)
         if len(scored_moves) > 1:
             return scored_moves[1][0]
         
-    best_move, _ = minmax(board, depth, -math.inf, math.inf, True, board.turn, difficulty)
+    best_move, _ = minmax(board, depth, -math.inf, math.inf, True, board.turn, difficulty, style)
     # best_move, best_score
     return best_move
 
 # if __name__ == "__main__":
 #     board = chess.Board()
-#     # difficulty = "strong"
+#     # difficulty = "hard"
 #     # print("difficulty:", difficulty)
-#     print("White:medium", " Black:strong")
+#     print("White:medium", " Black:hard")
 #     print("Initial board:")
 #     print(board)
 #     print("Initial evaluation: ")
 #     print("White:")
 #     print(evaluate(board, chess.WHITE, "medium"))
 #     print("Black:")
-#     print(evaluate(board, chess.BLACK, "strong"))
+#     print(evaluate(board, chess.BLACK, "hard"))
 
 #     for turn in range(20):
 #         if board.is_game_over():
@@ -271,7 +303,7 @@ def choose_ai_move(board, difficulty):
 #         if board.turn == chess.WHITE:
 #             difficulty = "medium"
 #         else:
-#             difficulty = "strong"
+#             difficulty = "hard"
 #         color = "white" if board.turn == chess.WHITE else "Black"
 #         move = choose_ai_move(board, difficulty)
 #         if move is None:
@@ -281,7 +313,7 @@ def choose_ai_move(board, difficulty):
 #             f"turn: {turn}",
 #             f"  color: {color}"
 #             f"   move: {move}",
-#             f"  eval: {evaluate(board, chess.WHITE, 'strong'):.1f}"
+#             f"  eval: {evaluate(board, chess.WHITE, 'hard'):.1f}"
 #               )
 #         print(board)
 #         print()
