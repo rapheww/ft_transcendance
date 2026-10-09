@@ -1,5 +1,6 @@
 from fastapi import WebSocket
 
+
 class ConnectionManager:
 
     def __init__(self):
@@ -18,11 +19,13 @@ class ConnectionManager:
         self.connections[game_id][user_id] = websocket
         if old_socket is not None and old_socket is not websocket:
             try:
-                await old_socket.close(code=4001, reason="replaced by new connection")
+                await old_socket.close(code=4001,
+                                       reason="replaced by new connection")
             except Exception:
                 pass
 
-    def disconnect(self, game_id: int, user_id: int, websocket: WebSocket) -> bool:
+    def disconnect(self, game_id: int, user_id: int,
+                   websocket: WebSocket) -> bool:
         game_connections = self.connections.get(game_id)
         # report that nothing was removed
         if not game_connections:
@@ -57,15 +60,17 @@ class ConnectionManager:
             self.disconnect(game_id, user_id, websocket)
 
     def valid_event(self, event: str) -> bool:
-        return isinstance(event, str) and event in { "move", "chat" }
+        return isinstance(event, str) and event in {"move", "chat"}
 
     def is_connected(self, game_id: int, user_id: int) -> bool:
-        return game_id in self.connections and user_id in self.connections[game_id]
+        return game_id in self.connections and user_id in self.connections[
+            game_id]
 
     def get_connection(self, game_id: int, user_id: int) -> WebSocket | None:
         return self.connections.get(game_id, {}).get(user_id)
 
-    async def send_personal_message(self, game_id: int, user_id: int, message: dict) -> bool:
+    async def send_personal_message(self, game_id: int, user_id: int,
+                                    message: dict) -> bool:
         websocket = self.get_connection(game_id, user_id)
         if websocket is None:
             return False
@@ -76,5 +81,5 @@ class ConnectionManager:
             self.disconnect(game_id, user_id, websocket)
             return False
 
-manager = ConnectionManager()
 
+manager = ConnectionManager()

@@ -1,31 +1,31 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
 import jwt
 import chess
 import logging
-
 from sqlalchemy.orm import Session
 from backend.db.session import get_db, SessionLocal
 from backend.core.security import decode_access_token
 from backend.websocket.connection_manager import manager
 from backend.services import game_service
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from backend.exceptions.game import GameNotFound, GameNotActive, NotAPlayer, NotYourTurn, IllegalMove, NotAIGame, InvalidDifficulty
 from backend.websocket.ai_turn import start_ai_turn
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+
 @router.websocket("/games/{game_id}")
 async def game_websocket(websocket: WebSocket,
                          game_id: int,
                          db: Session = Depends(get_db)):
-    
+
     # ------ TOKEN CHECK ------
     token = websocket.query_params.get("token")
     # reject missing token
     if token is None:
         await websocket.close(code=1008)
         return
-    
+
     try:
         payload = decode_access_token(token)
         if payload is None:
@@ -35,13 +35,8 @@ async def game_websocket(websocket: WebSocket,
             await websocket.close(code=1008)
             return
         user_id = int(payload["sub"])
-    except (
-        jwt.ExpiredSignatureError, 
-        jwt.InvalidTokenError, 
-        KeyError, 
-        ValueError, 
-        TypeError, 
-        HTTPException):
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, KeyError,
+            ValueError, TypeError, HTTPException):
         await websocket.close(code=1008)
         return
 
@@ -52,17 +47,14 @@ async def game_websocket(websocket: WebSocket,
     except GameNotFound:
         await websocket.close(code=1008)
         return
-    
+
     # check the user belongs to this game
     if game.opponent_type == "ai":
         if user_id != game.white_player_id:
             await websocket.close(code=1008)
             return
     else:
-        if user_id not in (
-            game.white_player_id, 
-            game.black_player_id
-        ):
+        if user_id not in (game.white_player_id, game.black_player_id):
             await websocket.close(code=1008)
             return
 
@@ -70,7 +62,7 @@ async def game_websocket(websocket: WebSocket,
         player_color = "white"
     else:
         player_color = "black"
-        
+
     db.close()
 
     # ====== PREPARATION FOR EVENT LOOP ======
@@ -78,24 +70,30 @@ async def game_websocket(websocket: WebSocket,
         await manager.connect(game_id, user_id, websocket)
         board = chess.Board(game.current_fen)
         await websocket.send_json({
-            "type": "game_connected",
-            "user_id": user_id,
-            "color": player_color,
-            "fen": game.current_fen,
-            "status": game.status,
-            "result": game.result,
-            "turn": "white" if board.turn == chess.WHITE else "black",
+            "type":
+            "game_connected",
+            "user_id":
+            user_id,
+            "color":
+            player_color,
+            "fen":
+            game.current_fen,
+            "status":
+            game.status,
+            "result":
+            game.result,
+            "turn":
+            "white" if board.turn == chess.WHITE else "black"
         })
-        await manager.broadcast(
-            game_id, 
-            {
-                "type": "player_joined",
-                "user_id": user_id,
-            }
-        )
+
+        await manager.broadcast(game_id, {
+            "type": "player_joined",
+            "user_id": user_id
+        })
     except (WebSocketDisconnect, RuntimeError):
         manager.disconnect(game_id, user_id, websocket)
         return
+
     # retry a stuck AI turn when the player reconnects
     start_ai_turn(game_id)
     # ====== EVENT LOOP ======
@@ -107,13 +105,13 @@ async def game_websocket(websocket: WebSocket,
             except (ValueError, KeyError):
                 await websocket.send_json({
                     "type": "error",
-                    "message": "Invalid JSON",
+                    "message": "Invalid JSON"
                 })
                 continue
             if not isinstance(data, dict):
                 await websocket.send_json({
                     "type": "error",
-                    "message": "Invalid event",
+                    "message": "Invalid event"
                 })
                 continue
             event_type = data.get("type")
@@ -123,9 +121,7 @@ async def game_websocket(websocket: WebSocket,
             # reply with a pong so the client know the server is still reachable
             # (dead clients are detected by uvicorn's own protocol pings)
             if event_type == "ping":
-                await websocket.send_json({
-                    "type": "pong"
-                })
+                await websocket.send_json({"type": "pong"})
                 continue
 
             # ------ EVENT TYPE CHECK ------
@@ -133,7 +129,7 @@ async def game_websocket(websocket: WebSocket,
             if not manager.valid_event(event_type):
                 await websocket.send_json({
                     "type": "error",
-                    "message": "Invalid event",
+                    "message": "Invalid event"
                 })
                 continue
 
@@ -145,10 +141,13 @@ async def game_websocket(websocket: WebSocket,
                     from_pos = data.get("from")
                     to_pos = data.get("to")
                     # check if move fields are missing or empty
-                    if not isinstance(from_pos, str) or not isinstance(to_pos, str):
+                    if not isinstance(from_pos, str) or not isinstance(
+                            to_pos, str):
                         await websocket.send_json({
-                            "type": "error",
-                            "message": "invalid move event",
+                            "type":
+                            "error",
+                            "message":
+                            "invalid move event"
                         })
                         continue
                     # check if chess squares are valid
@@ -157,16 +156,21 @@ async def game_websocket(websocket: WebSocket,
                         chess.parse_square(to_pos)
                     except ValueError:
                         await websocket.send_json({
-                            "type": "error",
-                            "message": "invalid chess square",
+                            "type":
+                            "error",
+                            "message":
+                            "invalid chess square"
                         })
                         continue
 
                     promotion = data.get("promotion")
-                    if promotion is not None and promotion not in ("q", "r", "b", "n"):
+                    if promotion is not None and promotion not in ("q", "r",
+                                                                   "b", "n"):
                         await websocket.send_json({
-                            "type": "error",
-                            "message": "invalid promotion",
+                            "type":
+                            "error",
+                            "message":
+                            "invalid promotion",
                         })
                         continue
                     uci = from_pos + to_pos
@@ -175,7 +179,8 @@ async def game_websocket(websocket: WebSocket,
 
                     # 1. Apply human move
                     with SessionLocal() as move_db:
-                        game = game_service.make_move(move_db, game_id, user_id, uci)
+                        game = game_service.make_move(move_db, game_id,
+                                                      user_id, uci)
                         fen = game.current_fen
                         status = game.status
                         result = game.result
@@ -183,36 +188,30 @@ async def game_websocket(websocket: WebSocket,
                     # on timeout, make_move ends the game without playing the move:
                     # the turn did not change, so there is no move to announce
                     board_after = chess.Board(fen)
-                    move_applied = board_after.turn != (player_color == "white")
+                    move_applied = board_after.turn != (
+                        player_color == "white")
 
                     # 2. Broadcast human move
                     if move_applied:
                         await manager.broadcast(
-                            game_id, 
-                            {
+                            game_id, {
                                 "type": "move",
                                 "player": "human",
                                 "user_id": user_id,
                                 "from": from_pos,
                                 "to": to_pos,
                                 "uci": uci
-                            }
-                        )
-                    await manager.broadcast(
-                        game_id, 
-                        {
-                            "type": "game_state",
-                            "fen": fen,
-                        }
-                    )
+                            })
+
+                    await manager.broadcast(game_id, {
+                        "type": "game_state",
+                        "fen": fen,
+                    })
                     if status == "finished":
-                        await manager.broadcast(
-                            game_id,
-                            {
-                                "type": "game_over",
-                                "result": result,
-                            }
-                        )
+                        await manager.broadcast(game_id, {
+                            "type": "game_over",
+                            "result": result,
+                        })
                         continue
                     # 3. Let the AI answer in the background
                     start_ai_turn(game_id)
@@ -222,36 +221,32 @@ async def game_websocket(websocket: WebSocket,
                     # check message exists and is a non-empty string
                     if not isinstance(message, str) or not message.strip():
                         await websocket.send_json({
-                            "type": "error",
-                            "message": "Chat message is required",
+                            "type":
+                            "error",
+                            "message":
+                            "Chat message is required"
                         })
                         continue
                     # check maximum chat length
                     if len(message) > 500:
                         await websocket.send_json({
-                            "type": "error",
-                            "message": "message is too long",
+                            "type":
+                            "error",
+                            "message":
+                            "message is too long"
                         })
                         continue
                     await manager.broadcast(
-                        game_id, 
-                        {
+                        game_id, {
                             "type": "chat",
                             "user_id": user_id,
-                            "message": message.strip(),
-                        }
-                    )
-            except (
-                GameNotActive, 
-                NotAPlayer, 
-                NotYourTurn, 
-                IllegalMove, 
-                NotAIGame, 
-                InvalidDifficulty
-            ) as error:
+                            "message": message.strip()
+                        })
+            except (GameNotActive, NotAPlayer, NotYourTurn, IllegalMove,
+                    NotAIGame, InvalidDifficulty) as error:
                 await websocket.send_json({
                     "type": "error",
-                    "message": str(error),
+                    "message": str(error)
                 })
                 continue
             except WebSocketDisconnect:
@@ -259,14 +254,12 @@ async def game_websocket(websocket: WebSocket,
             # ------ UNEXPECTED SERVER ERROR ------
             except Exception:
                 db.rollback()
-                logger.exception(
-                    "Unexpected WebSocket error in game %s", 
-                    game_id
-                )
+                logger.exception("Unexpected WebSocket error in game %s",
+                                 game_id)
                 await websocket.send_json({
                     "type": "error",
                     "code": "server_error",
-                    "message": "internal server error",
+                    "message": "internal server error"
                 })
                 continue
 
@@ -277,10 +270,7 @@ async def game_websocket(websocket: WebSocket,
     finally:
         manager.disconnect(game_id, user_id, websocket)
         if not manager.is_connected(game_id, user_id):
-            await manager.broadcast(
-                game_id, 
-                {
-                    "type": "player_left",
-                    "user_id": user_id,
-                }
-            )
+            await manager.broadcast(game_id, {
+                "type": "player_left",
+                "user_id": user_id
+            })

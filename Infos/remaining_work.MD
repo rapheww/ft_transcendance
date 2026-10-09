@@ -1,6 +1,12 @@
 # Remaining Work for ft_transcendence
 
-This checklist covers only the mandatory modules listed in `modules.MD`. Optional modules are intentionally excluded. Status is based on the current repository implementation; items marked done still need final end-to-end verification.
+- finir tournaments (backend)
+- implementer tournaments sur le frontend -> page tournaments, leaderboards tournaments page d'accueil
+- implementer websockets frontend
+- systeme recommandation machine learning
+- mode spectateur
+- faire du parsing pour ce qui est password, email et username
+- peaufiner ce qui est deja present (front et back)
 
 ## Frontend
 
