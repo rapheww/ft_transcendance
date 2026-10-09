@@ -34,7 +34,10 @@ def create_tournament(client: TestClient, creator_id: int) -> int:
     response = client.post("/api/public/tournaments",
                            json={"creator_id": creator_id},
                            headers=api_headers())
-    return response.json()["id"]
+    tid = response.json()["id"]
+    client.put(f"/api/public/tournaments/{tid}/participants/{creator_id}",
+               headers=api_headers())
+    return tid
 
 
 def test_missing_api_key_returns_401(client: TestClient):
@@ -74,16 +77,14 @@ def test_create_tournament_returns_201(client: TestClient, db):
                            headers=api_headers())
 
     assert response.status_code == 201
-    assert response.json()["participants"] == ["alice"]
+    assert response.json()["participants"] == []
 
 
-def test_create_tournament_with_unknown_creator_returns_404(
-        client: TestClient):
-    response = client.post("/api/public/tournaments",
-                           json={"creator_id": 999999},
-                           headers=api_headers())
+def test_create_tournament_needs_no_player_identity(client: TestClient):
+    response = client.post("/api/public/tournaments", headers=api_headers())
 
-    assert response.status_code == 404
+    assert response.status_code == 201
+    assert response.json()["participants"] == []
 
 
 def test_get_tournament_returns_200(client: TestClient, db):
@@ -151,7 +152,7 @@ def test_add_participant_after_start_returns_409(client: TestClient, db):
             f"/api/public/tournaments/{tournament_id}/participants/{user_id}",
             headers=api_headers())
 
-    tournament_service.start_tournament(db, tournament_id, ids[0])
+    tournament_service.start_tournament(db, tournament_id, api_manager=True)
 
     fifth_id = create_user(client, db, "player5", "player5@example.com")
 
@@ -173,7 +174,8 @@ def test_cancel_tournament_returns_204(client: TestClient, db):
 
     get_response = client.get(f"/api/public/tournaments/{tournament_id}",
                               headers=api_headers())
-    assert get_response.status_code == 404
+    assert get_response.status_code == 200
+    assert get_response.json()["status"] == "cancelled"
 
 
 def test_cancel_tournament_after_start_returns_409(client: TestClient, db):
@@ -188,7 +190,7 @@ def test_cancel_tournament_after_start_returns_409(client: TestClient, db):
             f"/api/public/tournaments/{tournament_id}/participants/{user_id}",
             headers=api_headers())
 
-    tournament_service.start_tournament(db, tournament_id, ids[0])
+    tournament_service.start_tournament(db, tournament_id, api_manager=True)
 
     response = client.delete(f"/api/public/tournaments/{tournament_id}",
                              headers=api_headers())
@@ -203,3 +205,26 @@ def test_rate_limit_exceeded_returns_429(client: TestClient):
     ]
 
     assert responses[-1].status_code == 429
+
+
+def test_api_start_and_player_owner_protection(client, db):
+    ids = [
+        create_user(client, db, f"p{i}", f"p{i}@example.com") for i in range(2)
+    ]
+    tid = create_tournament(client, ids[0])
+    client.put(f"/api/public/tournaments/{tid}/participants/{ids[1]}",
+               headers=api_headers())
+    response = client.post(f"/api/public/tournaments/{tid}/start",
+                           headers=api_headers())
+    assert response.status_code == 200
+    assert response.json()["status"] == "countdown"
+    player_tid = tournament_service.create_tournament(db, api_manager=True).id
+    # Give a separate tournament the player owner; no duplicate enrollment is needed.
+    from backend.models.tournament import Tournament
+    tournament = db.get(Tournament, player_tid)
+    tournament.organizer_type, tournament.creator_id = "player", ids[0]
+    db.commit()
+    assert client.post(f"/api/public/tournaments/{player_tid}/start",
+                       headers=api_headers()).status_code == 403
+    assert client.delete(f"/api/public/tournaments/{player_tid}",
+                         headers=api_headers()).status_code == 403

@@ -10,6 +10,7 @@ from backend.repositories.game_repository import GameRepository
 from backend.repositories.matchmaking_repository import MatchmakingRepository
 from backend.exceptions.matchmaking import AlreadyInMatchmaking, NotInMatchmaking
 from backend.services import user_service, game_service
+from backend.services.player_availability import assert_available, lock_players
 
 matchmaking_lock = threading.Lock()
 
@@ -32,13 +33,14 @@ def get_rating_range(created_at: datetime, now: datetime) -> int:
 def join_queue(db: Session, user_id: int, initial_time_seconds: int | None,
                increment_seconds: int) -> MatchmakingQueue:
     try:
-        user_service.get_user_by_id(db, user_id)
+        lock_players(db, [user_id])
         repository = MatchmakingRepository(db)
         existing = repository.get_by_user_id(user_id)
 
         if existing is not None:
             raise AlreadyInMatchmaking()
 
+        assert_available(db, user_id, allow_queue=True)
         entry = MatchmakingQueue(user_id=user_id,
                                  initial_time_seconds=initial_time_seconds,
                                  increment_seconds=increment_seconds)
@@ -48,7 +50,7 @@ def join_queue(db: Session, user_id: int, initial_time_seconds: int | None,
 
         return entry
 
-    except SQLAlchemyError:
+    except Exception:
         db.rollback()
         raise
 
@@ -103,6 +105,17 @@ def find_match(db: Session, user_id: int, initial_time_seconds: int | None,
             if opponent is None:
                 return None
 
+            lock_players(db, [user_id, opponent.user_id])
+            # Re-read after acquiring both locks; another process may have matched them.
+            db.expire_all()
+            current_player_entry = repository.get_by_user_id(user_id)
+            opponent = repository.get_by_user_id(opponent.user_id)
+            if current_player_entry is None or opponent is None:
+                db.rollback()
+                return None
+            assert_available(db, user_id, allow_queue=True)
+            assert_available(db, opponent.user_id, allow_queue=True)
+
             if random.choice([True, False]):
                 white_player_id = user_id
                 black_player_id = opponent.user_id
@@ -124,6 +137,6 @@ def find_match(db: Session, user_id: int, initial_time_seconds: int | None,
 
             return game
 
-        except SQLAlchemyError:
+        except Exception:
             db.rollback()
             raise

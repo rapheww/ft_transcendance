@@ -7,7 +7,9 @@ from backend.websocket import routes as websocket
 from backend.core.public_api_security import limiter
 from backend.api import matchmaking
 
-app = FastAPI(title="ft_transcendence")
+from backend.services.tournament_scheduler import lifespan
+
+app = FastAPI(title="ft_transcendence", lifespan=lifespan)
 
 #CORS A FAIRE PAR TOI LOUIS
 app.add_middleware(

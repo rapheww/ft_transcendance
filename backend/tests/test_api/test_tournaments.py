@@ -89,11 +89,51 @@ def test_start_creates_bracket(client: TestClient):
 
     body = response.json()
 
-    assert body["status"] == "in_progress"
-    assert len(body["matches"]) == 2
+    assert body["status"] == "countdown"
+    assert len(body["matches"]) == 3
+    assert all(m["game_id"] is None for m in body["matches"])
 
 
 def test_get_missing_tournament_returns_404(client: TestClient):
     response = client.get("/api/tournaments/999999")
 
     assert response.status_code == 404
+
+
+def test_list_and_my_tournament(client):
+    token = register_user(client, "vigo", "vigo@example.com")
+    assert client.get("/api/tournaments/me",
+                      headers=auth(token)).json() is None
+    created = client.post("/api/tournaments/", headers=auth(token)).json()
+    listed = client.get("/api/tournaments/", headers=auth(token)).json()
+    assert [t["id"] for t in listed] == [created["id"]]
+    assert client.get("/api/tournaments/me",
+                      headers=auth(token)).json()["id"] == created["id"]
+    assert client.post("/api/tournaments/",
+                       headers=auth(token)).status_code == 409
+
+
+def test_only_creator_can_start(client):
+    owner = register_user(client, "vigo", "vigo@example.com")
+    guest = register_user(client, "louis", "louis@example.com")
+    tid = client.post("/api/tournaments/", headers=auth(owner)).json()["id"]
+    client.post(f"/api/tournaments/{tid}/register", headers=auth(guest))
+    assert client.post(f"/api/tournaments/{tid}/start",
+                       headers=auth(guest)).status_code == 403
+
+
+def test_tournament_participant_cannot_enter_matchmaking(client):
+    token = register_user(client, "vigo", "vigo@example.com")
+    client.post("/api/tournaments/", headers=auth(token))
+    response = client.post("/api/matchmaking/join",
+                           headers=auth(token),
+                           json={
+                               "initial_time_seconds": 600,
+                               "increment_seconds": 0
+                           })
+    assert response.status_code == 409
+
+
+def test_list_requires_authentication(client):
+    assert client.get("/api/tournaments/").status_code == 401
+    assert client.get("/api/tournaments/me").status_code == 401
