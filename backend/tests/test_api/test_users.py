@@ -100,13 +100,13 @@ def test_update_me(client):
     response = client.patch("/api/users/me",
                             headers={"Authorization": f"Bearer {token}"},
                             json={
-                                "username": "alice-new",
+                                "username": "alice_new",
                                 "email": "alice-new@example.com"
                             })
 
     assert response.status_code == 200
     assert response.json() == {
-        "username": "alice-new",
+        "username": "alice_new",
         "email": "alice-new@example.com",
         "avatar": "https://shorturl.at/Jm5fo",
         "board_light_color": "#E3DDC5",

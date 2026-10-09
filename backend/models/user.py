@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, String, Index, func
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.db.base import Base
 from backend.services.elo_service import INITIAL_ELO
@@ -35,3 +35,6 @@ class User(Base):
                                      nullable=False,
                                      default=INITIAL_ELO,
                                      server_default=str(INITIAL_ELO))
+
+
+Index("uq_users_email_lower", func.lower(User.email), unique=True)
