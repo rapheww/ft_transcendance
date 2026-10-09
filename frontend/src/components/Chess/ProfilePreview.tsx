@@ -10,8 +10,8 @@ interface Props {
 }
 
 const ProfilePreview = ({ onClose, open, username }: Props) => {
-  const [profil, setProfil] = useState<ProfilType>();
-  const defaultPfp = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSPU0KzEZsYO_UbIww_6YLiinSNUkRBnxLSKAN3OEagZQ&s=10;'
+  const [profil, setProfil] = useState<ProfilType | null>();
+  const defaultPfp = 'frontend/src/assets/pfp.png';
   useEffect(() => {
     if (!open || !username) return;
     setProfil(undefined);
@@ -71,7 +71,10 @@ const ProfilePreview = ({ onClose, open, username }: Props) => {
               rounded-t-md"
             >
               <button
-                onClick={onClose}
+                onClick={() => {
+                  setProfil(null);  
+                  onClose();
+                }}
                 className="absolute top-2 right-2 z-10 cursor-pointer p-1 rounded-lg hover:bg-gray-400/30"
               >
                 <X size={30} />
@@ -80,6 +83,7 @@ const ProfilePreview = ({ onClose, open, username }: Props) => {
                 <img
                   src={profil ? profil.avatar : defaultPfp}
                   id="pfp"
+                  fetchPriority="high"
                   className="h-[65%] aspect-square rounded-full object-cover"
                 />
               </div>

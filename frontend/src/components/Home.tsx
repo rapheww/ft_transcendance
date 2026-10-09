@@ -12,14 +12,6 @@ const Home = () => {
         <div className="flex flex-col items-center justify-start gap-0 w-full">
             <ChessPreview dark={""} light={""}/>
           <div className="flex flex-col items-center m-6 sm:m-9 gap-4 w-full max-w-75">
-            <select  defaultValue="" className="select select-primary w-full h-10.5">
-              <option value="" disabled>
-                Gamemode
-              </option>
-              <option>1</option>
-              <option>2</option>
-              <option>3</option>
-            </select>
             <button
               onClick={() => navigate("/mode")}
               className="

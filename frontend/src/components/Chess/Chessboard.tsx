@@ -5,6 +5,7 @@ const horizontalAxis: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const verticalAxis: string[] = ["1", "2", "3", "4", "5", "6", "7", "8"];
 import { Chess, type Square } from "chess.js";
 import GameOver from "./GameOver";
+import { useAuth } from "../AuthProvider";
 
 type Movements = {
   bg: string;
@@ -28,6 +29,12 @@ interface ChessboardProps {
   setWTurn: React.Dispatch<React.SetStateAction<boolean>>;
   setBBonus: React.Dispatch<React.SetStateAction<boolean>>;
   setWBonus: React.Dispatch<React.SetStateAction<boolean>>;
+  gameId: number;
+  fenInit: string;
+  gameOver: boolean;
+  result: string;
+  setGameOver: React.Dispatch<React.SetStateAction<boolean>>;
+  setResult: React.Dispatch<React.SetStateAction<string>>;
 }
 
 function getTileElement(x: number, y: number): HTMLElement | null {
@@ -44,14 +51,31 @@ function squareToPos(square: string) {
   return { x, y };
 }
 
+function resetPiece(piece: HTMLElement) {
+    piece.style.position = "";
+    piece.style.left = "";
+    piece.style.top = "";
+    piece.style.width = "";
+    piece.style.height = "";
+    piece.style.zIndex = "";
+}
+
 export default function Chessboard({
   setMoves,
   setBTurn,
   setWTurn,
   setBBonus,
   setWBonus,
+  setGameOver,
+  setResult,
+  gameId,
+  fenInit,
+  gameOver,
+  result
 }: ChessboardProps) {
-  const chessRef = useRef(new Chess());
+  const chessRef = useRef(new Chess(fenInit));
+
+  const { token } = useAuth();
 
   const [activePiece, setActivePiece] = useState<HTMLElement | null>(null);
   const [gridX, setGridX] = useState(0);
@@ -102,6 +126,29 @@ export default function Chessboard({
     }
   }, [fen]);
 
+  useEffect(() => {
+    if(!gameOver) return;
+
+    async function getResult(){
+    try{
+       const response = await fetch(`http://127.0.0.1:8000/api/games/${gameId}`,
+          {headers: { Authorization: `Bearer ${token}` }}
+       );
+       if(!response.ok) return;
+       const game = await response.json();
+       if(game.status === "finished"){
+         setResult(game.result);
+         setOpen(true)
+       }
+    }
+    catch{
+      return;
+    }
+  }
+
+  getResult();
+  }, [gameOver])
+
   function removeDot() {
     for (let i = 0; i < moveTile.length; i++) {
       if (moveTile[i]) {
@@ -110,15 +157,6 @@ export default function Chessboard({
       }
     }
     setMoveTile([]);
-  }
-
-  function resetPiece(piece: HTMLElement) {
-    piece.style.position = "";
-    piece.style.left = "";
-    piece.style.top = "";
-    piece.style.width = "";
-    piece.style.height = "";
-    piece.style.zIndex = "";
   }
 
   function cancelMove() {
@@ -154,7 +192,39 @@ export default function Chessboard({
     }
   }
 
+  async function sendMove(move: string){
+    try{
+      const turn = chessRef.current.turn();
+      const bob = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNTg0MjE1LCJ0eXBlIjoiYWNjZXNzIn0.aGv0ZO60im7pxjAgHZuVHxozE-LUJz9vGM6w6l93JBg"
+      const response = await fetch(`http://127.0.0.1:8000/api/games/${gameId}/move`, {
+        method: 'POST',
+        headers: {
+              Authorization: `Bearer ${turn == 'b' ? bob : token}`,
+              'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          'move': move
+        })
+      })
+      if(!response.ok) return false;
+      const infos = await response.json();
+      setFen(infos.current_fen);
+      chessRef.current.load(infos.current_fen);
+      if(infos.status === 'finished'){
+        setGameOver(true);
+        setResult(infos.result);
+      }
+      return true;
+    }
+    catch{
+      console.log("error makeMove");
+      return false;
+    }
+  }
+
+
   function grabPiece(e: React.MouseEvent) {
+    if (gameOver) return;
     const chessboard = document.getElementById("chessboard");
     if (!chessboard) return;
     const rect = chessboard.getBoundingClientRect();
@@ -245,12 +315,13 @@ export default function Chessboard({
     }
   }
 
-  function dropPiece(
+  async function dropPiece(
     e: React.MouseEvent | null,
     target?: { x: number; y: number },
     piece?: HTMLElement,
   ) {
     const active = piece ?? activePiece;
+    if (gameOver) return;
     if (active && (e || target)) {
       let played: string = "";
       const chessboard = document.getElementById("chessboard");
@@ -274,6 +345,8 @@ export default function Chessboard({
       newPos = `${horizontalAxis[x]}${verticalAxis[y]}`;
       oldPos = `${horizontalAxis[gridX]}${verticalAxis[gridY]}`;
       try {
+        if(newPos == oldPos) throw("invalid");
+        sendMove(oldPos+newPos);
         played = chessRef.current.move({
           from: `${oldPos}`,
           to: `${newPos}`,
@@ -318,7 +391,6 @@ export default function Chessboard({
       }
 
       setFen(chessRef.current.fen());
-
       resetPiece(active);
       removeDot();
       setActivePiece(null);
@@ -331,8 +403,8 @@ export default function Chessboard({
         setBBonus(false);
       }
       if (chessRef.current.isGameOver()) {
+        setGameOver(true);
         setOpen(true);
-        console.log("MAT");
       }
     }
   }
@@ -361,6 +433,7 @@ export default function Chessboard({
           image={image}
           number={i + j + 2}
           id={p?.type}
+          gameOver={gameOver}
         />,
       );
     }
@@ -380,7 +453,7 @@ export default function Chessboard({
       }}
     >
       {board}
-      <GameOver open={open} onClose={() => setOpen(false)} />
+      <GameOver open={open} onClose={() => setOpen(false)} result={result} />
     </div>
   );
 }
