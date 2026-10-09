@@ -3,15 +3,15 @@ import { X } from "lucide-react";
 interface Props {
   onClose: () => void;
   open: boolean;
+  result: string,
 }
 
-const GameOver = ({open, onClose}: Props) => {
+const GameOver = ({open, onClose, result}: Props) => {
   return (
     <div
       className={`
             fixed inset-0
             flex justify-center items-center
-            bg-black/30 backdrop-blur-sm
             transition-opacity duration-500 ease-out
             ${open ? "opacity-100" : "opacity-0 pointer-events-none"}
             `}
@@ -32,7 +32,7 @@ const GameOver = ({open, onClose}: Props) => {
               >
                 <X size={30} />
               </button>
-              <h1 className="text-2xl font-extrabold">MAT !!!!!</h1>
+              <h1 className="text-2xl font-extrabold">{result}</h1>
               
               </div>
             </div>

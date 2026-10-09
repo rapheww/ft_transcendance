@@ -43,7 +43,7 @@ export default function Chart({ username }: ChartProps) {
   const { token } = useAuth();
 
   useEffect(() => {
-    if (!username) return;
+    if (!username || username === 'unknown') return;
     (async () => {
       try {
         const response = await fetch(
@@ -62,9 +62,14 @@ export default function Chart({ username }: ChartProps) {
     })();
   }, [username]);
 
-  const chartData = stats.elo_history;
-  console.log("test");
-  console.log(chartData);
+  const chartData = stats.elo_history.map((s) => {
+    const date = new Date(s.date)
+
+    return {
+      ...s,
+      date: date.toLocaleDateString('fr-FR'),
+    };
+  });
 
   if (chartData.length > 1) {
     return (

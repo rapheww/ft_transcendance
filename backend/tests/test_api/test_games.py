@@ -159,7 +159,7 @@ def test_make_move(client: TestClient):
 
     assert join_response.status_code == 200
     response = client.post(f"/api/games/{game_id}/move",
-                           json={"move": "e2e4"},
+                           json={"move": "e2e4"},   
                            headers={"Authorization": f"Bearer {alice_token}"})
 
     assert response.status_code == 200

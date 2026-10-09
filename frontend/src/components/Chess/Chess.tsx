@@ -22,9 +22,64 @@ export default function Chess() {
   const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
   const chrono = timer === "5" || timer === "10" ? Number(timer) : 0;
 
-  const { user } = useAuth();
+  const [id, setId] = useState<number>(0);
+  const [fen, setFen] = useState<string>("");
+  const [gameOver, setGameOver] = useState<boolean>(false);
+  const [result, setResult] = useState<string>('0-0');
+
+  const { user, token } = useAuth();
   //a delete
   const user1 = "Bob";
+
+  //tmp function
+  const gameCreated = useRef(false);
+
+  useEffect(() => {
+    // pas de token = pas encore connecté, ou déjà créé
+    if (!token || gameCreated.current) return;
+    gameCreated.current = true;
+
+    async function createGame() {
+      try {
+        const create = await fetch("http://127.0.0.1:8000/api/games/", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            initial_time_seconds: chrono * 60,
+            increment_seconds: bonus ? bonus : 0,
+          }),
+        });
+
+        if (!create.ok) {
+          gameCreated.current = false; // permet de réessayer
+          return;
+        }
+
+        const infos = await create.json();
+        setId(infos.id);
+        setFen(infos.fen);
+
+        const join = await fetch(
+          `http://127.0.0.1:8000/api/games/${infos.id}/join`, // infos.id, pas id
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNTg0MjE1LCJ0eXBlIjoiYWNjZXNzIn0.aGv0ZO60im7pxjAgHZuVHxozE-LUJz9vGM6w6l93JBg`,
+            },
+          },
+        );
+        console.log(await join.json());
+      } catch (err) {
+        console.log(err);
+        gameCreated.current = false;
+      }
+    }
+
+    createGame();
+  }, [token]);
 
   const movePairs = useMemo(() => {
     let tmp: string[][] = [];
@@ -36,11 +91,21 @@ export default function Chess() {
     }
     return tmp;
   }, [moves]);
+
   useEffect(() => {
     if (movesListRef.current) {
       movesListRef.current.scrollTop = movesListRef.current.scrollHeight; //defini la hauteur a scroll par la hauteur actuelle de l'element
     }
   }, [moves]);
+
+  function sendResign(){
+    try{
+      console.log('resign');
+    }
+    catch{
+      console.log('error resign');
+    }
+  }
 
   return (
     <div className="w-full min-h-screen">
@@ -52,10 +117,9 @@ export default function Chess() {
             <div className="flex flex-row justify-between items-center w-full h-10 shrink-0 p-3 rounded-sm bg-mist-400/10">
               <p
                 onClick={() => {
-                  setOpen(true)
-                  if (user1)
-                    setUsername(user1)
-                }} 
+                  setOpen(true);
+                  if (user1) setUsername(user1);
+                }}
                 className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
               >
                 {user1}
@@ -69,25 +133,35 @@ export default function Chess() {
                   turn={bTurn}
                   bonus={add}
                   toAdd={bBonus}
+                  setGameOver={setGameOver}
                 />
               </div>
               {/* time a changer en fonction du mode donc passage en props */}
             </div>
             <div className="w-full aspect-square max-h-[65dvh] md:max-h-none md:h-auto md:w-[calc(100dvh-72px-8rem)] lg:h-auto lg:w-[min(calc(100dvh-72px-8rem),calc(100vw-2*clamp(240px,26vw,420px)-14.5rem))] flex items-center justify-center @container-size">
-              <Chessboard
-                setMoves={setMoves}
-                setBTurn={setBturn}
-                setWTurn={setWturn}
-                setBBonus={setBBonus}
-                setWBonus={setWBonus}
-              />
+              {id ? (
+                <Chessboard
+                  setMoves={setMoves}
+                  setBTurn={setBturn}
+                  setWTurn={setWturn}
+                  setBBonus={setBBonus}
+                  setWBonus={setWBonus}
+                  setGameOver={setGameOver}
+                  setResult={setResult}
+                  gameId={id}
+                  fenInit={fen}
+                  gameOver={gameOver}
+                  result={result}
+                />
+              ) : (
+                <p>Création de la partie...</p>
+              )}
             </div>
             <div className="flex flex-row justify-between items-center w-full h-10 shrink-0 p-3 rounded-sm bg-mist-400/10">
               <p
                 onClick={() => {
-                  setOpen(true)
-                  if (user)
-                    setUsername(user)
+                  setOpen(true);
+                  if (user) setUsername(user);
                 }}
                 className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
               >
@@ -102,6 +176,7 @@ export default function Chess() {
                   turn={wTurn}
                   bonus={add}
                   toAdd={wBonus}
+                  setGameOver={setGameOver}
                 />
               </div>
             </div>
@@ -178,7 +253,10 @@ export default function Chess() {
                 <div className="flex justify-center items-center w-[15%] h-[60%] bg-mist-700/60 rounded-sm hover:bg-red-600/70 hover:scale-110 duration-300">
                   X
                 </div>
-                <div className="flex justify-center items-center w-[15%] h-[60%] bg-mist-700/60 rounded-sm hover:bg-red-600/50 hover:scale-110 duration-300">
+                <div 
+                  onClick={() => sendResign()}
+                  className="flex justify-center items-center w-[15%] h-[60%] bg-mist-700/60 rounded-sm hover:bg-red-600/50 hover:scale-110 duration-300"
+                >
                   <Flag />
                 </div>
               </div>
@@ -198,7 +276,11 @@ export default function Chess() {
             </div>
           </div>
         </div>
-        <ProfilePreview onClose={() => setOpen(false)} open={open} username={username}/>
+        <ProfilePreview
+          onClose={() => setOpen(false)}
+          open={open}
+          username={username}
+        />
       </main>
     </div>
   );
