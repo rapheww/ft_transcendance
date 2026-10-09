@@ -15,7 +15,7 @@ class TournamentRepository:
 
     def get_by_id(self, tournament_id: int) -> Tournament | None:
         return (self.db.query(Tournament).filter(
-            Tournament.id == tournament_id).first())
+            Tournament.id == tournament_id).populate_existing().first())
 
     def get_by_id_for_update(self, tournament_id: int) -> Tournament | None:
         # Refresh cached state after waiting for another transaction's lock.

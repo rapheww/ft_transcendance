@@ -1,6 +1,7 @@
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from backend.models.game import Game
+from backend.models.tournament import TournamentMatch
 
 
 class GameRepository:
@@ -24,6 +25,7 @@ class GameRepository:
     def get_active_game_for_user(self, user_id: int) -> Game | None:
         return (self.db.query(Game).filter(
             Game.status == "active", Game.opponent_type == "human",
+            ~self.db.query(TournamentMatch.id).filter(TournamentMatch.game_id == Game.id).exists(),
             or_(Game.white_player_id == user_id,
                 Game.black_player_id == user_id)).order_by(
                     Game.created_at.desc()).first())
