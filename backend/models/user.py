@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, Index, func
+from sqlalchemy import Integer, String, Boolean, Index, func
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.db.base import Base
 from backend.services.elo_service import INITIAL_ELO
@@ -35,6 +35,21 @@ class User(Base):
                                      nullable=False,
                                      default=INITIAL_ELO,
                                      server_default=str(INITIAL_ELO))
+
+    is_bot: Mapped[bool] = mapped_column(Boolean,
+                                         default=False,
+                                         server_default="false",
+                                         nullable=False)
+
+    ai_level: Mapped[str | None] = mapped_column(String(20),
+                                                 nullable=True)
+
+    style: Mapped[str | None] = mapped_column(String(20),
+                                              nullable=True)
+
+    preferred_time_control: Mapped[str | None] = mapped_column(String(20),
+                                                               nullable=True)
+
 
 
 Index("uq_users_email_lower", func.lower(User.email), unique=True)
