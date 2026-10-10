@@ -82,7 +82,6 @@ async def resign_game(game_id: int,
     except (CannotResignFinishedGame, NotAPlayer) as error:
         raise HTTPException(status_code=409, detail=str(error))
 
-    # tell both players's browsers the game is over
     await manager.broadcast(game_id, {"type": "game_state", "fen": game.current_fen})
     await manager.broadcast(game_id, {"type": "game_over", "result": game.result})
     return game
