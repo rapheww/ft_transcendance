@@ -79,6 +79,14 @@ def matchmaking_status(current_user: User = Depends(get_current_user),
     game = game_repository.get_active_game_for_user(current_user.id)
 
     if game is not None:
+        print(
+            f"[MATCHMAKING DEBUG] user_id={current_user.id}, "
+            f"game_id={game.id}, "
+            f"white_player_id={game.white_player_id}, "
+            f"black_player_id={game.black_player_id}, "
+            f"status={game.status}"
+        )
+    if game is not None:
         return MatchmakingResponse(
             status="matched",
             user_id=current_user.id,

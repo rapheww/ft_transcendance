@@ -5,6 +5,7 @@
 - implementer websockets frontend
 - mode spectateur
 - systeme recommandation machine learning
+- sortir du deployement local
 - peaufiner ce qui est deja present (front et back)
 
 ## Frontend

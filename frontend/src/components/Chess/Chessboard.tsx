@@ -28,6 +28,8 @@ interface ChessboardProps {
   setMoves: React.Dispatch<React.SetStateAction<Moves[]>>;
   setBBonus: React.Dispatch<React.SetStateAction<boolean>>;
   setWBonus: React.Dispatch<React.SetStateAction<boolean>>;
+  sendSocketMessage: (message: object) => boolean;
+  playerColor: string;
   gameId: number;
   fenInit: string;
   gameOver: boolean;
@@ -63,6 +65,8 @@ export default function Chessboard({
   setMoves,
   setBBonus,
   setWBonus,
+  playerColor,
+  sendSocketMessage,
   setGameOver,
   setResult,
   gameId,
@@ -188,32 +192,43 @@ export default function Chessboard({
     }
   }
 
-  async function sendMove(move: string){
-    try{
-      const turn = chessRef.current.turn();
-      const bob = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNjQ3MzYwLCJ0eXBlIjoiYWNjZXNzIn0.kKu0LuO0tK6ORPrwqS1ozRoDCrlKrE7NN1COoSrYm9E"
-      const response = await fetch(`http://127.0.0.1:8000/api/games/${gameId}/move`, {
-        method: 'POST',
-        headers: {
-              Authorization: `Bearer ${turn == 'b' ? bob : token}`,
-              'Content-Type': 'application/json'
+  async function sendMove(move: string): Promise<boolean> {
+  if (!token) return false;
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/games/${gameId}/move`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ move }),
         },
-        body: JSON.stringify({
-          'move': move
-        })
-      })
-      if(!response.ok) return false;
+      );
+
+      if (!response.ok) {
+        console.error(
+          "Move rejected by server:",
+          await response.text(),
+        );
+        return false;
+      }
+
       const infos = await response.json();
-      setFen(infos.current_fen);
+
       chessRef.current.load(infos.current_fen);
-      if(infos.status === 'finished'){
+      setFen(infos.current_fen);
+
+      if (infos.status === "finished") {
         setGameOver(true);
         setResult(infos.result);
       }
+
       return true;
-    }
-    catch{
-      console.log("error makeMove");
+    } catch (error) {
+      console.error("Error making move:", error);
       return false;
     }
   }
@@ -235,13 +250,8 @@ export default function Chessboard({
 
     const clicked = getTileElement(x, y);
     if (clicked && moveTile.includes(clicked)) {
-      const selected = getTileElement(gridX, gridY)?.querySelector(
-        ".chess-piece",
-      ) as HTMLElement | null;
-      if (selected) {
-        dropPiece(null, { x, y }, selected);
-        return;
-      }
+      // Let onMouseUp handle the move, so we don't submit it twice.
+      return;
     }
 
     if (e.button === 2) {
@@ -289,6 +299,12 @@ export default function Chessboard({
     back.style.backgroundColor = "var(--select-tile)";
 
     const square = `${horizontalAxis[x]}${verticalAxis[y]}` as Square;
+    const piece = chessRef.current.get(square);
+
+    if (!piece || piece.color !== (playerColor === "white" ? "w" : "b")) {
+      cancelMove();
+      return;
+    }
     possible = chessRef.current
       .moves({ square: square, verbose: true })
       .map((m) => m.to);
@@ -345,18 +361,36 @@ export default function Chessboard({
       //verif du mouv
       newPos = `${horizontalAxis[x]}${verticalAxis[y]}`;
       oldPos = `${horizontalAxis[gridX]}${verticalAxis[gridY]}`;
+
       try {
-        if(newPos == oldPos) throw("invalid");
-        sendMove(oldPos+newPos);
-        played = chessRef.current.move({
-          from: `${oldPos}`,
-          to: `${newPos}`,
+        if (newPos === oldPos) {
+          resetPiece(active);
+          setActivePiece(null);
+          return;
+        }
+
+        const candidate = new Chess(chessRef.current.fen());
+
+        played = candidate.move({
+          from: oldPos,
+          to: newPos
         }).san;
+
+        const accepted = await sendMove(oldPos + newPos);
+
+        if (!accepted) {
+          resetPiece(active);
+          setActivePiece(null);
+          removeDot();
+          return;
+        }
       } catch {
         resetPiece(active);
         setActivePiece(null);
+        removeDot();
         return;
       }
+
       lastMove.current = target ? { from: `${oldPos}`, to: `${newPos}` } : null;
       if (x !== gridX || y !== gridY) {
         const originTile = tileColor.find(
@@ -382,13 +416,6 @@ export default function Chessboard({
           }
         }
 
-        
-        //show movements
-        setMoves((prev) => {
-          let tmp = [...prev];
-          tmp.push({move: played, fen: chessRef.current.fen()});
-          return tmp;
-        });
         setLastPick(null);
       }
       setFen(chessRef.current.fen());

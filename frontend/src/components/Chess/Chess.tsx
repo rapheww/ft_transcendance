@@ -12,117 +12,231 @@ export type Moves = {
   fen: string;
 };
 
+interface GameInfo {
+  id: number;
+  white_player_id: number | null;
+  black_player_id: number | null;
+  status: string;
+  current_fen: string;
+  fen?: string;
+  result: string | null;
+}
+
+function getUserIdFromToken(token: string): number | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+
+    const base64 = payload
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const decoded = JSON.parse(
+      atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="))
+    );
+
+    const id = Number(decoded.sub);
+    return Number.isInteger(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Chess() {
-  const [showMoves, setShowMoves] = useState<boolean>(true);
-  const [showChat, setShowChat] = useState<boolean>(false);
+  const [showMoves, setShowMoves] = useState(true);
+  const [showChat, setShowChat] = useState(false);
   const [moves, setMoves] = useState<Moves[]>([]);
-  const [wBonus, setWBonus] = useState<boolean>(false);
-  const [bBonus, setBBonus] = useState<boolean>(false);
-  const [open, setOpen] = useState<boolean>(false);
-  const [username, setUsername] = useState<string>("");
-  const [viewIndex, setViewIndex] = useState<number>(-1);
+  const [wBonus, setWBonus] = useState(false);
+  const [bBonus, setBBonus] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [username, setUsername] = useState("");
+  const [viewIndex, setViewIndex] = useState(-1);
+  const socketRef = useRef<WebSocket | null>(null);
+  const socketFenRef = useRef<string>("");
 
   const movesListRef = useRef<HTMLDivElement>(null);
-  const { timer, bonus } = useParams<{ timer: string; bonus: string }>();
-  const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
-  const chrono = timer === "5" || timer === "10" ? Number(timer) : 0;
 
-  const [id, setId] = useState<number>(0);
-  const [fen, setFen] = useState<string>("");
-  const [gameOver, setGameOver] = useState<boolean>(false);
-  const [result, setResult] = useState<string>("0-0");
+  const { timer, bonus, gameId } = useParams<{
+    timer: string;
+    bonus: string;
+    gameId: string;
+  }>();
+
+  const { user, token } = useAuth();
+
+  const chrono =
+    timer === "5" || timer === "10" ? Number(timer) : 0;
+
+  const add =
+    bonus === "0" || bonus === "5" ? Number(bonus) : 0;
+
+  const id = Number(gameId);
+
+  const [game, setGame] = useState<GameInfo | null>(null);
+  const [fen, setFen] = useState("");
+  const [gameOver, setGameOver] = useState(false);
+  const [result, setResult] = useState("0-0");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  const userId = token ? getUserIdFromToken(token) : null;
+
+  const playerColor: string =
+    game && userId !== null
+      ? game.white_player_id === userId
+        ? "white"
+        : game.black_player_id === userId
+          ? "black"
+          : ""
+      : "";
+
+  const opponentId =
+    playerColor === "white"
+      ? game?.black_player_id
+      : playerColor === "black"
+        ? game?.white_player_id
+        : null;
+
+  const opponentName = opponentId
+    ? `Player ${opponentId}`
+    : "Waiting for opponent";
 
   const wTurn = !gameOver && moves.length % 2 === 0;
   const bTurn = !gameOver && moves.length % 2 === 1;
 
-  const { user, token } = useAuth();
-  //a delete
-  const user1 = "Bob";
-
-  //tmp function
-  const gameCreated = useRef(false);
-
+  // Load the game already assigned by matchmaking.
+  // Do not create or join another game here.
   useEffect(() => {
-    // pas de token = pas encore connecté, ou déjà créé
-    if (!token || gameCreated.current) return;
-    gameCreated.current = true;
+    if (!token || !Number.isInteger(id) || id <= 0) return;
 
-    async function createGame() {
+    const ws = new WebSocket(
+      `ws://127.0.0.1:8000/ws/games/${id}?token=${encodeURIComponent(token)}`
+    );
+
+    socketRef.current = ws;
+
+    ws.onmessage = (event) => {
+      let data: any;
+
       try {
-        const create = await fetch("http://127.0.0.1:8000/api/games/", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            initial_time_seconds: chrono * 60,
-            increment_seconds: bonus ? bonus : 0,
-          }),
-        });
+        data = JSON.parse(event.data);
+      } catch {
+        return;
+      }
 
-        if (!create.ok) {
-          gameCreated.current = false; // permet de réessayer
-          return;
+      if (data.type === "game_connected") {
+        if (data.fen) {
+          socketFenRef.current = data.fen;
+          setFen(data.fen);
         }
 
-        const infos = await create.json();
-        setId(infos.id);
-        setFen(infos.fen);
+        if (data.status === "finished") {
+          setGameOver(true);
+          setResult(data.result ?? "0-0");
+        }
 
-        const join = await fetch(
-          `http://127.0.0.1:8000/api/games/${infos.id}/join`, // infos.id, pas id
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNjQ3MzYwLCJ0eXBlIjoiYWNjZXNzIn0.kKu0LuO0tK6ORPrwqS1ozRoDCrlKrE7NN1COoSrYm9E`,
-            },
-          },
-        );
-        console.log(await join.json());
-      } catch (err) {
-        console.log(err);
-        gameCreated.current = false;
+        return;
       }
-    }
 
-    createGame();
-  }, [token]);
+      if (data.type === "game_state") {
+        if (data.fen) {
+          socketFenRef.current = data.fen;
+          setFen(data.fen);
+        }
+
+        if (data.status === "finished") {
+          setGameOver(true);
+          setResult(data.result ?? "0-0");
+        }
+
+        return;
+      }
+
+      if (data.type === "move") {
+        if (data.fen) {
+          socketFenRef.current = data.fen;
+        }
+
+        if (data.san && data.fen) {
+          setMoves((previous) => {
+            // Prevent duplicate history entries.
+            const last = previous[previous.length - 1];
+
+            if (last?.fen === data.fen) {
+              return previous;
+            }
+
+            return [
+              ...previous,
+              { move: data.san, fen: data.fen },
+            ];
+          });
+        }
+
+        return;
+      }
+
+      if (data.type === "game_over") {
+        setGameOver(true);
+        setResult(data.result ?? "0-0");
+      }
+    };
+
+    ws.onerror = () => {
+      console.error("Game WebSocket connection failed.");
+    };
+
+    ws.onclose = () => {
+      if (socketRef.current === ws) {
+        socketRef.current = null;
+      }
+    };
+
+    return () => {
+      ws.close();
+      if (socketRef.current === ws) {
+        socketRef.current = null;
+      }
+    };
+  }, [id, token]);
 
   const movePairs = useMemo(() => {
-    let tmp: (Moves | null)[][] = [];
-    let j = 0;
+    const pairs: (Moves | null)[][] = [];
+
     for (let i = 0; i < moves.length; i += 2) {
-      tmp[j] = [];
-      tmp[j].push(moves[i], moves[i + 1] ? moves[i + 1] : null);
-      j++;
+      pairs.push([moves[i], moves[i + 1] ?? null]);
     }
-    return tmp;
+
+    return pairs;
   }, [moves]);
 
   useEffect(() => {
     if (movesListRef.current) {
-      movesListRef.current.scrollTop = movesListRef.current.scrollHeight; //defini la hauteur a scroll par la hauteur actuelle de l'element
+      movesListRef.current.scrollTop =
+        movesListRef.current.scrollHeight;
     }
   }, [moves]);
 
-  //close Profil preview with esc
   useEffect(() => {
     if (!open) return;
 
-    function escHandler(e: globalThis.KeyboardEvent) {
-      if (open && e.key === "Escape") {
+    function escHandler(e: KeyboardEvent) {
+      if (e.key === "Escape") {
         e.preventDefault();
         setOpen(false);
       }
     }
+
     document.addEventListener("keydown", escHandler);
+
     return () => {
       document.removeEventListener("keydown", escHandler);
     };
   }, [open]);
 
   async function sendResign() {
+    if (!token || !game || playerColor === "") return;
+
     try {
       const response = await fetch(
         `http://127.0.0.1:8000/api/games/${id}/resign`,
@@ -132,48 +246,97 @@ export default function Chess() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        },
+        }
       );
-      const resignState = await response.json();
-      setResult(resignState.result);
+
+      if (!response.ok) {
+        console.error("Resign rejected:", await response.text());
+        return;
+      }
+
+      const data: GameInfo = await response.json();
+
+      setGame(data);
+      setResult(data.result ?? "0-0");
       setGameOver(true);
-    } catch {
-      console.log("error resign");
+    } catch (error) {
+      console.error("Error resigning:", error);
     }
   }
 
-  function showPrevMove(premove: string) {
-    const thisFen = document.getElementById(premove);
-    if (!thisFen || !thisFen.dataset.fen) return;
-    setFen(thisFen.dataset.fen);
+  function showPrevMove(moveId: string) {
+    const element = document.getElementById(moveId);
+
+    if (!element?.dataset.fen) return;
+
+    setFen(element.dataset.fen);
   }
 
   useEffect(() => {
     setViewIndex(moves.length - 1);
   }, [moves.length]);
 
-  //handle arrow from the last move only atm
   useEffect(() => {
-    function arrowHandler(e: globalThis.KeyboardEvent) {
-      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    function arrowHandler(e: KeyboardEvent) {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") {
+        return;
+      }
+
       if (e.target instanceof HTMLInputElement) return;
+      if (moves.length === 0) return;
+
       e.preventDefault();
-      setViewIndex((i) =>
+
+      setViewIndex((index) =>
         e.key === "ArrowLeft"
-          ? Math.max(i - 1, 0)
-          : Math.min(i + 1, moves.length - 1),
+          ? Math.max(index - 1, 0)
+          : Math.min(index + 1, moves.length - 1)
       );
     }
+
     document.addEventListener("keydown", arrowHandler);
+
     return () => {
       document.removeEventListener("keydown", arrowHandler);
     };
   }, [moves.length]);
 
   useEffect(() => {
-    if (!moves[viewIndex]) return;
+    if (viewIndex < 0 || !moves[viewIndex]) return;
+
     setFen(moves[viewIndex].fen);
-  }, [viewIndex]);
+  }, [viewIndex, moves]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <p className="text-center mt-10">Loading game...</p>
+      </div>
+    );
+  }
+
+  if (loadError || !game || !fen) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="p-6 text-center">
+          <p>{loadError || "Game data is unavailable."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!playerColor) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <p className="p-6 text-center">
+          Your account is not assigned to this game.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen">
@@ -186,15 +349,22 @@ export default function Chess() {
               <p
                 onClick={() => {
                   setOpen(true);
-                  if (user1) setUsername(user1);
+                  setUsername(opponentName);
                 }}
                 className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
               >
-                {user1}
+                {playerColor === "white"
+                  ? opponentName
+                  : user || "You"}
               </p>
+
               <div
                 id="timer-1"
-                className={`${bTurn ? "bg-white/90   rounded-sm p-1 pl-2 pr-2 text-mist-700" : ""}`}
+                className={`${
+                  bTurn
+                    ? "bg-white/90 rounded-sm p-1 pl-2 pr-2 text-mist-700"
+                    : ""
+                }`}
               >
                 <Timer
                   time={chrono * 60}
@@ -204,38 +374,44 @@ export default function Chess() {
                   setGameOver={setGameOver}
                 />
               </div>
-              {/* time a changer en fonction du mode donc passage en props */}
             </div>
+
             <div className="w-full aspect-square max-h-[65dvh] md:max-h-none md:h-auto md:w-[calc(100dvh-72px-8rem)] lg:h-auto lg:w-[min(calc(100dvh-72px-8rem),calc(100vw-2*clamp(240px,26vw,420px)-14.5rem))] flex items-center justify-center @container-size">
-              {id ? (
-                <Chessboard
-                  setMoves={setMoves}
-                  setBBonus={setBBonus}
-                  setWBonus={setWBonus}
-                  setGameOver={setGameOver}
-                  setResult={setResult}
-                  gameId={id}
-                  fenInit={fen}
-                  gameOver={gameOver}
-                  result={result}
-                />
-              ) : (
-                <p>Création de la partie...</p>
-              )}
+              <Chessboard
+                setMoves={setMoves}
+                setBBonus={setBBonus}
+                setWBonus={setWBonus}
+                setGameOver={setGameOver}
+                setResult={setResult}
+                gameId={id}
+                fenInit={fen}
+                gameOver={gameOver}
+                result={result}
+                playerColor={playerColor}
+                sendSocketMessage={() => false}
+              />
             </div>
+
             <div className="flex flex-row justify-between items-center w-full h-10 shrink-0 p-3 rounded-sm bg-mist-400/10">
               <p
                 onClick={() => {
                   setOpen(true);
-                  if (user) setUsername(user);
+                  setUsername(user || "You");
                 }}
                 className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
               >
-                {user}
+                {user || "You"}
+                {" "}
+                ({playerColor})
               </p>
+
               <div
                 id="timer-2"
-                className={`${wTurn ? "bg-white/90 rounded-sm p-1 pl-2 pr-2 text-mist-700" : ""}`}
+                className={`${
+                  wTurn
+                    ? "bg-white/90 rounded-sm p-1 pl-2 pr-2 text-mist-700"
+                    : ""
+                }`}
               >
                 <Timer
                   time={chrono * 60}
@@ -247,51 +423,38 @@ export default function Chess() {
               </div>
             </div>
           </div>
+
           <div
             id="mov-resume"
-            className={`flex 
-              order-2 
-              shrink-0 
-              w-full
-              md:h-full
-              md:max-h-[80%]
-              md:w-[clamp(240px,26vw,520px)]
-              lg:col-start-3
-              lg:row-start-1
-              lg:justify-self-start
-              rounded-md
-              shadow-[0_0_6px_#000000]
-              bg-mist-800 
-              items-center 
-              justify-center 
-              flex-col
-              `}
+            className="flex order-2 shrink-0 w-full md:h-full md:max-h-[80%] md:w-[clamp(240px,26vw,520px)] lg:col-start-3 lg:row-start-1 lg:justify-self-start rounded-md shadow-[0_0_6px_#000000] bg-mist-800 items-center justify-center flex-col"
           >
-            <div
-              className={`w-full h-[5%] min-h-10 flex items-center justify-center rounded-t-md p-2 bg-mist-900/70`}
-            >
+            <div className="w-full h-[5%] min-h-10 flex items-center justify-center rounded-t-md p-2 bg-mist-900/70">
               <p
                 onClick={() => {
                   setShowChat(false);
                   setShowMoves(true);
                 }}
-                className="text-center uppercase w-1/2 hover:bg-gray-400/20 rounded-md"
+                className="text-center uppercase w-1/2 hover:bg-gray-400/20 rounded-md cursor-pointer"
               >
                 movements
               </p>
+
               <p
                 onClick={() => {
                   setShowMoves(false);
                   setShowChat(true);
                 }}
-                className="text-center uppercase w-1/2 hover:bg-gray-400/20 rounded-md"
+                className="text-center uppercase w-1/2 hover:bg-gray-400/20 rounded-md cursor-pointer"
               >
                 CHAT
               </p>
             </div>
+
             <div
               id="moves"
-              className={`moves-list ${showMoves ? "flex" : "hidden"} flex-col w-full h-[95%] max-h-[95%]`}
+              className={`moves-list ${
+                showMoves ? "flex" : "hidden"
+              } flex-col w-full h-[95%] max-h-[95%]`}
             >
               <div
                 ref={movesListRef}
@@ -302,52 +465,73 @@ export default function Chess() {
                     key={i}
                     className="flex flex-row w-full justify-center text-justify h-8 shrink-0"
                   >
-                    <div className="flex justify-center w-[16%] bg-mist-700 h-auto ">{`${i + 1}`}</div>
-                    <div
-                      id="mov-0"
-                      data-fen={mov[0]?.fen}
-                      onClick={() => showPrevMove("mov-0")}
-                      className={`flex hover:bg-mist-500 cursor-pointer w-[42%] h-auto pl-2 ${movePairs[movePairs.length - 1][0]?.move == mov[0]?.move && !mov[1]?.move ? "bg-blue-400/50" : `${viewIndex === i * 2 ? 'bg-white text-black' : 'bg-mist-800'}`}`}
-                    >{`${mov[0]?.move}`}</div>
+                    <div className="flex justify-center w-[16%] bg-mist-700 h-auto">
+                      {i + 1}
+                    </div>
 
                     <div
-                      id="mov-1"
-                      data-fen={mov[1]?.fen}
-                      onClick={() => showPrevMove("mov-1")}
-                      className={`flex w-[42%] ${mov[1]?.move ? "hover:bg-mist-500" : ""} cursor-pointer h-auto pl-2 ${movePairs[movePairs.length - 1][1]?.move == mov[1]?.move && mov[1]?.move ? "bg-blue-400/50" : `${viewIndex === i * 2 + 1 ? 'bg-white text-black' : 'bg-mist-800'}`}`}
+                      id={`mov-white-${i}`}
+                      data-fen={mov[0]?.fen}
+                      onClick={() => showPrevMove(`mov-white-${i}`)}
+                      className={`flex hover:bg-mist-500 cursor-pointer w-[42%] h-auto pl-2 ${
+                        viewIndex === i * 2
+                          ? "bg-white text-black"
+                          : "bg-mist-800"
+                      }`}
                     >
-                      {`${mov[1]?.move ? mov[1]?.move : ""}`}
+                      {mov[0]?.move}
+                    </div>
+
+                    <div
+                      id={`mov-black-${i}`}
+                      data-fen={mov[1]?.fen}
+                      onClick={() => showPrevMove(`mov-black-${i}`)}
+                      className={`flex w-[42%] hover:bg-mist-500 cursor-pointer h-auto pl-2 ${
+                        viewIndex === i * 2 + 1
+                          ? "bg-white text-black"
+                          : "bg-mist-800"
+                      }`}
+                    >
+                      {mov[1]?.move ?? ""}
                     </div>
                   </div>
                 ))}
               </div>
+
               <div className="h-[10%] w-full flex flex-row justify-center items-center bg-mist-900/70 gap-3">
                 <div className="flex justify-center items-center w-[15%] h-[60%] bg-mist-700/60 rounded-sm hover:bg-red-600/70 hover:scale-110 duration-300">
                   X
                 </div>
-                <div
-                  onClick={() => sendResign()}
+
+                <button
+                  type="button"
+                  onClick={sendResign}
                   className="flex justify-center items-center w-[15%] h-[60%] bg-mist-700/60 rounded-sm hover:bg-red-600/50 hover:scale-110 duration-300"
                 >
                   <Flag />
-                </div>
+                </button>
               </div>
             </div>
+
             <div
               id="chat"
-              className={`moves-list ${showChat ? "flex" : "hidden"} flex-col w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth `}
+              className={`moves-list ${
+                showChat ? "flex" : "hidden"
+              } flex-col w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth`}
             >
               <div className="w-full h-[92%] flex justify-center items-center">
                 <p>MESSAGE HERE</p>
               </div>
+
               <input
                 type="text"
                 placeholder="type your message here"
-                className={`input input-primary w-full h-[8%] min-h-10 border-black border-t-2 rounded-b-md rounded-t-none`}
+                className="input input-primary w-full h-[8%] min-h-10 border-black border-t-2 rounded-b-md rounded-t-none"
               />
             </div>
           </div>
         </div>
+
         <ProfilePreview
           onClose={() => setOpen(false)}
           open={open}

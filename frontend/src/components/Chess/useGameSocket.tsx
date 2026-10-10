@@ -52,7 +52,6 @@ export function useGameSocket(gameId: number | null, token: string) {
     };
 
     return () => {
-      // Prevent an old connection from affecting a newer one.
       socket.onopen = null;
       socket.onmessage = null;
       socket.onerror = null;

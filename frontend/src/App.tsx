@@ -19,7 +19,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route element={<DefaultLayout />}>
-              <Route path="/chess/:timer/:bonus" element={<Chess />} />
+              <Route path="/chess/:timer/:bonus/:gameId" element={<Chess />} />
               <Route path="/profile" element={<Profil />} />
               <Route path="/mode" element={<Mode />} />
               <Route path="/matchmaking/:timer/:bonus" element={<Waiting />} />
