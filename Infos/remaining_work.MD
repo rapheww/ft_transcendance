@@ -5,7 +5,6 @@
 - implementer websockets frontend
 - mode spectateur
 - systeme recommandation machine learning
-- faire du parsing pour ce qui est password, email et username
 - peaufiner ce qui est deja present (front et back)
 
 ## Frontend
