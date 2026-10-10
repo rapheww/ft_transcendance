@@ -6,6 +6,7 @@ const verticalAxis: string[] = ["1", "2", "3", "4", "5", "6", "7", "8"];
 import { Chess, type Square } from "chess.js";
 import GameOver from "./GameOver";
 import { useAuth } from "../AuthProvider";
+import type { Moves } from "./Chess";
 
 type Movements = {
   bg: string;
@@ -24,9 +25,7 @@ function getColor(back: HTMLElement): string | null {
 }
 
 interface ChessboardProps {
-  setMoves: React.Dispatch<React.SetStateAction<string[]>>;
-  setBTurn: React.Dispatch<React.SetStateAction<boolean>>;
-  setWTurn: React.Dispatch<React.SetStateAction<boolean>>;
+  setMoves: React.Dispatch<React.SetStateAction<Moves[]>>;
   setBBonus: React.Dispatch<React.SetStateAction<boolean>>;
   setWBonus: React.Dispatch<React.SetStateAction<boolean>>;
   gameId: number;
@@ -62,8 +61,6 @@ function resetPiece(piece: HTMLElement) {
 
 export default function Chessboard({
   setMoves,
-  setBTurn,
-  setWTurn,
   setBBonus,
   setWBonus,
   setGameOver,
@@ -84,6 +81,7 @@ export default function Chessboard({
   const [tileColor, setTileColor] = useState<Movements[]>([]);
   const [lastPick, setLastPick] = useState<LastPick | null>(null);
   const [moveTile, setMoveTile] = useState<HTMLElement[]>([]);
+  const [currentFen, setCurrentFen] = useState<string | null>(null);
   const [open, setOpen] = useState<boolean>(false);
   const lastMove = useRef<{ from: string; to: string } | null>(null);
   let newPos: string = "";
@@ -115,16 +113,14 @@ export default function Chessboard({
     );
   }, [fen]);
 
+  //useEffect pour charger le fen quand un mouv est clique
   useEffect(() => {
-    const turn = chessRef.current.turn();
-    if (turn === "w") {
-      setBTurn(false);
-      setWTurn(true);
-    } else {
-      setBTurn(true);
-      setWTurn(false);
-    }
-  }, [fen]);
+    if (!fenInit) return;
+    if(!currentFen)
+        setCurrentFen(chessRef.current.fen());
+    chessRef.current.load(fenInit);
+    setFen(fenInit);
+  }, [fenInit])
 
   useEffect(() => {
     if(!gameOver) return;
@@ -195,7 +191,7 @@ export default function Chessboard({
   async function sendMove(move: string){
     try{
       const turn = chessRef.current.turn();
-      const bob = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNTg0MjE1LCJ0eXBlIjoiYWNjZXNzIn0.aGv0ZO60im7pxjAgHZuVHxozE-LUJz9vGM6w6l93JBg"
+      const bob = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNjQ3MzYwLCJ0eXBlIjoiYWNjZXNzIn0.kKu0LuO0tK6ORPrwqS1ozRoDCrlKrE7NN1COoSrYm9E"
       const response = await fetch(`http://127.0.0.1:8000/api/games/${gameId}/move`, {
         method: 'POST',
         headers: {
@@ -225,6 +221,11 @@ export default function Chessboard({
 
   function grabPiece(e: React.MouseEvent) {
     if (gameOver) return;
+    //set current fen visible
+    if(currentFen){
+      chessRef.current.load(currentFen);
+      setCurrentFen("");
+    }
     const chessboard = document.getElementById("chessboard");
     if (!chessboard) return;
     const rect = chessboard.getBoundingClientRect();
@@ -380,16 +381,16 @@ export default function Chessboard({
             setTileColor([originTile, { bg: destColor, tile: dest }]);
           }
         }
-        //show movements
 
+        
+        //show movements
         setMoves((prev) => {
           let tmp = [...prev];
-          tmp.push(`${played}`);
+          tmp.push({move: played, fen: chessRef.current.fen()});
           return tmp;
         });
         setLastPick(null);
       }
-
       setFen(chessRef.current.fen());
       resetPiece(active);
       removeDot();

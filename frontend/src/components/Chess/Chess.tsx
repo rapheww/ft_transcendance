@@ -7,16 +7,21 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "../AuthProvider";
 import ProfilePreview from "./ProfilePreview";
 
+export type Moves = {
+  move: string;
+  fen: string;
+};
+
 export default function Chess() {
   const [showMoves, setShowMoves] = useState<boolean>(true);
   const [showChat, setShowChat] = useState<boolean>(false);
-  const [bTurn, setBturn] = useState<boolean>(false);
-  const [wTurn, setWturn] = useState<boolean>(false);
-  const [moves, setMoves] = useState<string[]>([]);
+  const [moves, setMoves] = useState<Moves[]>([]);
   const [wBonus, setWBonus] = useState<boolean>(false);
   const [bBonus, setBBonus] = useState<boolean>(false);
   const [open, setOpen] = useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
+  const [viewIndex, setViewIndex] = useState<number>(-1);
+
   const movesListRef = useRef<HTMLDivElement>(null);
   const { timer, bonus } = useParams<{ timer: string; bonus: string }>();
   const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
@@ -25,7 +30,10 @@ export default function Chess() {
   const [id, setId] = useState<number>(0);
   const [fen, setFen] = useState<string>("");
   const [gameOver, setGameOver] = useState<boolean>(false);
-  const [result, setResult] = useState<string>('0-0');
+  const [result, setResult] = useState<string>("0-0");
+
+  const wTurn = !gameOver && moves.length % 2 === 0;
+  const bTurn = !gameOver && moves.length % 2 === 1;
 
   const { user, token } = useAuth();
   //a delete
@@ -67,7 +75,7 @@ export default function Chess() {
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNTg0MjE1LCJ0eXBlIjoiYWNjZXNzIn0.aGv0ZO60im7pxjAgHZuVHxozE-LUJz9vGM6w6l93JBg`,
+              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNjQ3MzYwLCJ0eXBlIjoiYWNjZXNzIn0.kKu0LuO0tK6ORPrwqS1ozRoDCrlKrE7NN1COoSrYm9E`,
             },
           },
         );
@@ -82,11 +90,11 @@ export default function Chess() {
   }, [token]);
 
   const movePairs = useMemo(() => {
-    let tmp: string[][] = [];
+    let tmp: (Moves | null)[][] = [];
     let j = 0;
     for (let i = 0; i < moves.length; i += 2) {
       tmp[j] = [];
-      tmp[j].push(moves[i], moves[i + 1]);
+      tmp[j].push(moves[i], moves[i + 1] ? moves[i + 1] : null);
       j++;
     }
     return tmp;
@@ -98,23 +106,74 @@ export default function Chess() {
     }
   }, [moves]);
 
-  async function sendResign(){
-    try{
-      const response = await fetch(`http://127.0.0.1:8000/api/games/${id}/resign`, {
-        method: 'POST',
-        headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
+  //close Profil preview with esc
+  useEffect(() => {
+    if (!open) return;
+
+    function escHandler(e: globalThis.KeyboardEvent) {
+      if (open && e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+      }
+    }
+    document.addEventListener("keydown", escHandler);
+    return () => {
+      document.removeEventListener("keydown", escHandler);
+    };
+  }, [open]);
+
+  async function sendResign() {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/games/${id}/resign`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      })
+      );
       const resignState = await response.json();
       setResult(resignState.result);
       setGameOver(true);
-    }
-    catch{
-      console.log('error resign');
+    } catch {
+      console.log("error resign");
     }
   }
+
+  function showPrevMove(premove: string) {
+    const thisFen = document.getElementById(premove);
+    if (!thisFen || !thisFen.dataset.fen) return;
+    setFen(thisFen.dataset.fen);
+  }
+
+  useEffect(() => {
+    setViewIndex(moves.length - 1);
+  }, [moves.length]);
+
+  //handle arrow from the last move only atm
+  useEffect(() => {
+    function arrowHandler(e: globalThis.KeyboardEvent) {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.target instanceof HTMLInputElement) return;
+      e.preventDefault();
+      setViewIndex((i) =>
+        e.key === "ArrowLeft"
+          ? Math.max(i - 1, 0)
+          : Math.min(i + 1, moves.length - 1),
+      );
+    }
+    document.addEventListener("keydown", arrowHandler);
+    return () => {
+      document.removeEventListener("keydown", arrowHandler);
+    };
+  }, [moves.length]);
+
+  useEffect(() => {
+    if (!moves[viewIndex]) return;
+    setFen(moves[viewIndex].fen);
+  }, [viewIndex]);
 
   return (
     <div className="w-full min-h-screen">
@@ -151,8 +210,6 @@ export default function Chess() {
               {id ? (
                 <Chessboard
                   setMoves={setMoves}
-                  setBTurn={setBturn}
-                  setWTurn={setWturn}
                   setBBonus={setBBonus}
                   setWBonus={setWBonus}
                   setGameOver={setGameOver}
@@ -247,13 +304,19 @@ export default function Chess() {
                   >
                     <div className="flex justify-center w-[16%] bg-mist-700 h-auto ">{`${i + 1}`}</div>
                     <div
-                      className={`flex hover:bg-mist-500 cursor-pointer w-[42%] h-auto pl-2 ${movePairs[movePairs.length - 1][0] == mov[0] && !mov[1] ? "bg-blue-400/50" : "bg-mist-800"}`}
-                    >{`${mov[0]}`}</div>
+                      id="mov-0"
+                      data-fen={mov[0]?.fen}
+                      onClick={() => showPrevMove("mov-0")}
+                      className={`flex hover:bg-mist-500 cursor-pointer w-[42%] h-auto pl-2 ${movePairs[movePairs.length - 1][0]?.move == mov[0]?.move && !mov[1]?.move ? "bg-blue-400/50" : `${viewIndex === i * 2 ? 'bg-white text-black' : 'bg-mist-800'}`}`}
+                    >{`${mov[0]?.move}`}</div>
 
                     <div
-                      className={`flex w-[42%] ${mov[1] ? "hover:bg-mist-500" : ""} cursor-pointer h-auto pl-2 ${movePairs[movePairs.length - 1][1] == mov[1] && mov[1] ? "bg-blue-400/50" : "bg-mist-800"}`}
+                      id="mov-1"
+                      data-fen={mov[1]?.fen}
+                      onClick={() => showPrevMove("mov-1")}
+                      className={`flex w-[42%] ${mov[1]?.move ? "hover:bg-mist-500" : ""} cursor-pointer h-auto pl-2 ${movePairs[movePairs.length - 1][1]?.move == mov[1]?.move && mov[1]?.move ? "bg-blue-400/50" : `${viewIndex === i * 2 + 1 ? 'bg-white text-black' : 'bg-mist-800'}`}`}
                     >
-                      {`${mov[1] ? mov[1] : ""}`}
+                      {`${mov[1]?.move ? mov[1]?.move : ""}`}
                     </div>
                   </div>
                 ))}
@@ -262,7 +325,7 @@ export default function Chess() {
                 <div className="flex justify-center items-center w-[15%] h-[60%] bg-mist-700/60 rounded-sm hover:bg-red-600/70 hover:scale-110 duration-300">
                   X
                 </div>
-                <div 
+                <div
                   onClick={() => sendResign()}
                   className="flex justify-center items-center w-[15%] h-[60%] bg-mist-700/60 rounded-sm hover:bg-red-600/50 hover:scale-110 duration-300"
                 >
