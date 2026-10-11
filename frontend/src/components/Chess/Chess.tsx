@@ -22,6 +22,14 @@ interface GameInfo {
   result: string | null;
 }
 
+interface GameSocketMessage {
+  type: string;
+  fen?: string;
+  status?: string;
+  result?: string | null;
+  san?: string;
+}
+
 function getUserIdFromToken(token: string): number | null {
   try {
     const payload = token.split(".")[1];
@@ -104,10 +112,81 @@ export default function Chess() {
   const wTurn = !gameOver && moves.length % 2 === 0;
   const bTurn = !gameOver && moves.length % 2 === 1;
 
+  useEffect(() => {
+    const controller = new AbortController();
+    let cancelled = false;
+
+    async function loadGame() {
+      setLoading(true);
+      setLoadError("");
+      setGame(null);
+      setFen("");
+      setMoves([]);
+      setGameOver(false);
+      setResult("0-0");
+
+      if (!token) {
+        setLoadError("You must be signed in to load this game.");
+        setLoading(false);
+        return;
+      }
+
+      if (!Number.isInteger(id) || id <= 0) {
+        setLoadError("The game ID is invalid.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/games/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          },
+        );
+
+        if (!response.ok) {
+          const detail = await response.text();
+          throw new Error(
+            `Could not load game (${response.status})${detail ? `: ${detail}` : ""}`,
+          );
+        }
+
+        const data = (await response.json()) as GameInfo;
+        if (!data.current_fen || !Number.isInteger(data.id)) {
+          throw new Error("The server returned invalid game data.");
+        }
+
+        if (cancelled) return;
+
+        setGame(data);
+        setFen(socketFenRef.current || data.current_fen);
+        setGameOver(data.status === "finished");
+        setResult(data.result ?? "0-0");
+      } catch (error) {
+        if (cancelled) return;
+        setLoadError(
+          error instanceof Error ? error.message : "Could not load game.",
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadGame();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [id, token]);
+
   // Load the game already assigned by matchmaking.
   // Do not create or join another game here.
   useEffect(() => {
     if (!token || !Number.isInteger(id) || id <= 0) return;
+    socketFenRef.current = "";
 
     const ws = new WebSocket(
       `ws://127.0.0.1:8000/ws/games/${id}?token=${encodeURIComponent(token)}`
@@ -116,10 +195,10 @@ export default function Chess() {
     socketRef.current = ws;
 
     ws.onmessage = (event) => {
-      let data: any;
+      let data: GameSocketMessage;
 
       try {
-        data = JSON.parse(event.data);
+        data = JSON.parse(event.data) as GameSocketMessage;
       } catch {
         return;
       }
@@ -147,6 +226,11 @@ export default function Chess() {
         if (data.status === "finished") {
           setGameOver(true);
           setResult(data.result ?? "0-0");
+          setGame((current) =>
+            current
+              ? { ...current, status: "finished", result: data.result ?? null }
+              : current,
+          );
         }
 
         return;
@@ -157,18 +241,19 @@ export default function Chess() {
           socketFenRef.current = data.fen;
         }
 
-        if (data.san && data.fen) {
+        if (typeof data.san === "string" && typeof data.fen === "string") {
+          const { san, fen: moveFen } = data;
           setMoves((previous) => {
             // Prevent duplicate history entries.
             const last = previous[previous.length - 1];
 
-            if (last?.fen === data.fen) {
+            if (last?.fen === moveFen) {
               return previous;
             }
 
             return [
               ...previous,
-              { move: data.san, fen: data.fen },
+              { move: san, fen: moveFen },
             ];
           });
         }
@@ -179,6 +264,11 @@ export default function Chess() {
       if (data.type === "game_over") {
         setGameOver(true);
         setResult(data.result ?? "0-0");
+        setGame((current) =>
+          current
+            ? { ...current, status: "finished", result: data.result ?? null }
+            : current,
+        );
       }
     };
 
@@ -378,7 +468,6 @@ export default function Chess() {
 
             <div className="w-full aspect-square max-h-[65dvh] md:max-h-none md:h-auto md:w-[calc(100dvh-72px-8rem)] lg:h-auto lg:w-[min(calc(100dvh-72px-8rem),calc(100vw-2*clamp(240px,26vw,420px)-14.5rem))] flex items-center justify-center @container-size">
               <Chessboard
-                setMoves={setMoves}
                 setBBonus={setBBonus}
                 setWBonus={setWBonus}
                 setGameOver={setGameOver}
@@ -388,7 +477,6 @@ export default function Chess() {
                 gameOver={gameOver}
                 result={result}
                 playerColor={playerColor}
-                sendSocketMessage={() => false}
               />
             </div>
 

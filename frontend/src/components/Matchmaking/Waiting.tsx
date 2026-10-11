@@ -22,6 +22,7 @@ export default function Waiting() {
   const [error, setError] = useState("");
   const [waiting, setWaiting] = useState(true);
   const matched = useRef(false);
+  const leaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const chrono = timer === "5" || timer === "10" ? Number(timer) : 5;
   const increment = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
@@ -30,6 +31,11 @@ export default function Waiting() {
     if (!token) {
       navigate("/login");
       return;
+    }
+
+    if (leaveTimeout.current !== null) {
+      clearTimeout(leaveTimeout.current);
+      leaveTimeout.current = null;
     }
 
     let cancelled = false;
@@ -125,10 +131,13 @@ export default function Waiting() {
 
       // Don't remove a queue entry after a successful match.
       if (!matched.current) {
-        void fetch(`${API}/api/matchmaking/leave`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => {});
+        leaveTimeout.current = setTimeout(() => {
+          leaveTimeout.current = null;
+          void fetch(`${API}/api/matchmaking/leave`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => {});
+        }, 0);
       }
     };
   }, [token, navigate, chrono, increment]);

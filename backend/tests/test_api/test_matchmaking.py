@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from backend.services import game_service
+from backend.services import game_service, matchmaking_service
 
 
 def create_user(
@@ -282,6 +282,41 @@ def test_first_player_sees_match_after_second_player_joins(client):
 
     assert data["status"] == "matched"
     assert data["game_id"] == game_id
+
+
+def test_matchmaking_status_retries_match_for_queued_players(client,
+                                                             monkeypatch):
+    player1_headers = create_user(client, "alice", "alice@example.com")
+    player2_headers = create_user(client, "bob", "bob@example.com")
+    find_match = matchmaking_service.find_match
+    monkeypatch.setattr(matchmaking_service, "find_match",
+                        lambda *args, **kwargs: None)
+
+    for headers in (player1_headers, player2_headers):
+        response = client.post(
+            "/api/matchmaking/join",
+            headers=headers,
+            json={
+                "initial_time_seconds": 600,
+                "increment_seconds": 5
+            })
+        assert response.status_code == 201
+        assert response.json()["status"] == "waiting"
+
+    monkeypatch.setattr(matchmaking_service, "find_match", find_match)
+    # SQLite drops timezone info from queue timestamps; this test focuses on
+    # retrying the match from status rather than rating-range expansion.
+    monkeypatch.setattr(matchmaking_service, "get_rating_range",
+                        lambda *args: 50)
+    response = client.get("/api/matchmaking/status", headers=player1_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "matched"
+    assert data["game_id"] is not None
+
+    response = client.get("/api/matchmaking/status", headers=player2_headers)
+    assert response.status_code == 200
+    assert response.json()["game_id"] == data["game_id"]
 
 
 def test_matched_players_are_removed_from_queue(client):

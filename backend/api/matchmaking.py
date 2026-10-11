@@ -67,6 +67,18 @@ def matchmaking_status(current_user: User = Depends(get_current_user),
     entry = matchmaking_service.get_queue_entry(db, current_user.id)
 
     if entry is not None:
+        game = matchmaking_service.find_match(
+            db, current_user.id, entry.initial_time_seconds,
+            entry.increment_seconds)
+        if game is not None:
+            return MatchmakingResponse(
+                status="matched",
+                user_id=current_user.id,
+                initial_time_seconds=game.initial_time_seconds,
+                increment_seconds=game.increment_seconds,
+                created_at=game.created_at,
+                game_id=game.id)
+
         return MatchmakingResponse(
             status="waiting",
             id=entry.id,
@@ -78,14 +90,6 @@ def matchmaking_status(current_user: User = Depends(get_current_user),
     game_repository = GameRepository(db)
     game = game_repository.get_active_game_for_user(current_user.id)
 
-    if game is not None:
-        print(
-            f"[MATCHMAKING DEBUG] user_id={current_user.id}, "
-            f"game_id={game.id}, "
-            f"white_player_id={game.white_player_id}, "
-            f"black_player_id={game.black_player_id}, "
-            f"status={game.status}"
-        )
     if game is not None:
         return MatchmakingResponse(
             status="matched",

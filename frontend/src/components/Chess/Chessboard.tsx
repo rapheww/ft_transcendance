@@ -6,7 +6,6 @@ const verticalAxis: string[] = ["1", "2", "3", "4", "5", "6", "7", "8"];
 import { Chess, type Square } from "chess.js";
 import GameOver from "./GameOver";
 import { useAuth } from "../AuthProvider";
-import type { Moves } from "./Chess";
 
 type Movements = {
   bg: string;
@@ -25,10 +24,8 @@ function getColor(back: HTMLElement): string | null {
 }
 
 interface ChessboardProps {
-  setMoves: React.Dispatch<React.SetStateAction<Moves[]>>;
   setBBonus: React.Dispatch<React.SetStateAction<boolean>>;
   setWBonus: React.Dispatch<React.SetStateAction<boolean>>;
-  sendSocketMessage: (message: object) => boolean;
   playerColor: string;
   gameId: number;
   fenInit: string;
@@ -62,11 +59,9 @@ function resetPiece(piece: HTMLElement) {
 }
 
 export default function Chessboard({
-  setMoves,
   setBBonus,
   setWBonus,
   playerColor,
-  sendSocketMessage,
   setGameOver,
   setResult,
   gameId,
@@ -85,7 +80,6 @@ export default function Chessboard({
   const [tileColor, setTileColor] = useState<Movements[]>([]);
   const [lastPick, setLastPick] = useState<LastPick | null>(null);
   const [moveTile, setMoveTile] = useState<HTMLElement[]>([]);
-  const [currentFen, setCurrentFen] = useState<string | null>(null);
   const [open, setOpen] = useState<boolean>(false);
   const lastMove = useRef<{ from: string; to: string } | null>(null);
   let newPos: string = "";
@@ -120,8 +114,6 @@ export default function Chessboard({
   //useEffect pour charger le fen quand un mouv est clique
   useEffect(() => {
     if (!fenInit) return;
-    if(!currentFen)
-        setCurrentFen(chessRef.current.fen());
     chessRef.current.load(fenInit);
     setFen(fenInit);
   }, [fenInit])
@@ -236,11 +228,6 @@ export default function Chessboard({
 
   function grabPiece(e: React.MouseEvent) {
     if (gameOver) return;
-    //set current fen visible
-    if(currentFen){
-      chessRef.current.load(currentFen);
-      setCurrentFen("");
-    }
     const chessboard = document.getElementById("chessboard");
     if (!chessboard) return;
     const rect = chessboard.getBoundingClientRect();
@@ -340,7 +327,6 @@ export default function Chessboard({
     const active = piece ?? activePiece;
     if (gameOver) return;
     if (active && (e || target)) {
-      let played: string = "";
       const chessboard = document.getElementById("chessboard");
       if (!chessboard) return;
       const chessboardRect = chessboard.getBoundingClientRect();
@@ -371,10 +357,10 @@ export default function Chessboard({
 
         const candidate = new Chess(chessRef.current.fen());
 
-        played = candidate.move({
+        candidate.move({
           from: oldPos,
           to: newPos
-        }).san;
+        });
 
         const accepted = await sendMove(oldPos + newPos);
 
