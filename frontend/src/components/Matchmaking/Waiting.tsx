@@ -154,7 +154,10 @@ export default function Waiting() {
 
         {error && <p role="alert">{error}</p>}
 
-        <button onClick={() => navigate("/mode")} className="btn bg-mist-700 hover:bg-mist-600 m-5">
+        <button
+          onClick={() => navigate("/mode")}
+          className="btn bg-mist-700 hover:bg-mist-600 m-5"
+        >
           Cancel
         </button>
       </div>

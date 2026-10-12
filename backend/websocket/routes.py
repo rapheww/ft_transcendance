@@ -68,6 +68,11 @@ async def game_websocket(websocket: WebSocket,
     # ====== PREPARATION FOR EVENT LOOP ======
     try:
         await manager.connect(game_id, user_id, websocket)
+
+        # Register before reading the snapshot so any moves broadcast during
+        # the read are delivered after the client connects.
+        with SessionLocal() as snapshot_db:
+            game = game_service.get_game(snapshot_db, game_id)
         board = chess.Board(game.current_fen)
         await websocket.send_json({
             "type":
@@ -78,6 +83,8 @@ async def game_websocket(websocket: WebSocket,
             player_color,
             "fen":
             game.current_fen,
+            "pgn":
+            game.pgn,
             "status":
             game.status,
             "result":
@@ -179,6 +186,8 @@ async def game_websocket(websocket: WebSocket,
 
                     # 1. Apply human move
                     with SessionLocal() as move_db:
+                        game_before = game_service.get_game(move_db, game_id)
+                        board_before = chess.Board(game_before.current_fen)
                         game = game_service.make_move(move_db, game_id,
                                                       user_id, uci)
                         fen = game.current_fen
@@ -200,12 +209,17 @@ async def game_websocket(websocket: WebSocket,
                                 "user_id": user_id,
                                 "from": from_pos,
                                 "to": to_pos,
-                                "uci": uci
+                                "uci": uci,
+                                "san": board_before.san(
+                                    chess.Move.from_uci(uci)),
+                                "fen": fen
                             })
 
                     await manager.broadcast(game_id, {
                         "type": "game_state",
                         "fen": fen,
+                        "status": status,
+                        "result": result,
                     })
                     if status == "finished":
                         await manager.broadcast(game_id, {

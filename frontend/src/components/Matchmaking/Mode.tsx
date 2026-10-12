@@ -18,8 +18,9 @@ export default function Mode() {
   const { token } = useAuth();
 
   const [selectedMode, setSelectedMode] = useState("5+0");
-  const [difficulty, setDifficulty] =
-    useState<"easy" | "medium" | "hard">("easy");
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
+    "easy",
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -55,14 +56,10 @@ export default function Mode() {
 
       const game = await response.json();
 
-      navigate(
-        `/chess/${selected.timer}/${selected.bonus}/${game.id}`,
-      );
+      navigate(`/chess/${selected.timer}/${selected.bonus}/${game.id}`);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Could not start the game.",
+        err instanceof Error ? err.message : "Could not start the game.",
       );
     } finally {
       setLoading(false);
@@ -70,9 +67,7 @@ export default function Mode() {
   }
 
   function playHuman() {
-    navigate(
-      `/matchmaking/${selected.timer}/${selected.bonus}`,
-    );
+    navigate(`/matchmaking/${selected.timer}/${selected.bonus}`);
   }
 
   return (
@@ -102,9 +97,7 @@ export default function Mode() {
 
         <div className="flex flex-col sm:flex-row gap-6 w-full max-w-3xl">
           <section className="flex-1 rounded-lg bg-mist-800 p-6 flex flex-col items-center gap-4">
-            <h2 className="text-xl font-semibold">
-              Play against a human
-            </h2>
+            <h2 className="text-xl font-semibold">Play against a human</h2>
 
             <p className="text-center text-sm opacity-80">
               Find an opponent with compatible time controls.
@@ -119,24 +112,15 @@ export default function Mode() {
           </section>
 
           <section className="flex-1 rounded-lg bg-mist-800 p-6 flex flex-col items-center gap-4">
-            <h2 className="text-xl font-semibold">
-              Play against AI
-            </h2>
+            <h2 className="text-xl font-semibold">Play against AI</h2>
 
-            <label htmlFor="ai-difficulty">
-              Difficulty
-            </label>
+            <label htmlFor="ai-difficulty">Difficulty</label>
 
             <select
               id="ai-difficulty"
               value={difficulty}
               onChange={(event) =>
-                setDifficulty(
-                  event.target.value as
-                    | "easy"
-                    | "medium"
-                    | "hard",
-                )
+                setDifficulty(event.target.value as "easy" | "medium" | "hard")
               }
               className="select select-bordered w-full"
             >

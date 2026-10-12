@@ -42,6 +42,7 @@ async def run_ai_turn(game_id: int):
 
                 if ai_move is None:
                     raise RuntimeError("AI returned no move in an active game")
+                san = board.san(ai_move)
                 db.expire_all()
                 game = game_service.make_ai_move(db, game_id, ai_move)
                 fen = game.current_fen
@@ -70,10 +71,17 @@ async def run_ai_turn(game_id: int):
                 "player": "ai",
                 "from": chess.square_name(ai_move.from_square),
                 "to": chess.square_name(ai_move.to_square),
-                "uci": ai_move.uci()
+                "uci": ai_move.uci(),
+                "san": san,
+                "fen": fen
             })
 
-        await manager.broadcast(game_id, {"type": "game_state", "fen": fen})
+        await manager.broadcast(game_id, {
+            "type": "game_state",
+            "fen": fen,
+            "status": status,
+            "result": result
+        })
         if status == "finished":
             await manager.broadcast(game_id, {
                 "type": "game_over",

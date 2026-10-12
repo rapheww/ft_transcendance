@@ -1,6 +1,7 @@
 import Header from "../Navbar/Header";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Chessboard from "./Chessboard";
+import { Chess as ChessEngine } from "chess.js";
 import { Flag } from "lucide-react";
 import Timer from "./Timer";
 import { useParams } from "react-router-dom";
@@ -19,6 +20,7 @@ interface GameInfo {
   status: string;
   current_fen: string;
   fen?: string;
+  pgn: string;
   result: string | null;
 }
 
@@ -27,7 +29,46 @@ interface GameSocketMessage {
   fen?: string;
   status?: string;
   result?: string | null;
+  pgn?: string;
   san?: string;
+  message?: unknown;
+}
+
+type SocketStatus =
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "disconnected"
+  | "finished";
+
+const MAX_RECONNECT_ATTEMPTS = 8;
+const INITIAL_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 10000;
+
+interface SocketGameState {
+  fen: string;
+  status?: string;
+  result?: string | null;
+}
+
+function getMoveHistory(pgn: string): Moves[] {
+  const board = new ChessEngine();
+  board.loadPgn(pgn);
+  return board.history({ verbose: true }).map((move) => ({
+    move: move.san,
+    fen: move.after,
+  }));
+}
+
+function appendMove(history: Moves[], move: Moves): Moves[] {
+  if (history.some((entry) => entry.fen === move.fen)) return history;
+  return [...history, move];
+}
+
+function readSocketGameState(stateRef: {
+  current: SocketGameState | null;
+}): SocketGameState | null {
+  return stateRef.current;
 }
 
 function getUserIdFromToken(token: string): number | null {
@@ -35,12 +76,10 @@ function getUserIdFromToken(token: string): number | null {
     const payload = token.split(".")[1];
     if (!payload) return null;
 
-    const base64 = payload
-      .replace(/-/g, "+")
-      .replace(/_/g, "/");
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
 
     const decoded = JSON.parse(
-      atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="))
+      atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "=")),
     );
 
     const id = Number(decoded.sub);
@@ -61,9 +100,11 @@ export default function Chess() {
   const [viewIndex, setViewIndex] = useState(-1);
   const socketRef = useRef<WebSocket | null>(null);
   const socketFenRef = useRef<string>("");
+  const socketSnapshotReceivedRef = useRef(false);
+  const socketGameStateRef = useRef<SocketGameState | null>(null);
+  const gameOverRef = useRef(false);
 
   const movesListRef = useRef<HTMLDivElement>(null);
-
   const { timer, bonus, gameId } = useParams<{
     timer: string;
     bonus: string;
@@ -71,13 +112,8 @@ export default function Chess() {
   }>();
 
   const { user, token } = useAuth();
-
-  const chrono =
-    timer === "5" || timer === "10" ? Number(timer) : 0;
-
-  const add =
-    bonus === "0" || bonus === "5" ? Number(bonus) : 0;
-
+  const chrono = timer === "5" || timer === "10" ? Number(timer) : 0;
+  const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
   const id = Number(gameId);
 
   const [game, setGame] = useState<GameInfo | null>(null);
@@ -86,6 +122,12 @@ export default function Chess() {
   const [result, setResult] = useState("0-0");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [socketStatus, setSocketStatus] = useState<SocketStatus>("connecting");
+  const [socketError, setSocketError] = useState("");
+
+  useEffect(() => {
+    gameOverRef.current = gameOver;
+  }, [gameOver]);
 
   const userId = token ? getUserIdFromToken(token) : null;
 
@@ -122,8 +164,12 @@ export default function Chess() {
       setGame(null);
       setFen("");
       setMoves([]);
+      setViewIndex(-1);
       setGameOver(false);
       setResult("0-0");
+      socketSnapshotReceivedRef.current = false;
+      socketGameStateRef.current = null;
+      gameOverRef.current = false;
 
       if (!token) {
         setLoadError("You must be signed in to load this game.");
@@ -138,13 +184,10 @@ export default function Chess() {
       }
 
       try {
-        const response = await fetch(
-          `http://127.0.0.1:8000/api/games/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          },
-        );
+        const response = await fetch(`http://127.0.0.1:8000/api/games/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
           const detail = await response.text();
@@ -154,16 +197,42 @@ export default function Chess() {
         }
 
         const data = (await response.json()) as GameInfo;
-        if (!data.current_fen || !Number.isInteger(data.id)) {
+        if (
+          !data.current_fen ||
+          typeof data.pgn !== "string" ||
+          !Number.isInteger(data.id)
+        ) {
           throw new Error("The server returned invalid game data.");
         }
 
         if (cancelled) return;
 
-        setGame(data);
-        setFen(socketFenRef.current || data.current_fen);
-        setGameOver(data.status === "finished");
-        setResult(data.result ?? "0-0");
+        const socketState = readSocketGameState(socketGameStateRef);
+        setGame(
+          socketState
+            ? {
+                ...data,
+                current_fen: socketState.fen || data.current_fen,
+                status: socketState.status ?? data.status,
+                result:
+                  socketState.result !== undefined
+                    ? socketState.result
+                    : data.result,
+              }
+            : data,
+        );
+        setFen(socketState?.fen || data.current_fen);
+        if (!socketSnapshotReceivedRef.current) {
+          const history = getMoveHistory(data.pgn);
+          setMoves(history);
+          setViewIndex(history.length - 1);
+        }
+        setGameOver((socketState?.status ?? data.status) === "finished");
+        setResult(
+          (socketState?.result !== undefined
+            ? socketState.result
+            : data.result) ?? "0-0",
+        );
       } catch (error) {
         if (cancelled) return;
         setLoadError(
@@ -187,50 +256,162 @@ export default function Chess() {
   useEffect(() => {
     if (!token || !Number.isInteger(id) || id <= 0) return;
     socketFenRef.current = "";
+    let stopped = false;
+    let terminal = gameOverRef.current;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryCount = 0;
+    let snapshotReceived = false;
+    let pendingMoves: Moves[] = [];
 
-    const ws = new WebSocket(
-      `ws://127.0.0.1:8000/ws/games/${id}?token=${encodeURIComponent(token)}`
-    );
+    const socketUrl = `ws://127.0.0.1:8000/ws/games/${id}?token=${encodeURIComponent(token)}`;
 
-    socketRef.current = ws;
+    function receiveMove(data: GameSocketMessage) {
+      if (typeof data.san !== "string" || typeof data.fen !== "string") return;
+      const move = { move: data.san, fen: data.fen };
 
-    ws.onmessage = (event) => {
+      if (!snapshotReceived) {
+        pendingMoves.push(move);
+        return;
+      }
+
+      setMoves((history) => appendMove(history, move));
+    }
+
+    function scheduleReconnect() {
+      if (stopped || terminal) return;
+
+      if (retryCount >= MAX_RECONNECT_ATTEMPTS) {
+        setSocketStatus("disconnected");
+        setSocketError(
+          `Could not reconnect after ${MAX_RECONNECT_ATTEMPTS} attempts. Reload the page to try again.`,
+        );
+        return;
+      }
+
+      const delay = Math.min(
+        INITIAL_RECONNECT_DELAY_MS * 2 ** retryCount,
+        MAX_RECONNECT_DELAY_MS,
+      );
+      retryCount += 1;
+      setSocketStatus("reconnecting");
+      setSocketError(
+        `Connection lost. Reconnecting (${retryCount}/${MAX_RECONNECT_ATTEMPTS})...`,
+      );
+      reconnectTimer = setTimeout(connect, delay);
+    }
+
+    function handleMessage(event: MessageEvent<string>) {
       let data: GameSocketMessage;
 
       try {
         data = JSON.parse(event.data) as GameSocketMessage;
       } catch {
+        setSocketError("Received an invalid WebSocket message.");
         return;
       }
 
       if (data.type === "game_connected") {
+        retryCount = 0;
+        socketGameStateRef.current = {
+          fen: data.fen ?? "",
+          status: data.status,
+          result: data.result,
+        };
         if (data.fen) {
           socketFenRef.current = data.fen;
           setFen(data.fen);
         }
 
+        if (typeof data.pgn === "string") {
+          try {
+            const history = getMoveHistory(data.pgn);
+            const syncedMoves = pendingMoves.reduce(appendMove, history);
+            snapshotReceived = true;
+            socketSnapshotReceivedRef.current = true;
+            setMoves(syncedMoves);
+            setViewIndex(syncedMoves.length - 1);
+            pendingMoves = [];
+            setSocketError("");
+          } catch {
+            snapshotReceived = true;
+            socketSnapshotReceivedRef.current = true;
+            setSocketError(
+              "Could not restore move history from the game snapshot.",
+            );
+            const queuedMoves = pendingMoves;
+            pendingMoves = [];
+            setMoves((history) => queuedMoves.reduce(appendMove, history));
+          }
+        } else {
+          setSocketError("The server snapshot did not include move history.");
+        }
+
+        if (data.status) {
+          const status = data.status;
+          setGame((current) =>
+            current
+              ? {
+                  ...current,
+                  current_fen: data.fen ?? current.current_fen,
+                  status,
+                  result: data.result ?? current.result,
+                }
+              : current,
+          );
+        }
+
         if (data.status === "finished") {
+          terminal = true;
+          gameOverRef.current = true;
+          setSocketStatus("finished");
           setGameOver(true);
           setResult(data.result ?? "0-0");
+        } else if (data.status === "active") {
+          gameOverRef.current = false;
+          setGameOver(false);
         }
 
         return;
       }
 
       if (data.type === "game_state") {
+        const previousSocketState = socketGameStateRef.current;
+        socketGameStateRef.current = {
+          fen: data.fen ?? previousSocketState?.fen ?? "",
+          status: data.status ?? previousSocketState?.status,
+          result:
+            data.result !== undefined
+              ? data.result
+              : previousSocketState?.result,
+        };
         if (data.fen) {
           socketFenRef.current = data.fen;
           setFen(data.fen);
         }
 
-        if (data.status === "finished") {
-          setGameOver(true);
-          setResult(data.result ?? "0-0");
+        if (data.status) {
+          const status = data.status;
           setGame((current) =>
             current
-              ? { ...current, status: "finished", result: data.result ?? null }
+              ? {
+                  ...current,
+                  current_fen: data.fen ?? current.current_fen,
+                  status,
+                  result: data.result ?? current.result,
+                }
               : current,
           );
+        }
+
+        if (data.status === "finished") {
+          terminal = true;
+          gameOverRef.current = true;
+          setSocketStatus("finished");
+          setGameOver(true);
+          setResult(data.result ?? "0-0");
+        } else if (data.status === "active") {
+          gameOverRef.current = false;
+          setGameOver(false);
         }
 
         return;
@@ -240,28 +421,24 @@ export default function Chess() {
         if (data.fen) {
           socketFenRef.current = data.fen;
         }
+        receiveMove(data);
+        return;
+      }
 
-        if (typeof data.san === "string" && typeof data.fen === "string") {
-          const { san, fen: moveFen } = data;
-          setMoves((previous) => {
-            // Prevent duplicate history entries.
-            const last = previous[previous.length - 1];
-
-            if (last?.fen === moveFen) {
-              return previous;
-            }
-
-            return [
-              ...previous,
-              { move: san, fen: moveFen },
-            ];
-          });
-        }
-
+      if (data.type === "error") {
+        setSocketError(String(data.message ?? "WebSocket server error."));
         return;
       }
 
       if (data.type === "game_over") {
+        terminal = true;
+        gameOverRef.current = true;
+        socketGameStateRef.current = {
+          fen: socketFenRef.current,
+          status: "finished",
+          result: data.result,
+        };
+        setSocketStatus("finished");
         setGameOver(true);
         setResult(data.result ?? "0-0");
         setGame((current) =>
@@ -270,22 +447,53 @@ export default function Chess() {
             : current,
         );
       }
-    };
+    }
 
-    ws.onerror = () => {
-      console.error("Game WebSocket connection failed.");
-    };
-
-    ws.onclose = () => {
-      if (socketRef.current === ws) {
-        socketRef.current = null;
+    function connect() {
+      if (stopped || terminal || gameOverRef.current) {
+        if (gameOverRef.current) setSocketStatus("finished");
+        return;
       }
-    };
+
+      setSocketStatus(retryCount === 0 ? "connecting" : "reconnecting");
+      let ws: WebSocket;
+      try {
+        ws = new WebSocket(socketUrl);
+      } catch {
+        scheduleReconnect();
+        return;
+      }
+
+      socketRef.current = ws;
+      ws.onopen = () => {
+        if (stopped || socketRef.current !== ws) return;
+        setSocketStatus("connected");
+        setSocketError("");
+      };
+      ws.onmessage = handleMessage;
+      ws.onerror = () => {
+        setSocketError("WebSocket connection error.");
+        ws.close();
+      };
+      ws.onclose = () => {
+        if (socketRef.current === ws) socketRef.current = null;
+        scheduleReconnect();
+      };
+    }
+
+    connect();
 
     return () => {
-      ws.close();
-      if (socketRef.current === ws) {
-        socketRef.current = null;
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      const ws = socketRef.current;
+      socketRef.current = null;
+      if (ws) {
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onerror = null;
+        ws.onclose = null;
+        ws.close();
       }
     };
   }, [id, token]);
@@ -302,8 +510,7 @@ export default function Chess() {
 
   useEffect(() => {
     if (movesListRef.current) {
-      movesListRef.current.scrollTop =
-        movesListRef.current.scrollHeight;
+      movesListRef.current.scrollTop = movesListRef.current.scrollHeight;
     }
   }, [moves]);
 
@@ -336,7 +543,7 @@ export default function Chess() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -380,7 +587,7 @@ export default function Chess() {
       setViewIndex((index) =>
         e.key === "ArrowLeft"
           ? Math.max(index - 1, 0)
-          : Math.min(index + 1, moves.length - 1)
+          : Math.min(index + 1, moves.length - 1),
       );
     }
 
@@ -443,10 +650,31 @@ export default function Chess() {
                 }}
                 className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
               >
-                {playerColor === "white"
-                  ? opponentName
-                  : user || "You"}
+                {playerColor === "white" ? opponentName : user || "You"}
               </p>
+
+              <span
+                role="status"
+                aria-live="polite"
+                title={socketError || undefined}
+                className={`text-xs ${
+                  socketStatus === "connected"
+                    ? "text-green-400"
+                    : socketStatus === "disconnected"
+                      ? "text-red-400"
+                      : "text-amber-300"
+                }`}
+              >
+                {socketStatus === "connected"
+                  ? "Live"
+                  : socketStatus === "connecting"
+                    ? "Connecting"
+                    : socketStatus === "reconnecting"
+                      ? "Reconnecting"
+                      : socketStatus === "finished"
+                        ? "Game finished"
+                        : "Offline"}
+              </span>
 
               <div
                 id="timer-1"
@@ -465,6 +693,16 @@ export default function Chess() {
                 />
               </div>
             </div>
+
+            {socketError && (
+              <p
+                role="status"
+                aria-live="polite"
+                className="w-full text-center text-xs text-red-400"
+              >
+                {socketError}
+              </p>
+            )}
 
             <div className="w-full aspect-square max-h-[65dvh] md:max-h-none md:h-auto md:w-[calc(100dvh-72px-8rem)] lg:h-auto lg:w-[min(calc(100dvh-72px-8rem),calc(100vw-2*clamp(240px,26vw,420px)-14.5rem))] flex items-center justify-center @container-size">
               <Chessboard
@@ -488,9 +726,7 @@ export default function Chess() {
                 }}
                 className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
               >
-                {user || "You"}
-                {" "}
-                ({playerColor})
+                {user || "You"} ({playerColor})
               </p>
 
               <div

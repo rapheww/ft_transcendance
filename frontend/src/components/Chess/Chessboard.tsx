@@ -50,12 +50,12 @@ function squareToPos(square: string) {
 }
 
 function resetPiece(piece: HTMLElement) {
-    piece.style.position = "";
-    piece.style.left = "";
-    piece.style.top = "";
-    piece.style.width = "";
-    piece.style.height = "";
-    piece.style.zIndex = "";
+  piece.style.position = "";
+  piece.style.left = "";
+  piece.style.top = "";
+  piece.style.width = "";
+  piece.style.height = "";
+  piece.style.zIndex = "";
 }
 
 export default function Chessboard({
@@ -67,7 +67,7 @@ export default function Chessboard({
   gameId,
   fenInit,
   gameOver,
-  result
+  result,
 }: ChessboardProps) {
   const chessRef = useRef(new Chess(fenInit));
 
@@ -116,30 +116,30 @@ export default function Chessboard({
     if (!fenInit) return;
     chessRef.current.load(fenInit);
     setFen(fenInit);
-  }, [fenInit])
+  }, [fenInit]);
 
   useEffect(() => {
-    if(!gameOver) return;
+    if (!gameOver) return;
 
-    async function getResult(){
-    try{
-       const response = await fetch(`http://127.0.0.1:8000/api/games/${gameId}`,
-          {headers: { Authorization: `Bearer ${token}` }}
-       );
-       if(!response.ok) return;
-       const game = await response.json();
-       if(game.status === "finished"){
-         setResult(game.result);
-         setOpen(true)
-       }
+    async function getResult() {
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/games/${gameId}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (!response.ok) return;
+        const game = await response.json();
+        if (game.status === "finished") {
+          setResult(game.result);
+          setOpen(true);
+        }
+      } catch {
+        return;
+      }
     }
-    catch{
-      return;
-    }
-  }
 
-  getResult();
-  }, [gameOver])
+    getResult();
+  }, [gameOver]);
 
   function removeDot() {
     for (let i = 0; i < moveTile.length; i++) {
@@ -185,7 +185,7 @@ export default function Chessboard({
   }
 
   async function sendMove(move: string): Promise<boolean> {
-  if (!token) return false;
+    if (!token) return false;
 
     try {
       const response = await fetch(
@@ -201,10 +201,7 @@ export default function Chessboard({
       );
 
       if (!response.ok) {
-        console.error(
-          "Move rejected by server:",
-          await response.text(),
-        );
+        console.error("Move rejected by server:", await response.text());
         return false;
       }
 
@@ -224,7 +221,6 @@ export default function Chessboard({
       return false;
     }
   }
-
 
   function grabPiece(e: React.MouseEvent) {
     if (gameOver) return;
@@ -359,7 +355,7 @@ export default function Chessboard({
 
         candidate.move({
           from: oldPos,
-          to: newPos
+          to: newPos,
         });
 
         const accepted = await sendMove(oldPos + newPos);
