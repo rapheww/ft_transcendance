@@ -83,16 +83,16 @@ human-readable notation shown in the move list (for example, `Nf3`).
 
 ### Server-to-client event types
 
-| `type` | Purpose | Main fields used by the chess screen |
-| --- | --- | --- |
-| `game_connected` | Initial or reconnect snapshot; also resets the retry counter. | `fen`, `pgn`, `status`, `result` |
-| `move` | A human or AI move was accepted and applied. | `san`, `fen` |
-| `game_state` | Current position/status/result changed; may be sent even when no move was applied, such as a timeout. | `fen`, `status`, `result` |
-| `game_over` | The game has reached a terminal result. | `result` |
-| `error` | The server could not process an event or encountered an error. | `message`, optionally `code` |
-| `player_joined` / `player_left` | A player connected or disconnected. | `user_id` |
-| `chat` | A chat message was broadcast. | `user_id`, `message` |
-| `pong` | Response to an application-level `ping`. | — |
+| `type`                          | Purpose                                                                                               | Main fields used by the chess screen 
+|                                 |                                                                                                       | 
+| `game_connected`                | Initial or reconnect snapshot; also resets the retry counter.                                         | `fen`, `pgn`, `status`, `result`
+| `move`                          | A human or AI move was accepted and applied.                                                          | `san`, `fen`
+| `game_state`                    | Current position/status/result changed; may be sent even when no move was applied, such as a timeout. | `fen`, `status`, `result`
+| `game_over`                     | The game has reached a terminal result.                                                               | `result`
+| `error`                         | The server could not process an event or encountered an error.                                        | `message`, optionally `code`
+| `player_joined` / `player_left` | A player connected or disconnected.                                                                   | `user_id`
+| `chat`                          | A chat message was broadcast.                                                                         | `user_id`, `message`
+| `pong`                          | Response to an application-level `ping`.                                                              | -
 
 The `move` event's FEN is the resulting position. `game_state` carries the
 latest game state separately from the move history. For example, on an

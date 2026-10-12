@@ -14,7 +14,7 @@ export type Moves = {
 };
 
 interface GameInfo {
-  // Player IDs may be null while a human matchmaking game is still waiting for its opponent.
+  // Les identifiants peuvent être absents tant qu'un joueur attend son adversaire.
   id: number;
   white_player_id: number | null;
   black_player_id: number | null;
@@ -26,7 +26,7 @@ interface GameInfo {
 }
 
 interface GameSocketMessage {
-  // `type` selects which optional fields below are meaningful for each server event.
+  // Le champ « type » indique le genre de message et les données qu'il contient.
   type: string;
   fen?: string;
   status?: string;
@@ -54,7 +54,7 @@ interface SocketGameState {
 }
 
 function getMoveHistory(pgn: string): Moves[] {
-  // PGN restores the complete SAN/FEN timeline for the move list and replay controls.
+  // Lire les coups enregistrés pour remplir la liste et permettre de revoir la partie.
   const board = new ChessEngine();
   board.loadPgn(pgn);
   return board.history({ verbose: true }).map((move) => ({
@@ -64,7 +64,8 @@ function getMoveHistory(pgn: string): Moves[] {
 }
 
 function appendMove(history: Moves[], move: Moves): Moves[] {
-  // A reconnect snapshot can overlap with moves received while that snapshot was loading.
+  // Après une reconnexion, le serveur peut renvoyer un coup déjà reçu pendant le chargement.
+  // On vérifie donc la position obtenue pour éviter d'ajouter ce coup deux fois.
   if (history.some((entry) => entry.fen === move.fen)) return history;
   return [...history, move];
 }
@@ -76,7 +77,7 @@ function readSocketGameState(stateRef: {
 }
 
 function getUserIdFromToken(token: string): number | null {
-  // The token's subject identifies which player record belongs to the signed-in user.
+  // Le champ « sub » du jeton contient l'identifiant du compte connecté.
   try {
     const payload = token.split(".")[1];
     if (!payload) return null;
@@ -95,7 +96,7 @@ function getUserIdFromToken(token: string): number | null {
 }
 
 export default function Chess() {
-  // `moves` is the canonical ordered history; `viewIndex` selects a replay position within it.
+  // « moves » contient les coups dans l'ordre. « viewIndex » indique la position affichée.
   const [showMoves, setShowMoves] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [moves, setMoves] = useState<Moves[]>([]);
@@ -104,7 +105,8 @@ export default function Chess() {
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [viewIndex, setViewIndex] = useState(-1);
-  // Refs hold the active socket and latest protocol state without causing renders on every event.
+  // Ces références gardent la connexion active et son dernier état sans relancer l'affichage
+  // à chaque message reçu.
   const socketRef = useRef<WebSocket | null>(null);
   const socketFenRef = useRef<string>("");
   const socketSnapshotReceivedRef = useRef(false);
@@ -119,7 +121,7 @@ export default function Chess() {
   }>();
 
   const { user, token } = useAuth();
-  // Route values are strings, so whitelist supported time controls before using them in timers/API flows.
+  // Les paramètres de l'URL sont du texte : n'accepter que les durées prévues pour la partie.
   const chrono = timer === "5" || timer === "10" ? Number(timer) : 0;
   const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
   const id = Number(gameId);
@@ -133,14 +135,16 @@ export default function Chess() {
   const [socketStatus, setSocketStatus] = useState<SocketStatus>("connecting");
   const [socketError, setSocketError] = useState("");
 
-  // Async socket callbacks read this ref to avoid acting on a stale render's game-over value.
+  // Les événements reçus plus tard par la connexion consultent cette référence pour connaître
+  // l'état actuel de la partie, plutôt qu'une ancienne valeur gardée par l'affichage.
   useEffect(() => {
     gameOverRef.current = gameOver;
   }, [gameOver]);
 
   const userId = token ? getUserIdFromToken(token) : null;
 
-  // Resolve the local side from the backend's player IDs; empty means this account is not in this game.
+  // Comparer l'identifiant du compte aux joueurs pour savoir avec quelle couleur il joue.
+  // Une valeur vide signifie que ce compte ne participe pas à cette partie.
   const playerColor: string =
     game && userId !== null
       ? game.white_player_id === userId
@@ -161,7 +165,7 @@ export default function Chess() {
     ? `Player ${opponentId}`
     : "Waiting for opponent";
 
-  // The move count advances one half-move at a time, alternating whose clock is active.
+  // Chaque coup joué change le joueur dont le chronomètre est actif.
   const wTurn = !gameOver && moves.length % 2 === 0;
   const bTurn = !gameOver && moves.length % 2 === 1;
 
@@ -169,7 +173,7 @@ export default function Chess() {
     const controller = new AbortController();
     let cancelled = false;
 
-    // Load the persisted game first so direct links and page refreshes restore the same match.
+    // Charger la partie enregistrée pour qu'un lien direct ou un rechargement la restaure.
     async function loadGame() {
       setLoading(true);
       setLoadError("");
@@ -179,7 +183,7 @@ export default function Chess() {
       setViewIndex(-1);
       setGameOver(false);
       setResult("0-0");
-      // Reset socket-derived state as well as UI state when the route switches to another game.
+      // Oublier aussi les données reçues par WebSocket quand on ouvre une autre partie.
       socketSnapshotReceivedRef.current = false;
       socketGameStateRef.current = null;
       gameOverRef.current = false;
@@ -220,7 +224,8 @@ export default function Chess() {
 
         if (cancelled) return;
 
-        // The socket may connect before this request finishes; prefer its newer snapshot if available.
+        // La connexion WebSocket peut répondre avant la requête de chargement.
+        // Si c'est le cas, utiliser son état plus récent plutôt que les données de la requête.
         const socketState = readSocketGameState(socketGameStateRef);
         setGame(
           socketState
@@ -248,7 +253,7 @@ export default function Chess() {
             : data.result) ?? "0-0",
         );
       } catch (error) {
-        // Aborted requests belong to an unmounted/previous game and should not overwrite current UI.
+        // Une requête annulée concerne une ancienne page ou partie : ignorer sa réponse.
         if (cancelled) return;
         setLoadError(
           error instanceof Error ? error.message : "Could not load game.",
@@ -266,8 +271,9 @@ export default function Chess() {
     };
   }, [id, token]);
 
-  // Subscribe to the assigned game only; creating/joining happens in the matchmaking flow.
-  // Live socket events keep the board, move history, and finished state in sync for both players.
+  // Ouvrir une connexion à la partie déjà attribuée : la création ou la recherche d'adversaire
+  // se fait ailleurs, pendant la mise en relation des joueurs.
+  // Le serveur envoie les changements en direct pour garder le plateau et l'historique à jour.
   useEffect(() => {
     if (!token || !Number.isInteger(id) || id <= 0) return;
     socketFenRef.current = "";
@@ -278,14 +284,16 @@ export default function Chess() {
     let snapshotReceived = false;
     let pendingMoves: Moves[] = [];
 
-    // Encode the token because it is carried in the WebSocket query string, not an HTTP header.
+    // L'adresse WebSocket transporte le jeton de connexion dans son URL pour que le serveur
+    // puisse vérifier qui ouvre la connexion.
     const socketUrl = `ws://127.0.0.1:8000/ws/games/${id}?token=${encodeURIComponent(token)}`;
 
     function receiveMove(data: GameSocketMessage) {
       if (typeof data.san !== "string" || typeof data.fen !== "string") return;
       const move = { move: data.san, fen: data.fen };
 
-      // Buffer live moves until the initial PGN snapshot establishes the history they follow.
+      // Garder les coups reçus de côté jusqu'à recevoir l'historique de départ du serveur.
+      // On pourra ensuite les ajouter dans le bon ordre à cet historique.
       if (!snapshotReceived) {
         pendingMoves.push(move);
         return;
@@ -297,7 +305,8 @@ export default function Chess() {
     function scheduleReconnect() {
       if (stopped || terminal) return;
 
-      // Exponential backoff limits reconnect traffic while capping how long each retry waits.
+      // Attendre un peu plus longtemps avant chaque nouvel essai, sans dépasser le délai maximal.
+      // Cela évite de solliciter le serveur en boucle si la connexion est coupée.
       if (retryCount >= MAX_RECONNECT_ATTEMPTS) {
         setSocketStatus("disconnected");
         setSocketError(
@@ -329,7 +338,8 @@ export default function Chess() {
       }
 
       if (data.type === "game_connected") {
-        // Connection handshake includes a full snapshot, allowing initial load and reconnect recovery.
+        // À l'ouverture, le serveur envoie l'état complet de la partie, y compris après une reconnexion.
+        // Cet état sert de point de départ pour afficher la partie et récupérer les changements manqués.
         retryCount = 0;
         socketGameStateRef.current = {
           fen: data.fen ?? "",
@@ -343,7 +353,8 @@ export default function Chess() {
 
         if (typeof data.pgn === "string") {
           try {
-            // Use the server snapshot as the baseline, then append any non-overlapping buffered moves.
+            // Repartir de l'historique envoyé par le serveur, puis ajouter les coups reçus entre-temps.
+            // Les doublons sont ignorés si l'historique les contenait déjà.
             const history = getMoveHistory(data.pgn);
             const syncedMoves = pendingMoves.reduce(appendMove, history);
             snapshotReceived = true;
@@ -395,7 +406,7 @@ export default function Chess() {
       }
 
       if (data.type === "game_state") {
-        // State-only broadcasts update live position/outcome without replacing the move history.
+        // Ce message met à jour la position et le résultat éventuel, sans remplacer la liste des coups.
         const previousSocketState = socketGameStateRef.current;
         socketGameStateRef.current = {
           fen: data.fen ?? previousSocketState?.fen ?? "",
@@ -439,7 +450,8 @@ export default function Chess() {
       }
 
       if (data.type === "move") {
-        // Moves carry SAN for display and FEN for replay; the server has already accepted the move.
+        // Le coup reçu contient son écriture pour l'afficher et la position du plateau après ce coup.
+        // Le serveur l'a déjà vérifié et accepté.
         if (data.fen) {
           socketFenRef.current = data.fen;
         }
@@ -453,7 +465,7 @@ export default function Chess() {
       }
 
       if (data.type === "game_over") {
-        // Terminal events stop further reconnect attempts and immediately freeze both clocks.
+        // La partie est terminée : ne pas essayer de se reconnecter et arrêter les deux chronomètres.
         terminal = true;
         gameOverRef.current = true;
         socketGameStateRef.current = {
@@ -499,7 +511,8 @@ export default function Chess() {
         ws.close();
       };
       ws.onclose = () => {
-        // Ignore a close from a superseded socket; only the current connection schedules a retry.
+        // Une ancienne connexion peut se fermer après son remplacement.
+        // Seule la connexion actuelle doit déclencher un nouvel essai.
         if (socketRef.current === ws) socketRef.current = null;
         scheduleReconnect();
       };
@@ -508,7 +521,8 @@ export default function Chess() {
     connect();
 
     return () => {
-      // Detach handlers before closing so cleanup cannot trigger state updates or another retry.
+      // Retirer les gestionnaires avant de fermer la connexion pour que son arrêt ne déclenche
+      // ni mise à jour de l'affichage ni nouvel essai de connexion.
       stopped = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
       const ws = socketRef.current;
@@ -524,7 +538,7 @@ export default function Chess() {
   }, [id, token]);
 
   const movePairs = useMemo(() => {
-    // Group consecutive plies into the white/black rows used by the move list.
+    // Afficher les coups blancs et noirs côte à côte dans la liste des coups.
     const pairs: (Moves | null)[][] = [];
 
     for (let i = 0; i < moves.length; i += 2) {
@@ -535,7 +549,7 @@ export default function Chess() {
   }, [moves]);
 
   useEffect(() => {
-    // Keep newly received live moves visible without forcing the user to scroll manually.
+    // Faire défiler la liste jusqu'aux nouveaux coups reçus sans demander au joueur de le faire.
     if (movesListRef.current) {
       movesListRef.current.scrollTop = movesListRef.current.scrollHeight;
     }
@@ -544,7 +558,7 @@ export default function Chess() {
   useEffect(() => {
     if (!open) return;
 
-    // The profile preview behaves like a dialog; Escape closes it and the listener is scoped to its lifetime.
+    // La touche Échap ferme l'aperçu du profil. Écouter cette touche seulement pendant son ouverture.
     function escHandler(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -560,7 +574,7 @@ export default function Chess() {
   }, [open]);
 
   async function sendResign() {
-    // Resignation is persisted by the API; local state changes only after its response succeeds.
+    // Enregistrer l'abandon auprès du serveur et mettre l'écran à jour après sa confirmation.
     if (!token || !game || playerColor === "") return;
 
     try {
@@ -591,7 +605,7 @@ export default function Chess() {
   }
 
   function showPrevMove(moveId: string) {
-    // Each move row stores the resulting FEN, so replay does not need another server request.
+    // Chaque coup garde la position du plateau qui suit. On peut revoir la partie sans rappeler le serveur.
     const element = document.getElementById(moveId);
 
     if (!element?.dataset.fen) return;
@@ -600,12 +614,12 @@ export default function Chess() {
   }
 
   useEffect(() => {
-    // New history (for example, after a live move or snapshot) returns replay to the latest position.
+    // Après la réception de nouveaux coups ou de l'historique du serveur, afficher la position actuelle.
     setViewIndex(moves.length - 1);
   }, [moves.length]);
 
   useEffect(() => {
-    // Allow keyboard replay navigation, but leave arrow keys available while typing in an input.
+    // Les flèches permettent de revoir les coups, sauf quand on écrit dans un champ de texte.
     function arrowHandler(e: KeyboardEvent) {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") {
         return;
@@ -631,14 +645,14 @@ export default function Chess() {
   }, [moves.length]);
 
   useEffect(() => {
-    // Keep the board on the selected historical position as the move list or arrow keys change it.
+    // Afficher sur le plateau la position choisie dans la liste ou avec les flèches.
     if (viewIndex < 0 || !moves[viewIndex]) return;
 
     setFen(moves[viewIndex].fen);
   }, [viewIndex, moves]);
 
   if (loading) {
-    // Render explicit loading, fetch-error, and access-denied states before mounting the game controls.
+    // Afficher le chargement, l'erreur ou le refus d'accès avant les commandes de la partie.
     return (
       <div className="min-h-screen">
         <Header />
@@ -675,7 +689,7 @@ export default function Chess() {
 
       <main className="min-h-[calc(100dvh-72px)] flex items-center justify-center px-2 md:px-4">
         <div className="flex flex-col md:flex-row lg:grid lg:grid-cols-[1fr_auto_1fr] items-center md:items-stretch lg:items-center gap-2 md:gap-3 justify-center w-full max-w-470 md:h-[calc(100dvh-72px-2rem)]">
-          {/* The center column owns the live board and clocks; the side panel contains history/chat. */}
+          {/* Le centre contient le plateau et les chronomètres. Le panneau latéral montre les coups ou le chat. */}
           <div className="flex flex-col h-full w-full justify-center items-center order-1 lg:col-start-2 lg:row-start-1 lg:-translate-x-20 gap-2 md:w-auto md:h-full md:max-w-[calc(100%-clamp(240px,26vw,420px)-0.75rem)] md:shrink lg:h-auto lg:max-w-none">
             <div className="flex flex-row justify-between items-center w-full h-10 shrink-0 p-3 rounded-sm bg-mist-400/10">
               <p
@@ -688,7 +702,7 @@ export default function Chess() {
                 {playerColor === "white" ? opponentName : user || "You"}
               </p>
 
-              {/* Expose connection state both visually and to assistive technology. */}
+              {/* Afficher l'état de la connexion, y compris pour les outils d'assistance. */}
               <span
                 role="status"
                 aria-live="polite"
@@ -788,7 +802,7 @@ export default function Chess() {
             id="mov-resume"
             className="flex order-2 shrink-0 w-full md:h-full md:max-h-[80%] md:w-[clamp(240px,26vw,520px)] lg:col-start-3 lg:row-start-1 lg:justify-self-start rounded-md shadow-[0_0_6px_#000000] bg-mist-800 items-center justify-center flex-col"
           >
-            {/* These controls switch between the move replay list and the chat panel. */}
+            {/* Ces boutons permettent de passer de la liste des coups au chat. */}
             <div className="w-full h-[5%] min-h-10 flex items-center justify-center rounded-t-md p-2 bg-mist-900/70">
               <p
                 onClick={() => {
@@ -830,7 +844,7 @@ export default function Chess() {
                       {i + 1}
                     </div>
 
-                    {/* Each square's FEN is the position immediately after that half-move. */}
+                    {/* Cette position correspond au plateau juste après le coup. */}
                     <div
                       id={`mov-white-${i}`}
                       data-fen={mov[0]?.fen}

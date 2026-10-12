@@ -17,7 +17,7 @@ interface LastPick {
   bg: string;
 }
 
-//get current tile color
+// Lire la couleur de fond actuelle de la case.
 function getColor(back: HTMLElement): string | null {
   const color = back.style.backgroundColor;
   return color;
@@ -86,27 +86,27 @@ export default function Chessboard({
   let oldPos: string = "";
   let possible: string[] | null = null;
 
-  //moving animation
+  // Animer le déplacement de la pièce après un coup.
   useLayoutEffect(() => {
-    const m = lastMove.current; //tmp to get the lastmove
+    const m = lastMove.current; // Récupérer le dernier coup joué.
     if (!m) return;
-    lastMove.current = null; //set the value to null
+    lastMove.current = null; // Effacer le coup pour ne pas rejouer l'animation.
 
-    const from = squareToPos(m.from); //getting the from pos
-    const to = squareToPos(m.to); // getting the to pos
-    const tf = getTileElement(from.x, from.y); //getting the element from
-    const tt = getTileElement(to.x, to.y); // getting the element to
+    const from = squareToPos(m.from); // Convertir la case de départ en coordonnées.
+    const to = squareToPos(m.to); // Convertir la case d'arrivée en coordonnées.
+    const tf = getTileElement(from.x, from.y); // Trouver la case de départ.
+    const tt = getTileElement(to.x, to.y); // Trouver la case d'arrivée.
 
     if (!tf || !tt) return;
 
-    const a = tf.getBoundingClientRect(); //getting the coordonates of the element from
-    const b = tt.getBoundingClientRect(); //getting the coordonates of the element to
+    const a = tf.getBoundingClientRect(); // Lire la position de la case de départ à l'écran.
+    const b = tt.getBoundingClientRect(); // Lire la position de la case d'arrivée à l'écran.
     tt.querySelector(".chess-piece")?.animate(
-      //animation of the class chess-piece
+      // Animer la pièce depuis sa case de départ jusqu'à sa case d'arrivée.
       [
         { transform: `translate(${a.left - b.left}px, ${a.top - b.top}px)` },
         { transform: "none" },
-      ] /*this is this animation translate from a to b*/,
+      ] /* Le déplacement visuel entre les deux cases. */,
       { duration: 200, easing: "ease-out" },
     );
   }, [fen]);
@@ -207,7 +207,7 @@ export default function Chessboard({
 
       const infos = await response.json();
 
-      // The server response is authoritative: update the local board only from its accepted position.
+      // Utiliser la position renvoyée par le serveur : elle confirme que le coup est accepté.
       chessRef.current.load(infos.current_fen);
       setFen(infos.current_fen);
 
@@ -234,13 +234,13 @@ export default function Chessboard({
 
     const clicked = getTileElement(x, y);
     if (clicked && moveTile.includes(clicked)) {
-      // Let onMouseUp handle the move, so we don't submit it twice.
+      // Laisser onMouseUp gérer le coup pour ne pas l'envoyer deux fois.
       return;
     }
 
     if (e.button === 2) {
       console.log("arrow");
-      //arrow code
+      // Code des flèches du plateau.
       return;
     }
 
@@ -285,7 +285,7 @@ export default function Chessboard({
     const square = `${horizontalAxis[x]}${verticalAxis[y]}` as Square;
     const piece = chessRef.current.get(square);
 
-    // Prevent dragging the opponent's pieces; the server still validates every submitted move.
+    // Empêcher de déplacer les pièces adverses. Le serveur vérifie aussi chaque coup envoyé.
     if (!piece || piece.color !== (playerColor === "white" ? "w" : "b")) {
       cancelMove();
       return;
@@ -355,7 +355,7 @@ export default function Chessboard({
 
         const candidate = new Chess(chessRef.current.fen());
 
-        // Reject illegal moves locally for immediate feedback before asking the server to apply them.
+        // Vérifier le coup ici pour signaler tout de suite s'il est interdit, avant d'appeler le serveur.
         candidate.move({
           from: oldPos,
           to: newPos,
@@ -422,7 +422,7 @@ export default function Chessboard({
     }
   }
 
-  //render du board
+  // Afficher l'échiquier.
   const grid = chessRef.current.board();
   const names = {
     p: "pawn",
