@@ -46,6 +46,7 @@ export default function Waiting() {
       "Content-Type": "application/json",
     };
 
+    // Polling detects a match when the opponent is assigned asynchronously.
     async function checkStatus(): Promise<boolean> {
       const response = await fetch(`${API}/api/matchmaking/status`, {
         headers,
@@ -87,6 +88,7 @@ export default function Waiting() {
       }
     }
 
+    // A join can return a match immediately; 409 means stay in the existing queue and poll status.
     async function start() {
       try {
         const response = await fetch(`${API}/api/matchmaking/join`, {
@@ -131,6 +133,7 @@ export default function Waiting() {
 
       // Don't remove a queue entry after a successful match.
       if (!matched.current) {
+        // Defer leaving by one task so a quick effect restart can cancel cleanup instead.
         leaveTimeout.current = setTimeout(() => {
           leaveTimeout.current = null;
           void fetch(`${API}/api/matchmaking/leave`, {

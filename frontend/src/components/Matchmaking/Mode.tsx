@@ -5,6 +5,7 @@ import { useAuth } from "../AuthProvider";
 
 const API = "http://127.0.0.1:8000";
 
+// Keep the displayed time control and the values sent to the backend together.
 const modes = [
   { label: "5+0", timer: 5, bonus: 0 },
   { label: "10+0", timer: 10, bonus: 0 },
@@ -26,6 +27,7 @@ export default function Mode() {
 
   const selected = modes.find((mode) => mode.label === selectedMode)!;
 
+  // AI games are created immediately; the returned ID is then used by the shared chess screen.
   async function playAI() {
     if (!token || loading) {
       if (!token) navigate("/login");
@@ -66,6 +68,7 @@ export default function Mode() {
     }
   }
 
+  // Human games go through the queue, which finds an opponent with the same time control.
   function playHuman() {
     navigate(`/matchmaking/${selected.timer}/${selected.bonus}`);
   }

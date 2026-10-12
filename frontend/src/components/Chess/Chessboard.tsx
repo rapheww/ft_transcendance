@@ -207,6 +207,7 @@ export default function Chessboard({
 
       const infos = await response.json();
 
+      // The server response is authoritative: update the local board only from its accepted position.
       chessRef.current.load(infos.current_fen);
       setFen(infos.current_fen);
 
@@ -284,6 +285,7 @@ export default function Chessboard({
     const square = `${horizontalAxis[x]}${verticalAxis[y]}` as Square;
     const piece = chessRef.current.get(square);
 
+    // Prevent dragging the opponent's pieces; the server still validates every submitted move.
     if (!piece || piece.color !== (playerColor === "white" ? "w" : "b")) {
       cancelMove();
       return;
@@ -353,6 +355,7 @@ export default function Chessboard({
 
         const candidate = new Chess(chessRef.current.fen());
 
+        // Reject illegal moves locally for immediate feedback before asking the server to apply them.
         candidate.move({
           from: oldPos,
           to: newPos,

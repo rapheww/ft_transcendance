@@ -19,6 +19,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route element={<DefaultLayout />}>
+              {/* The game ID lets the chess screen load the exact game created or matched by the backend. */}
               <Route path="/chess/:timer/:bonus/:gameId" element={<Chess />} />
               <Route path="/profile" element={<Profil />} />
               <Route path="/mode" element={<Mode />} />
