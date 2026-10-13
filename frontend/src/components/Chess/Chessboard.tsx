@@ -3,10 +3,11 @@ import Tile from "./Tile";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 const horizontalAxis: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const verticalAxis: string[] = ["1", "2", "3", "4", "5", "6", "7", "8"];
-import { Chess, type Square } from "chess.js";
+import { BLACK, Chess, KING, WHITE, type Square } from "chess.js";
 import GameOver from "./GameOver";
 import { useAuth } from "../AuthProvider";
 import type { Moves } from "./Chess";
+import Promotion from "./Promotion";
 
 type Movements = {
   bg: string;
@@ -15,6 +16,11 @@ type Movements = {
 
 interface LastPick {
   piece: HTMLElement;
+  bg: string;
+}
+
+interface lastInCheck {
+  tile: HTMLElement;
   bg: string;
 }
 
@@ -51,12 +57,12 @@ function squareToPos(square: string) {
 }
 
 function resetPiece(piece: HTMLElement) {
-    piece.style.position = "";
-    piece.style.left = "";
-    piece.style.top = "";
-    piece.style.width = "";
-    piece.style.height = "";
-    piece.style.zIndex = "";
+  piece.style.position = "";
+  piece.style.left = "";
+  piece.style.top = "";
+  piece.style.width = "";
+  piece.style.height = "";
+  piece.style.zIndex = "";
 }
 
 export default function Chessboard({
@@ -68,7 +74,7 @@ export default function Chessboard({
   gameId,
   fenInit,
   gameOver,
-  result
+  result,
 }: ChessboardProps) {
   const chessRef = useRef(new Chess(fenInit));
 
@@ -80,9 +86,15 @@ export default function Chessboard({
   const [fen, setFen] = useState<string>(chessRef.current.fen());
   const [tileColor, setTileColor] = useState<Movements[]>([]);
   const [lastPick, setLastPick] = useState<LastPick | null>(null);
+  const [inCheck, setInCheck] = useState<lastInCheck | null>(null);
   const [moveTile, setMoveTile] = useState<HTMLElement[]>([]);
   const [currentFen, setCurrentFen] = useState<string | null>(null);
   const [open, setOpen] = useState<boolean>(false);
+  const [promoOpen, setPromoOpen] = useState<boolean>(false);
+  const [pendingPromo, setPendinPromo] = useState<{
+    from: Square;
+    to: Square;
+  } | null>(null);
   const lastMove = useRef<{ from: string; to: string } | null>(null);
   let newPos: string = "";
   let oldPos: string = "";
@@ -116,34 +128,33 @@ export default function Chessboard({
   //useEffect pour charger le fen quand un mouv est clique
   useEffect(() => {
     if (!fenInit) return;
-    if(!currentFen)
-        setCurrentFen(chessRef.current.fen());
+    if (!currentFen) setCurrentFen(chessRef.current.fen());
     chessRef.current.load(fenInit);
     setFen(fenInit);
-  }, [fenInit])
+  }, [fenInit]);
 
   useEffect(() => {
-    if(!gameOver) return;
+    if (!gameOver) return;
 
-    async function getResult(){
-    try{
-       const response = await fetch(`http://127.0.0.1:8000/api/games/${gameId}`,
-          {headers: { Authorization: `Bearer ${token}` }}
-       );
-       if(!response.ok) return;
-       const game = await response.json();
-       if(game.status === "finished"){
-         setResult(game.result);
-         setOpen(true)
-       }
+    async function getResult() {
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/games/${gameId}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (!response.ok) return;
+        const game = await response.json();
+        if (game.status === "finished") {
+          setResult(game.result);
+          setOpen(true);
+        }
+      } catch {
+        return;
+      }
     }
-    catch{
-      return;
-    }
-  }
 
-  getResult();
-  }, [gameOver])
+    getResult();
+  }, [gameOver]);
 
   function removeDot() {
     for (let i = 0; i < moveTile.length; i++) {
@@ -188,41 +199,43 @@ export default function Chessboard({
     }
   }
 
-  async function sendMove(move: string){
-    try{
+  async function sendMove(move: string) {
+    try {
       const turn = chessRef.current.turn();
-      const bob = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNjQ3MzYwLCJ0eXBlIjoiYWNjZXNzIn0.kKu0LuO0tK6ORPrwqS1ozRoDCrlKrE7NN1COoSrYm9E"
-      const response = await fetch(`http://127.0.0.1:8000/api/games/${gameId}/move`, {
-        method: 'POST',
-        headers: {
-              Authorization: `Bearer ${turn == 'b' ? bob : token}`,
-              'Content-Type': 'application/json'
+      const bob =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxOTE5MDY3LCJ0eXBlIjoiYWNjZXNzIn0.N0A6j9E8oy1zvNb32I_MHfydAd7R1Y_n403DOM7qmJY";
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/games/${gameId}/move`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${turn == "b" ? bob : token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            move: move,
+          }),
         },
-        body: JSON.stringify({
-          'move': move
-        })
-      })
-      if(!response.ok) return false;
+      );
+      if (!response.ok) return false;
       const infos = await response.json();
       setFen(infos.current_fen);
       chessRef.current.load(infos.current_fen);
-      if(infos.status === 'finished'){
+      if (infos.status === "finished") {
         setGameOver(true);
         setResult(infos.result);
       }
       return true;
-    }
-    catch{
+    } catch {
       console.log("error makeMove");
       return false;
     }
   }
 
-
   function grabPiece(e: React.MouseEvent) {
     if (gameOver) return;
     //set current fen visible
-    if(currentFen){
+    if (currentFen) {
       chessRef.current.load(currentFen);
       setCurrentFen("");
     }
@@ -316,6 +329,42 @@ export default function Chessboard({
     }
   }
 
+  //PROMO
+  async function promotion(choice: "q" | "r" | "b" | "n") {
+    console.log("calling")
+    if (!pendingPromo) return;
+
+    const played = chessRef.current.move({
+      from: pendingPromo.from,
+      to: pendingPromo.to,
+      promotion: choice,
+    }).san;
+
+    await sendMove(pendingPromo?.from + pendingPromo?.to);
+
+    setMoves((prev) => {
+      let tmp = [...prev];
+      tmp.push({ move: played, fen: chessRef.current.fen() });
+      return tmp;
+    });
+    setLastPick(null);
+    setFen(chessRef.current.fen());
+    setPendinPromo(null);
+
+    const turn = chessRef.current.turn();
+    if (turn === "w") {
+      setBBonus(true);
+      setWBonus(false);
+    } else {
+      setWBonus(true);
+      setBBonus(false);
+    }
+    if (chessRef.current.isGameOver()) {
+      setGameOver(true);
+      setOpen(true);
+    }
+  }
+
   async function dropPiece(
     e: React.MouseEvent | null,
     target?: { x: number; y: number },
@@ -342,21 +391,81 @@ export default function Chessboard({
         return;
       }
 
+      //TOUTE LES MODIFS LA
       //verif du mouv
       newPos = `${horizontalAxis[x]}${verticalAxis[y]}`;
       oldPos = `${horizontalAxis[gridX]}${verticalAxis[gridY]}`;
       try {
-        if(newPos == oldPos) throw("invalid");
-        sendMove(oldPos+newPos);
-        played = chessRef.current.move({
-          from: `${oldPos}`,
-          to: `${newPos}`,
-        }).san;
-      } catch {
+        if (newPos == oldPos) throw "invalid";
+
+        const piece = chessRef.current.get(oldPos as Square);
+
+        //promo
+        if (piece?.type === "p" && (newPos[1] === "8" || newPos[1] === "1")) {
+          setPendinPromo({
+            from: oldPos as Square,
+            to: newPos as Square,
+          });
+
+          setPromoOpen(true);
+          resetPiece(active);
+          setActivePiece(null);
+          removeDot();
+          return;
+        }
+
+        //normal move
+        else {
+          played = chessRef.current.move({
+            from: `${oldPos}`,
+            to: `${newPos}`,
+          }).san;
+          sendMove(oldPos + newPos);
+        }
+      } catch (error) {
+        console.log(error);
         resetPiece(active);
         setActivePiece(null);
         return;
       }
+
+      //reset ancien echec
+      if (inCheck) {
+        inCheck.tile.style.backgroundColor = inCheck.bg;
+        setInCheck(null);
+      }
+      //echec en rouge
+      if (chessRef.current.isCheck()) {
+        if (chessRef.current.turn() === "w") {
+          const check = chessRef.current.findPiece({
+            type: KING,
+            color: WHITE,
+          })[0] as string;
+          if (!check) return;
+          const x = horizontalAxis.indexOf(check[0]);
+          const y = verticalAxis.indexOf(check[1]);
+          const checkTile = getTileElement(x, y);
+          if (!checkTile) return;
+          console.log(checkTile.style.backgroundColor);
+          setInCheck({ tile: checkTile, bg: checkTile.style.backgroundColor });
+          checkTile.style.backgroundColor = "#CC3C3C";
+        } else {
+          const check = chessRef.current.findPiece({
+            type: KING,
+            color: BLACK,
+          })[0] as string;
+          if (!check) return;
+          const x = horizontalAxis.indexOf(check[0]);
+          const y = verticalAxis.indexOf(check[1]);
+          const checkTile = getTileElement(x, y);
+          if (!checkTile) return;
+          console.log(checkTile.style.backgroundColor);
+          setInCheck({ tile: checkTile, bg: checkTile.style.backgroundColor });
+          checkTile.style.backgroundColor = "#CC3C3C";
+        }
+      }
+      //JUSQU'A LA
+
       lastMove.current = target ? { from: `${oldPos}`, to: `${newPos}` } : null;
       if (x !== gridX || y !== gridY) {
         const originTile = tileColor.find(
@@ -382,11 +491,10 @@ export default function Chessboard({
           }
         }
 
-        
         //show movements
         setMoves((prev) => {
           let tmp = [...prev];
-          tmp.push({move: played, fen: chessRef.current.fen()});
+          tmp.push({ move: played, fen: chessRef.current.fen() });
           return tmp;
         });
         setLastPick(null);
@@ -455,6 +563,11 @@ export default function Chessboard({
     >
       {board}
       <GameOver open={open} onClose={() => setOpen(false)} result={result} />
+      <Promotion
+        open={promoOpen}
+        onClose={() => setPromoOpen(false)}
+        setChoice={promotion}
+      />
     </div>
   );
 }

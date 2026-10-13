@@ -75,7 +75,7 @@ export default function Chess() {
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxNjQ3MzYwLCJ0eXBlIjoiYWNjZXNzIn0.kKu0LuO0tK6ORPrwqS1ozRoDCrlKrE7NN1COoSrYm9E`,
+              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxOTE5MDY3LCJ0eXBlIjoiYWNjZXNzIn0.N0A6j9E8oy1zvNb32I_MHfydAd7R1Y_n403DOM7qmJY`,
             },
           },
         );
