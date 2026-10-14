@@ -8,6 +8,7 @@ from backend.models.user import User
 from backend.models.game import Game
 from backend.models.tournament import Tournament, TournamentParticipant, TournamentMatch
 from backend.models.matchmaking import MatchmakingQueue
+from backend.models.notification import Notification
 
 load_dotenv()
 config = context.config

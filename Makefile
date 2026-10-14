@@ -116,6 +116,11 @@ migrate:
 seed-bots:
 	$(VENV_PYTHON) -m backend.scripts.generate_bots
 
+simulate-bots:
+	$(VENV_PYTHON) -m backend.scripts.simulate_bot_games
+
+prepare-bots: seed-bots simulate-bots
+
 # ---------------------------------------------------------------------------
 # Development servers
 # ---------------------------------------------------------------------------
