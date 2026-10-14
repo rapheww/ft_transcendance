@@ -1,9 +1,9 @@
-import Header from "../Navbar/Header";
-import Chart from "./Chart";
+import Header from "../../Navbar/Header";
 import Editor from "./Editor";
 import { useCallback, useEffect, useState } from "react";
-import { useAuth, type ProfilType } from "../AuthProvider";
+import { useAuth, type ProfilType } from "../../AuthProvider";
 import { UserRoundPen } from "lucide-react";
+import Chart from "./Chart";
 
 
 const Profil = () => {

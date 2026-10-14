@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
-import { useAuth } from "../AuthProvider";
+import { useAuth } from "../../AuthProvider";
 
 type StatsProfil = {
   elo: number;

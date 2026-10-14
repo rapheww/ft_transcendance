@@ -1,4 +1,4 @@
-import ChessPreview from "./Chess/ChessPreview";
+import ChessPreview from "./Chess/preview/ChessPreview";
 import Header from "./Navbar/Header";
 import { useNavigate } from "react-router-dom";
 

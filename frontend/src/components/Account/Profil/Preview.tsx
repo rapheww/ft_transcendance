@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
-import ChessPreview from "../Chess/ChessPreview";
+import ChessPreview from "../../Chess/preview/ChessPreview";
 
 interface PreviewProps {
   previewOnClose: () => void;

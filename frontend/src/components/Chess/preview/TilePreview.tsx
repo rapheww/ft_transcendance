@@ -1,4 +1,4 @@
-import { useAuth } from "../AuthProvider";
+import { useAuth } from "../../AuthProvider";
 
 interface Props {
   number: number;

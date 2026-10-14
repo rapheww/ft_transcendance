@@ -1,11 +1,11 @@
 import Header from "../Navbar/Header";
 import { useEffect, useMemo, useRef, useState } from "react";
-import Chessboard from "./Chessboard";
+import Chessboard from "./board/Chessboard";
 import { Flag } from "lucide-react";
 import Timer from "./Timer";
 import { useParams } from "react-router-dom";
+import ProfilePreview from "./preview/ProfilePreview";
 import { useAuth } from "../AuthProvider";
-import ProfilePreview from "./ProfilePreview";
 
 export type Moves = {
   move: string;
@@ -75,7 +75,7 @@ export default function Chess() {
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkxOTE5MDY3LCJ0eXBlIjoiYWNjZXNzIn0.N0A6j9E8oy1zvNb32I_MHfydAd7R1Y_n403DOM7qmJY`,
+              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkyMDAxNzAwLCJ0eXBlIjoiYWNjZXNzIn0.WBazlgKX8F-WZo5SOmSFmviYrCyKuJv0jlRAFmew4Qs`,
             },
           },
         );
@@ -140,12 +140,6 @@ export default function Chess() {
     } catch {
       console.log("error resign");
     }
-  }
-
-  function showPrevMove(premove: string) {
-    const thisFen = document.getElementById(premove);
-    if (!thisFen || !thisFen.dataset.fen) return;
-    setFen(thisFen.dataset.fen);
   }
 
   useEffect(() => {
@@ -304,16 +298,12 @@ export default function Chess() {
                   >
                     <div className="flex justify-center w-[16%] bg-mist-700 h-auto ">{`${i + 1}`}</div>
                     <div
-                      id="mov-0"
-                      data-fen={mov[0]?.fen}
-                      onClick={() => showPrevMove("mov-0")}
+                      onClick={() => mov[0] && setViewIndex(i * 2)}
                       className={`flex hover:bg-mist-500 cursor-pointer w-[42%] h-auto pl-2 ${movePairs[movePairs.length - 1][0]?.move == mov[0]?.move && !mov[1]?.move ? "bg-blue-400/50" : `${viewIndex === i * 2 ? 'bg-white text-black' : 'bg-mist-800'}`}`}
                     >{`${mov[0]?.move}`}</div>
 
                     <div
-                      id="mov-1"
-                      data-fen={mov[1]?.fen}
-                      onClick={() => showPrevMove("mov-1")}
+                      onClick={() => mov[1] && setViewIndex(i * 2 + 1)}
                       className={`flex w-[42%] ${mov[1]?.move ? "hover:bg-mist-500" : ""} cursor-pointer h-auto pl-2 ${movePairs[movePairs.length - 1][1]?.move == mov[1]?.move && mov[1]?.move ? "bg-blue-400/50" : `${viewIndex === i * 2 + 1 ? 'bg-white text-black' : 'bg-mist-800'}`}`}
                     >
                       {`${mov[1]?.move ? mov[1]?.move : ""}`}

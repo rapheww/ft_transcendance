@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
-import type { ProfilType } from "../AuthProvider";
 import { useEffect, useState } from "react";
-import Chart from "../Account/Chart";
+import type { ProfilType } from "../../AuthProvider";
+import Chart from "../../Account/Profil/Chart";
 
 interface Props {
   onClose: () => void;

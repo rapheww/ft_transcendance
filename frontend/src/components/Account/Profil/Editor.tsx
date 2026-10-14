@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import ColorPicker from "./ColorPicker";
 import { useState } from "react";
 import Preview from "./Preview";
-import { useAuth } from "../AuthProvider";
+import { useAuth } from "../../AuthProvider";
 
 interface Props {
   onClose: () => void;

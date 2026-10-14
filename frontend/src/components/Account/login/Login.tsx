@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
-import Header from "../Navbar/Header";
 import { useState } from "react";
-import { useAuth } from "../AuthProvider";
+import { useAuth } from "../../AuthProvider";
+import Header from "../../Navbar/Header";
 
 const Login = () => {
   const [username, setUsername] = useState<string>("");

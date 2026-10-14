@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useAuth } from "../AuthProvider";
 
 const NavLinks = () => {
-  const { token } = useAuth();
-  const { logout } = useAuth();
+  const { token, logout } = useAuth();
   const isLogged : boolean = token != '' ? true : false;
   return (
     <>
