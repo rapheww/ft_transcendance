@@ -55,7 +55,6 @@ export default function Chart({ username }: ChartProps) {
         if (!response.ok) return;
         const infos = await response.json();
         setStats(infos);
-        setStats(infos);
       } catch (err) {
         console.error(err);
       }
@@ -64,20 +63,27 @@ export default function Chart({ username }: ChartProps) {
 
   const chartData = stats.elo_history.map((s) => {
     const date = new Date(s.date)
-
     return {
       ...s,
       date: date.toLocaleDateString('fr-FR'),
     };
   });
 
+  //garde 1 jours sur 2 a partir de 15 jours et et 1 jours sur 15 a partir de 3 mois 
+  const displayData =
+  chartData.length > 90
+    ? chartData.filter((_, i) => i % 15 === 0 || i === chartData.length - 1)
+    : chartData.length > 20
+      ? chartData.filter((_, i) => i % 2 === 0 || i === chartData.length - 1)
+      : chartData;
+  
   if (chartData.length > 1) {
     return (
       <div className="w-full h-full flex justify-center items-center">
         <LineChart
           style={{ width: "100%", aspectRatio: 1.618, maxWidth: 600 }}
           responsive
-          data={chartData}
+          data={displayData}
           margin={{
             top: 20,
             right: 20,
