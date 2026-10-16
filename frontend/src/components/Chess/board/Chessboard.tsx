@@ -61,7 +61,12 @@ export default function Chessboard({
   const [tileColor, setTileColor] = useState<Movements[]>([]);
   const [lastPick, setLastPick] = useState<LastPick | null>(null);
   const [moveTile, setMoveTile] = useState<HTMLElement[]>([]);
-  const [circles, setCircles] = useState<SVGSVGElement[]>([]);
+  const [circles, setCircles] = useState<
+    { svg: SVGSVGElement; tile: Square }[]
+  >([]);
+  const [arrows, setArrows] = useState<
+    { fromx: number; fromy: number; tox: number | null; toy: number | null }[]
+  >([]);
   const [currentFen, setCurrentFen] = useState<string | null>(null);
   const [open, setOpen] = useState<boolean>(false);
   const [promoOpen, setPromoOpen] = useState<boolean>(false);
@@ -73,8 +78,8 @@ export default function Chessboard({
   const [params, setParams] = useState<PromoParams | null>(null);
 
   //tmp arrow
-  const [to, setTo] = useState<{ x: number; y: number } | null>(null);
   const [from, setFrom] = useState<{ x: number; y: number } | null>(null);
+  const [draw, setDraw] = useState<boolean>(false);
 
   const lastMove = useRef<{ from: string; to: string } | null>(null);
   let newPos: string = "";
@@ -149,15 +154,20 @@ export default function Chessboard({
     }
   }
 
-  async function sendMove(move: string) {
+  async function sendMove(move: string, turn: "b" | "w") {
     try {
-      const turn = chessRef.current.turn();
       const bob =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkyMDAxNzAwLCJ0eXBlIjoiYWNjZXNzIn0.WBazlgKX8F-WZo5SOmSFmviYrCyKuJv0jlRAFmew4Qs";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkyMTY0NjU3LCJ0eXBlIjoiYWNjZXNzIn0.PhpZuxBJxGASyF1fk8ETiqp0NcPlNK9tj0s1RNXAu4I";
       const infos = await postMove(move, gameId, turn === "b" ? bob : token);
-      if (!infos.ok) return false;
-      setFen(infos.current_fen);
-      chessRef.current.load(infos.current_fen);
+      if (!infos.ok) {
+        chessRef.current.undo();
+        setFen(chessRef.current.fen());
+        return false;
+      }
+      if (infos.current_fen != chessRef.current.fen()) {
+        chessRef.current.load(infos.current_fen);
+        setFen(infos.current_fen);
+      }
       if (infos.status === "finished") {
         setGameOver(true);
         setResult(infos.result);
@@ -235,44 +245,68 @@ export default function Chessboard({
   }
 
   function setStyle(element: HTMLElement, e: React.MouseEvent) {
-    const { rect, tileSize } = getCoords(e);
+    const { tileSize } = getCoords(e);
+    const parentRect = (
+      element.parentNode as HTMLElement
+    ).getBoundingClientRect();
     Object.assign(element.style, {
       width: `${tileSize}px`,
       height: `${tileSize}px`,
       position: "absolute",
-      left: `${e.clientX - rect.left - tileSize / 2}px`,
-      top: `${e.clientY - rect.top - tileSize / 2}px`,
+      left: `${e.clientX - parentRect.left - tileSize / 2}px`,
+      top: `${e.clientY - parentRect.top - tileSize / 2}px`,
       zIndex: "50",
     });
   }
 
-  function removeCircles(){
+  function removeCircles() {
     circles.map((c) => {
-        c.style.visibility = "hidden";
+      c.svg.style.visibility = "hidden";
+    });
+    setCircles([]);
+  }
+
+  function showCircle(e: React.MouseEvent){
+    if (lastPick) {
+        resetPiece(lastPick.piece);
+        const back = lastPick.piece.parentNode as HTMLElement;
+        back.style.backgroundColor = lastPick.bg;
+      }
+      removeDot();
+      setDraw(true);
+      const { x, y } = getCoords(e);
+      console.log(x, y);
+      setFrom({ x: x, y: 7 - y });
+      setArrows((prev) => [
+        ...prev,
+        { fromx: x, fromy: y, tox: null, toy: null },
+      ]);
+      let tile = e.target as HTMLElement;
+      if(tile.className.indexOf("chess-piece") != -1)
+          tile = tile.parentNode as HTMLElement;
+      if (!tile) return;
+      const svg = tile.querySelector<SVGSVGElement>("svg.circle");
+      if (!svg) return;
+      svg.style.visibility =
+        svg.style.visibility === "hidden" ? "visible" : "hidden";
+      circles.push({
+        svg: svg,
+        tile: `${horizontalAxis[x]}${verticalAxis[y]}` as Square,
       });
-      setCircles([]);
   }
 
   function grabPiece(e: React.MouseEvent) {
     if (gameOver) return;
 
     //enlever les cercles
-    if (e.button != 2)
+    if (e.button != 2) {
+      setArrows([]);
       removeCircles();
+    }
 
     //arrow
     if (e.button === 2) {
-      const { x, y } = getCoords(e);
-      console.log(x, y);
-      setTo(null);
-      setFrom({ x: x, y: 7 - y });
-      const tile = e.target as HTMLElement;
-      if (!tile) return;
-      const svg = tile.querySelector<SVGSVGElement>("svg.circle");
-      if (!svg) return;
-      svg.style.visibility =
-        svg.style.visibility === "hidden" ? "visible" : "hidden";
-      circles.push(svg);
+      showCircle(e);
       return;
     }
 
@@ -281,6 +315,7 @@ export default function Chessboard({
       chessRef.current.load(currentFen);
       setCurrentFen("");
     }
+
     const chessboard = document.getElementById("chessboard");
     if (!chessboard) return;
 
@@ -338,7 +373,35 @@ export default function Chessboard({
   }
 
   function movePiece(e: React.MouseEvent) {
-    if (activePiece && activePiece.classList.contains("chess-piece")) {
+    if (from != null && draw) {
+      const { x, y } = getCoords(e);
+      if (x != from.x || 7 - y != from.y) {
+        setArrows((prev) => {
+          const tmp = prev.slice(0, prev.length - 1);
+          return [...tmp, { fromx: from.x, fromy: from.y, tox: x, toy: 7 - y }];
+        });
+        const fromCircle = getTileElement(from.x, 7 - from.y)
+        if (!fromCircle) return;
+        const svg = fromCircle.querySelector<SVGSVGElement>("svg.circle");
+        if (!svg) return;
+        svg.style.visibility = "hidden"
+        const tmp = circles.filter((c) => c.tile != `${horizontalAxis[from.x]}${verticalAxis[7 - from.y]}` as Square)
+        setCircles(tmp);
+      } 
+      else {
+        setArrows((prev) => {
+          const tmp = prev.slice(0, prev.length - 1);
+          return [
+            ...tmp,
+            { fromx: from.x, fromy: from.y, tox: null, toy: null },
+          ];
+        });
+        const svg = getTileElement(from.x, 7 - from.y)?.querySelector<SVGSVGElement>("svg.circle");
+        if (!svg) return; 
+        svg.style.visibility = "visible";
+        circles.push({svg: svg, tile: `${horizontalAxis[x]}${verticalAxis[7 - y]}` as Square});
+      }
+    } else if (activePiece && activePiece.classList.contains("chess-piece")) {
       const chessboard = document.getElementById("chessboard");
       if (!chessboard) return;
       setStyle(activePiece, e);
@@ -349,13 +412,14 @@ export default function Chessboard({
   async function promotion(choice: "q" | "r" | "b" | "n") {
     if (!pendingPromo || !params) return;
 
+    const turn = chessRef.current.turn();
     const played = chessRef.current.move({
       from: pendingPromo.from,
       to: pendingPromo.to,
       promotion: choice,
     }).san;
 
-    await sendMove(pendingPromo?.from + pendingPromo?.to + choice);
+    await sendMove(pendingPromo?.from + pendingPromo?.to + choice, turn);
 
     setBgColor(
       params.target,
@@ -378,9 +442,12 @@ export default function Chessboard({
     if (e?.button == 2 && from && from) {
       const { x, y } = getCoords(e);
       console.log(x, y);
-      if(x != from.x || 7 - y != from.y){
-        setTo({ x: x, y: 7 - y });
-        removeCircles();
+      setDraw(false);
+      if (x != from.x || 7 - y != from.y) {
+        setArrows((prev) => {
+          const tmp = prev.slice(0, prev.length - 1);
+          return [...tmp, { fromx: from.x, fromy: from.y, tox: x, toy: 7 - y }];
+        });
       }
     }
 
@@ -429,12 +496,13 @@ export default function Chessboard({
 
         //normal move
         else {
+          const turn = chessRef.current.turn();
           const moveNow = chessRef.current.move({
             from: `${oldPos}`,
             to: `${newPos}`,
           });
           played = moveNow.san;
-          sendMove(oldPos + newPos);
+          sendMove(oldPos + newPos, turn);
         }
       } catch (error) {
         resetPiece(active);
@@ -473,6 +541,43 @@ export default function Chessboard({
       );
     }
   }
+
+  //arrow render
+  let allsvg: React.ReactElement[] = [];
+  arrows.map((a, i) => {
+    if (a.tox == null || a.toy == null) return;
+    const hypo = Math.hypot(a.tox - a.fromx, a.toy - a.fromy);
+    allsvg.push(
+      <svg
+        viewBox="0 0 8 8"
+        className="absolute inset-0 w-full h-full pointer-events-none z-20"
+      >
+        <defs>
+          <marker
+            id={`triangle${i}`}
+            viewBox="0 0 10 10"
+            refX={0.1}
+            refY={5}
+            markerWidth={3.2}
+            markerHeight={3.2}
+            markerUnits="strokeWidth"
+            orient="auto"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(80, 138, 82, 0.8)" />
+          </marker>
+        </defs>
+        <line
+          x1={a.fromx + 0.5}
+          y1={a.fromy + 0.5}
+          x2={a.tox + 0.5 - ((a.tox - a.fromx) / hypo) * (3.2 * 0.12)}
+          y2={a.toy + 0.5 - ((a.toy - a.fromy) / hypo) * (3.2 * 0.12)}
+          stroke="rgba(80, 138, 82, 0.8)"
+          strokeWidth="0.12"
+          markerEnd={`url(#triangle${i})`}
+        />
+      </svg>,
+    );
+  });
   return (
     <div
       onMouseMove={(e) => movePiece(e)}
@@ -487,23 +592,8 @@ export default function Chessboard({
         gridTemplateRows: "repeat(8, 1fr)",
       }}
     >
-      {from && to && (
-        <svg
-          viewBox="0 0 8 8"
-          className="absolute inset-0 w-full h-full pointer-events-none z-20"
-        >
-          <line
-            x1={from.x + 0.5}
-            y1={from.y + 0.5}
-            x2={to.x + 0.5}
-            y2={to.y + 0.5}
-            stroke="rgba(255,170,0,0.8)"
-            strokeWidth="0.15"
-            strokeLinecap="round"
-          />
-        </svg>
-      )}
       {board}
+      {allsvg}
       <GameOver open={open} onClose={() => setOpen(false)} result={result} />
       <Promotion
         open={promoOpen}

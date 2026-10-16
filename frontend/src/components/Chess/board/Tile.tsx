@@ -11,7 +11,7 @@ export default function Tile({
   number,
   image,
   gameOver,
-  inCheck,
+  inCheck
 }: Props) {
   const { profil } = useAuth();
   const isDark = number % 2 === 0;
@@ -48,7 +48,7 @@ export default function Tile({
           cy="50"
           r="42"
           fill="none"
-          stroke="#508a52"
+          stroke="rgba(80, 138, 82, 0.7)"
           strokeWidth="5"
           opacity="0.8"
         />

@@ -15,12 +15,18 @@ export function moveAnimation(
     const to = squareToPos(m.to); // getting the to pos
     const tf = getTileElement(from.x, from.y); //getting the element from
     const tt = getTileElement(to.x, to.y); // getting the element to
-
     if (!tf || !tt) return;
+
+    const piece = tt.querySelector<HTMLElement>(".chess-piece");
+    if(!piece) return;
+
+    //setting the piece on top of the board to make the animation visible with white pieces
+    piece.style.position = "relative";
+    piece.style.zIndex = "40";
 
     const a = tf.getBoundingClientRect(); //getting the coordonates of the element from
     const b = tt.getBoundingClientRect(); //getting the coordonates of the element to
-    tt.querySelector(".chess-piece")?.animate(
+    const anim = piece.animate(
       //animation of the class chess-piece
       [
         { transform: `translate(${a.left - b.left}px, ${a.top - b.top}px)` },
@@ -28,6 +34,11 @@ export function moveAnimation(
       ] /*this is this animation translate from a to b*/,
       { duration: 200, easing: "ease-out" },
     );
+
+    anim.onfinish = () => {
+      piece.style.zIndex = "";
+      piece.style.position = "";
+    }
   }, [fen]);
 }
 

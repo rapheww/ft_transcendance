@@ -11,7 +11,7 @@ interface Props {
 
 const ProfilePreview = ({ onClose, open, username }: Props) => {
   const [profil, setProfil] = useState<ProfilType | null>();
-  const defaultPfp = 'frontend/src/assets/pfp.png';
+  const defaultPfp = "frontend/src/assets/pfp.png";
   useEffect(() => {
     if (!open || !username) return;
     setProfil(undefined);
@@ -55,21 +55,8 @@ const ProfilePreview = ({ onClose, open, username }: Props) => {
           justify-center 
           items-center"
         >
-          <div id="profil-banner" className="h-50 w-[75%]">
-            <div
-              className="
-              relative
-              w-full 
-              h-full
-              bg-black
-              bg-no-repeat
-              bg-cover
-              flex
-              flex-row
-              items-center
-              justify-center
-              rounded-t-md"
-            >
+          <div className="w-[75%] bg-black/70 backdrop-blur-sm rounded-md border border-white/50 overflow-hidden">
+            <div id="profil-banner" className="h-50 w-full p-4">
               <button
                 onClick={() => {
                   setProfil(null);  
@@ -79,27 +66,45 @@ const ProfilePreview = ({ onClose, open, username }: Props) => {
               >
                 <X size={30} />
               </button>
-              <div className={`w-1/3 h-full flex justify-center items-center`}>
-                <img
-                  src={profil ? profil.avatar : defaultPfp}
-                  id="pfp"
-                  fetchPriority="high"
-                  className="h-[65%] aspect-square rounded-full object-cover"
-                />
-              </div>
-              <div className=" w-1/3 h-full flex justify-center items-center">
-                <p className="text-center">{profil ? profil.username : 'unknown'}</p>
-              </div>
-              <div className=" w-1/3 h-full flex justify-center items-center">
-                <p className="text-center">{profil ? profil.email : 'unknown'}</p>
+              <div className="w-full h-full bg-white/15 rounded-md flex flex-row items-center justify-center">
+                <div
+                  className="
+              w-full 
+              h-full
+              bg-no-repeat
+              bg-cover
+              flex
+              flex-row
+              items-center
+              justify-center
+              rounded-t-md"
+                >
+                  <div
+                    className={`w-1/3 h-full flex justify-center items-center`}
+                  >
+                    <img
+                      src={profil?.avatar}
+                      alt="pfp"
+                      id="pfp"
+                      className="h-[65%] aspect-square rounded-full hover:brightness-50 cursor-pointer object-cover"
+                    />
+                  </div>
+                  <div className=" w-1/3 h-full flex justify-center items-center">
+                    <p className="text-center">{profil?.username}</p>
+                  </div>
+                  <div className=" w-1/3 h-full flex justify-center items-center">
+                    <p className="text-center">{profil?.email}</p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div
-            id="profil-banner"
-            className="bg-mist-900 rounded-b-md h-100 w-[75%] flex justify-center items-center"
-          >
-            <Chart username={profil ? profil.username : 'unknown'}/>
+            <div className="h-100 w-full flex justify-center items-center">
+              <div className="w-full h-full p-4">
+                <div className="w-full h-full bg-white/15 flex justify-center items-center rounded-md p-20">
+                  <Chart username={profil ? profil.username : ""} />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
