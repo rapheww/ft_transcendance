@@ -30,10 +30,11 @@ const Login = () => {
       } else {
         console.log("login success");
         const accessData = await response.json();
-        login({
-          username: username,
-          token: accessData.access_token,
-        });
+          login({
+            username: username,
+            token: accessData.access_token,
+            refreshToken: accessData.refresh_token,
+          });
       }
     } catch {
       console.log("error fetch");

@@ -57,7 +57,8 @@ game snapshot. This ordering helps ensure that broadcasts occurring during
 snapshot creation are not silently missed. The server then broadcasts
 `player_joined` to the game. On disconnect, it removes only the current socket
 and broadcasts `player_left` if the player no longer has an active connection.
-The current chess screen does not display these presence events.
+The chess screen uses these presence events to mark the opponent as connected or
+offline, so the UI can reflect whether the live adversary is currently reachable.
 
 The React effect cleans up by clearing a pending reconnect timer, detaching
 event handlers, and closing its socket. Detaching handlers first prevents
@@ -166,16 +167,21 @@ failure, and caps each delay at ten seconds. After eight unsuccessful attempts
 it marks the connection as disconnected and asks the user to reload. A
 successful `game_connected` snapshot resets the retry counter.
 
+The client also handles the server's policy-close case (`1008`) by attempting a
+JWT refresh before reconnecting with the new access token. This keeps live game
+sessions alive after a token expires without forcing the user to reload the
+page manually.
+
 Every reconnect gets a fresh snapshot from the database, including the latest
 FEN and full PGN. This is what recovers changes that occurred while the browser
 was offline; the client does not need to guess which incremental events it
 missed.
 
 The backend responds to an application-level `{"type":"ping"}` with
-`{"type":"pong"}`. The current `Chess.tsx` socket does not send application
-level pings; connection health is currently surfaced through the browser
-socket's open/error/close events and the server's WebSocket transport
-keepalive.
+`{"type":"pong"}`. The current `Chess.tsx` socket also sends a `ping` every
+15 seconds while the socket is open, so the client actively verifies the
+connection health in addition to the browser's open/error/close events and the
+server's transport-level keepalive.
 
 ## Related code and scope notes
 

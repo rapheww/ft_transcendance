@@ -34,6 +34,7 @@ interface GameSocketMessage {
   pgn?: string;
   san?: string;
   message?: unknown;
+  user_id?: number;
 }
 
 type SocketStatus =
@@ -134,6 +135,7 @@ export default function Chess() {
   const [loadError, setLoadError] = useState("");
   const [socketStatus, setSocketStatus] = useState<SocketStatus>("connecting");
   const [socketError, setSocketError] = useState("");
+  const [opponentConnected, setOpponentConnected] = useState(false);
 
   // Les événements reçus plus tard par la connexion consultent cette référence pour connaître
   // l'état actuel de la partie, plutôt qu'une ancienne valeur gardée par l'affichage.
@@ -402,6 +404,12 @@ export default function Chess() {
           setGameOver(false);
         }
 
+        // presence: if the snapshot or subsequent broadcasts included the
+        // opponent's connection events, they'll be handled by player_joined/
+        // player_left. Reset opponentConnected when receiving a fresh snapshot
+        // so presence will reflect future join/leave events.
+        setOpponentConnected(false);
+
         return;
       }
 
@@ -459,6 +467,21 @@ export default function Chess() {
         return;
       }
 
+      if (data.type === "player_joined") {
+        // mark opponent as connected when we see their join event
+        if (typeof data.user_id === "number" && data.user_id === opponentId) {
+          setOpponentConnected(true);
+        }
+        return;
+      }
+
+      if (data.type === "player_left") {
+        if (typeof data.user_id === "number" && data.user_id === opponentId) {
+          setOpponentConnected(false);
+        }
+        return;
+      }
+
       if (data.type === "error") {
         setSocketError(String(data.message ?? "WebSocket server error."));
         return;
@@ -484,6 +507,31 @@ export default function Chess() {
       }
     }
 
+    async function tryRefreshToken(): Promise<boolean> {
+      // Try to refresh via the REST endpoint if possible (AuthProvider stores refreshToken in localStorage)
+      try {
+        const stored = localStorage.getItem("user");
+        if (!stored) return false;
+        const parsed = JSON.parse(stored);
+        const refresh_token = parsed?.refresh_token;
+        if (!refresh_token) return false;
+        const resp = await fetch("http://127.0.0.1:8000/api/auth/refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token }),
+        });
+        if (!resp.ok) return false;
+        const data = await resp.json();
+        // update stored values so the connector uses the fresh token
+        const obj: any = { username: parsed.username, token: data.access_token };
+        if (data.refresh_token) obj.refresh_token = data.refresh_token;
+        localStorage.setItem("user", JSON.stringify(obj));
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     function connect() {
       if (stopped || terminal || gameOverRef.current) {
         if (gameOverRef.current) setSocketStatus("finished");
@@ -492,6 +540,7 @@ export default function Chess() {
 
       setSocketStatus(retryCount === 0 ? "connecting" : "reconnecting");
       let ws: WebSocket;
+      let pingInterval: ReturnType<typeof setInterval> | undefined;
       try {
         ws = new WebSocket(socketUrl);
       } catch {
@@ -504,17 +553,42 @@ export default function Chess() {
         if (stopped || socketRef.current !== ws) return;
         setSocketStatus("connected");
         setSocketError("");
+        // start application-level pings so the server can reply with "pong"
+        // and we exercise the routes.py ping handling.
+        try {
+          if (pingInterval) clearInterval(pingInterval);
+          pingInterval = setInterval(() => {
+            try {
+              if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                socketRef.current.send(JSON.stringify({ type: "ping" }));
+              }
+            } catch {
+              // ignore send errors; onerror/onclose will handle reconnects
+            }
+          }, 15000);
+        } catch {
+          // ignore interval setup failures in unusual environments
+        }
+      };
+      ws.onclose = async (ev) => {
+        // if the server closed for policy (1008), try a token refresh once
+        if (ev && ev.code === 1008) {
+          const refreshed = await tryRefreshToken();
+          if (refreshed) {
+            // attempt immediate reconnect with new token
+            if (socketRef.current === ws) socketRef.current = null;
+            connect();
+            return;
+          }
+        }
+        // fallback to default close handling
+        if (socketRef.current === ws) socketRef.current = null;
+        scheduleReconnect();
       };
       ws.onmessage = handleMessage;
       ws.onerror = () => {
         setSocketError("WebSocket connection error.");
         ws.close();
-      };
-      ws.onclose = () => {
-        // Une ancienne connexion peut se fermer après son remplacement.
-        // Seule la connexion actuelle doit déclencher un nouvel essai.
-        if (socketRef.current === ws) socketRef.current = null;
-        scheduleReconnect();
       };
     }
 
@@ -532,7 +606,11 @@ export default function Chess() {
         ws.onmessage = null;
         ws.onerror = null;
         ws.onclose = null;
-        ws.close();
+        try {
+          ws.close();
+        } catch {
+          // ignore
+        }
       }
     };
   }, [id, token]);
@@ -697,9 +775,20 @@ export default function Chess() {
                   setOpen(true);
                   setUsername(opponentName);
                 }}
-                className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
+                className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer flex items-center gap-2"
               >
-                {playerColor === "white" ? opponentName : user || "You"}
+                {playerColor === "white" ? (
+                  <>
+                    {opponentName}
+                    <span
+                      aria-hidden
+                      title={opponentConnected ? "Opponent connected" : "Opponent disconnected"}
+                      className={`w-2 h-2 rounded-full inline-block ${opponentConnected ? "bg-green-400" : "bg-gray-500"}`}
+                    />
+                  </>
+                ) : (
+                  user || "You"
+                )}
               </p>
 
               {/* Afficher l'état de la connexion, y compris pour les outils d'assistance. */}
