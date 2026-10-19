@@ -7,14 +7,25 @@ const Home = () => {
   return (
     <div className="flex flex-col items-center min-h-screen">
       <Header />
-      <div className="flex flex-col justify-center items-center flex-1 w-full px-4">
-        <h1 className="text-4xl sm:text-6xl md:text-7xl m-6 sm:m-10 uppercase">Chess</h1>
-        <div className="flex flex-col items-center justify-start gap-0 w-full">
-            <ChessPreview dark={""} light={""}/>
-          <div className="flex flex-col items-center m-6 sm:m-9 gap-4 w-full max-w-75">
-            <button
-              onClick={() => navigate("/mode")}
-              className="
+      <div className="flex flex-col justify-center items-center flex-1 w-full px-4 border">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl m-6 sm:m-10 uppercase">
+          Chess
+        </h1>
+        <div className="flex flex-row items-center justify-center gap-0 w-full border-rose-200 border">
+          <div className="flex flex-col items-center justify-center gap-0 w-1/3 border-pink-600 border">
+            <div className="flex flex-col items-center justify- border-2 border-yellow-300">
+            <p>coucou</p>
+          </div>
+          </div>
+          
+          <div className="flex flex-col items-center justify-center gap-0 w-1/3 border-green-200 border">
+            <div className="w-[min(100%,50vh)] border-red-300 border">
+              <ChessPreview dark={""} light={""} />
+            </div>
+            <div className="flex flex-col items-center m-6 sm:m-9 gap-4 w-full max-w-75 border border-blue-300">
+              <button
+                onClick={() => navigate("/mode")}
+                className="
                 relative z-0
                 w-full h-13.5
                 border-0 outline-none
@@ -46,9 +57,10 @@ const Home = () => {
                 after:rounded-[10px]
                 after:bg-taupe-300
               "
-            >
-              Play
-            </button>
+              >
+                Play
+              </button>
+            </div>
           </div>
         </div>
       </div>

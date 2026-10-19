@@ -8,6 +8,7 @@ import AuthProvider from "./components/AuthProvider";
 import DefaultLayout from "./components/DefaultLayout";
 import Login from "./components/Account/login/Login";
 import Register from "./components/Account/login/Register";
+import Tournaments from "./components/Tournaments/Tournaments";
 
 function App() {
 
@@ -19,12 +20,12 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route element={<DefaultLayout />}>
+              <Route path="/tournaments" element={<Tournaments />} />
               <Route path="/chess/:timer/:bonus" element={<Chess />} />
               <Route path="/profile" element={<Profil />} />
               <Route path="/mode" element={<Mode />} />
               <Route path="/matchmaking/:timer/:bonus" element={<Waiting />} />
             </Route>
-
         </Routes>
       </AuthProvider>
     </BrowserRouter>

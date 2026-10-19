@@ -4,7 +4,7 @@ import Header from "../Navbar/Header";
 const Mode = () => {
   const navigate = useNavigate();
 
-  const modes = ["5+0", "10+0", "10+5"];
+  const modes = ["1+0", "10+0", "10+5"];
 
   return (
     <div>

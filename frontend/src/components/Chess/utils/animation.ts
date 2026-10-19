@@ -46,10 +46,11 @@ export function gameOverScreen(gameId: number, token: string, setResult: React.D
   useEffect(() => {
     if (!gameOver) return;
 
+    console.log("game over detected");
     async function receiveResult() {
       try {
         const game = await getResult(token, gameId);
-        if (!game.ok) return;
+        if(!game) return;
         if (game.status === "finished") {
           setResult(game.result);
           setOpen(true);

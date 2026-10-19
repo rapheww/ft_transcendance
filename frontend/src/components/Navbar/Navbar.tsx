@@ -8,15 +8,15 @@ const NavLinks = () => {
   const isLogged : boolean = token != '' ? true : false;
   return (
     <>
-      <NavLink to="/chess" className="hover:text-blue-300">Play</NavLink>
       {
         isLogged ? (
           <>
-            <NavLink to="/profile" className="hover:text-blue-300">Profile</NavLink>
-            <NavLink onClick={logout} to="/" className="hover:text-blue-300">Logout</NavLink>
+            <NavLink to="/tournaments" className="hover:bg-white/10 p-2 rounded-sm">Tournaments</NavLink>
+            <NavLink to="/profile" className="hover:bg-white/10 p-2 rounded-sm">Profile</NavLink>
+            <NavLink onClick={logout} to="/" className="hover:bg-white/10 p-2 rounded-sm">Logout</NavLink>
           </>
         ) : (
-          <NavLink to="/login" className="hover:text-blue-300">Login</NavLink>
+          <NavLink to="/login" className="hover:bg-white/10 p-2 rounded-sm">Login</NavLink>
         )
       }
     </>

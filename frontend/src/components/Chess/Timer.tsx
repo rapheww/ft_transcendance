@@ -15,6 +15,7 @@ const Timer = ({ time, turn, bonus, toAdd, setGameOver }: Props) => {
     if(!turn) return;
     if (timeLeft <= 0 ) {
         setGameOver(true);
+        console.log("game over");
         return;
     }
     const id = setTimeout(() => setTimeLeft((t) => t - 1), 1000);

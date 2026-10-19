@@ -157,7 +157,7 @@ export default function Chessboard({
   async function sendMove(move: string, turn: "b" | "w") {
     try {
       const bob =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkyMTY0NjU3LCJ0eXBlIjoiYWNjZXNzIn0.PhpZuxBJxGASyF1fk8ETiqp0NcPlNK9tj0s1RNXAu4I";
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkyNDI1OTEzLCJ0eXBlIjoiYWNjZXNzIn0.SSOm_imQTYmCjUh0fUjLUXs4q9e1M8h_yeRbefIxEkM";
       const infos = await postMove(move, gameId, turn === "b" ? bob : token);
       if (!infos.ok) {
         chessRef.current.undo();

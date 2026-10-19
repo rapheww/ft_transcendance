@@ -25,7 +25,7 @@ export default function Chess() {
   const movesListRef = useRef<HTMLDivElement>(null);
   const { timer, bonus } = useParams<{ timer: string; bonus: string }>();
   const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
-  const chrono = timer === "5" || timer === "10" ? Number(timer) : 0;
+  const chrono = timer === "5" || timer === "1" || timer === "10" ? Number(timer) : 0;
 
   const [id, setId] = useState<number>(0);
   const [fen, setFen] = useState<string>("");
@@ -75,7 +75,7 @@ export default function Chess() {
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkyMTY0NjU3LCJ0eXBlIjoiYWNjZXNzIn0.PhpZuxBJxGASyF1fk8ETiqp0NcPlNK9tj0s1RNXAu4I`,
+              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkyNDI1OTEzLCJ0eXBlIjoiYWNjZXNzIn0.SSOm_imQTYmCjUh0fUjLUXs4q9e1M8h_yeRbefIxEkM`,
             },
           },
         );

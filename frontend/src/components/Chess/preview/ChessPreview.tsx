@@ -65,7 +65,7 @@ export default function ChessPreview({dark, light}: PreviewProps) {
   return (
     <div
       id="chessboard"
-      className={`relative grid grid-cols-8 grid-rows-8 w-[min(50cqw,50cqh)] h-[min(50cqw,50cqh)] aspect-square select-none rounded-xl overflow-hidden`}
+      className={`relative grid grid-cols-8 grid-rows-8 w-[min(100%,70vh)] aspect-square select-none rounded-xl overflow-hidden`}
       style={{
         gridTemplateColumns: "repeat(8, 1fr)",
         gridTemplateRows: "repeat(8, 1fr)",

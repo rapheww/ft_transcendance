@@ -6,7 +6,7 @@ const Waiting = () => {
   const navigate = useNavigate();
   const {timer,  bonus} = useParams<{timer: string; bonus: string}>();
   const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
-  const chrono = timer === "5" || timer === "10" ? Number(timer) : 0;
+  const chrono = timer === "5" || timer === "1" || timer === "10" ? Number(timer) : 0;
 
   return (
     <div>
