@@ -31,6 +31,13 @@ interface ChessboardProps {
   fenInit: string;
   gameOver: boolean;
   result: string;
+  canPlay: boolean;
+  sendSocketMove?: (move: {
+    type: "move";
+    from: string;
+    to: string;
+    promotion?: string;
+  }) => boolean;
   setGameOver: React.Dispatch<React.SetStateAction<boolean>>;
   setResult: React.Dispatch<React.SetStateAction<string>>;
 }
@@ -68,6 +75,8 @@ export default function Chessboard({
   fenInit,
   gameOver,
   result,
+  canPlay,
+  sendSocketMove,
 }: ChessboardProps) {
   const chessRef = useRef(new Chess(fenInit));
 
@@ -185,7 +194,19 @@ export default function Chessboard({
   }
 
   async function sendMove(move: string): Promise<boolean> {
-    if (!token) return false;
+    if (!token || !canPlay) return false;
+
+    const from = move.slice(0, 2);
+    const to = move.slice(2, 4);
+    const socketMove = {
+      type: "move" as const,
+      from,
+      to,
+    };
+
+    if (sendSocketMove && sendSocketMove(socketMove)) {
+      return true;
+    }
 
     try {
       const response = await fetch(
@@ -224,7 +245,7 @@ export default function Chessboard({
   }
 
   function grabPiece(e: React.MouseEvent) {
-    if (gameOver) return;
+    if (gameOver || !canPlay) return;
     const chessboard = document.getElementById("chessboard");
     if (!chessboard) return;
     const rect = chessboard.getBoundingClientRect();
@@ -323,7 +344,7 @@ export default function Chessboard({
     piece?: HTMLElement,
   ) {
     const active = piece ?? activePiece;
-    if (gameOver) return;
+    if (gameOver || !canPlay) return;
     if (active && (e || target)) {
       const chessboard = document.getElementById("chessboard");
       if (!chessboard) return;

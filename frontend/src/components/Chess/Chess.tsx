@@ -136,6 +136,7 @@ export default function Chess() {
   const [socketStatus, setSocketStatus] = useState<SocketStatus>("connecting");
   const [socketError, setSocketError] = useState("");
   const [opponentConnected, setOpponentConnected] = useState(false);
+  const [reloadRequired, setReloadRequired] = useState(false);
 
   // Les événements reçus plus tard par la connexion consultent cette référence pour connaître
   // l'état actuel de la partie, plutôt qu'une ancienne valeur gardée par l'affichage.
@@ -310,9 +311,10 @@ export default function Chess() {
       // Attendre un peu plus longtemps avant chaque nouvel essai, sans dépasser le délai maximal.
       // Cela évite de solliciter le serveur en boucle si la connexion est coupée.
       if (retryCount >= MAX_RECONNECT_ATTEMPTS) {
+        setReloadRequired(true);
         setSocketStatus("disconnected");
         setSocketError(
-          `Could not reconnect after ${MAX_RECONNECT_ATTEMPTS} attempts. Reload the page to try again.`,
+          `Could not reconnect after ${MAX_RECONNECT_ATTEMPTS} attempts. Reload the page to continue.`,
         );
         return;
       }
@@ -551,6 +553,7 @@ export default function Chess() {
       socketRef.current = ws;
       ws.onopen = () => {
         if (stopped || socketRef.current !== ws) return;
+        setReloadRequired(false);
         setSocketStatus("connected");
         setSocketError("");
         // start application-level pings so the server can reply with "pong"
@@ -580,6 +583,7 @@ export default function Chess() {
             connect();
             return;
           }
+          setSocketError("Session expired. Reload this page to reconnect.");
         }
         // fallback to default close handling
         if (socketRef.current === ws) socketRef.current = null;
@@ -614,6 +618,8 @@ export default function Chess() {
       }
     };
   }, [id, token]);
+
+  const canPlay = socketStatus === "connected" && !gameOver;
 
   const movePairs = useMemo(() => {
     // Afficher les coups blancs et noirs côte à côte dans la liste des coups.
@@ -650,6 +656,16 @@ export default function Chess() {
       document.removeEventListener("keydown", escHandler);
     };
   }, [open]);
+
+  function sendSocketMove(move: { type: "move"; from: string; to: string }) {
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+
+    socket.send(JSON.stringify(move));
+    return true;
+  }
 
   async function sendResign() {
     // Enregistrer l'abandon auprès du serveur et mettre l'écran à jour après sa confirmation.
@@ -833,11 +849,46 @@ export default function Chess() {
               </div>
             </div>
 
+            {socketStatus !== "connected" && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`w-full rounded-sm border px-2 py-1 text-center text-[11px] ${
+                  socketStatus === "reconnecting" || socketStatus === "connecting"
+                    ? "border-amber-500/20 bg-amber-500/5 text-amber-200"
+                    : "border-gray-500/20 bg-gray-500/5 text-gray-300"
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>
+                    {socketStatus === "reconnecting"
+                      ? "Reconnecting to the game…"
+                      : socketStatus === "connecting"
+                        ? "Connecting to the game…"
+                        : socketStatus === "finished"
+                          ? "Game finished"
+                          : reloadRequired
+                            ? "Connection could not be restored"
+                            : "Connection lost. Showing the last synced board"}
+                  </span>
+                  {reloadRequired && (
+                    <button
+                      type="button"
+                      onClick={() => window.location.reload()}
+                      className="rounded-sm border border-gray-500/30 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gray-200 transition hover:border-gray-400 hover:text-white"
+                    >
+                      Reload
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {socketError && (
               <p
                 role="status"
                 aria-live="polite"
-                className="w-full text-center text-xs text-red-400"
+                className="w-full text-center text-[11px] text-gray-300"
               >
                 {socketError}
               </p>
@@ -854,6 +905,8 @@ export default function Chess() {
                 gameOver={gameOver}
                 result={result}
                 playerColor={playerColor}
+                canPlay={canPlay}
+                sendSocketMove={sendSocketMove}
               />
             </div>
 
