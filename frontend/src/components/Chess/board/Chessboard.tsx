@@ -77,7 +77,6 @@ export default function Chessboard({
   const [arrows, setArrows] = useState<
     { fromx: number; fromy: number; tox: number | null; toy: number | null }[]
   >([]);
-  const [currentFen, setCurrentFen] = useState<string | null>(null);
   const [open, setOpen] = useState<boolean>(false);
   const [promoOpen, setPromoOpen] = useState<boolean>(false);
   const [pendingPromo, setPendinPromo] = useState<{
@@ -101,7 +100,6 @@ export default function Chessboard({
   //useEffect pour charger le fen quand un mouv est clique
   useEffect(() => {
     if (!fenInit) return;
-    if (!currentFen) setCurrentFen(chessRef.current.fen());
     chessRef.current.load(fenInit);
     setFen(fenInit);
   }, [fenInit]);
@@ -304,12 +302,6 @@ export default function Chessboard({
     if (e.button === 2) {
       showCircle(e);
       return;
-    }
-
-    //set current fen visible
-    if (currentFen) {
-      chessRef.current.load(currentFen);
-      setCurrentFen("");
     }
 
     const chessboard = document.getElementById("chessboard");
