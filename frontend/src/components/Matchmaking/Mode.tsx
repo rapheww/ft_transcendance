@@ -7,6 +7,7 @@ const API = "http://127.0.0.1:8000";
 
 // Keep the displayed time control and the values sent to the backend together.
 const modes = [
+  { label: "1+0", timer: 1, bonus: 0 },
   { label: "5+0", timer: 5, bonus: 0 },
   { label: "10+0", timer: 10, bonus: 0 },
   { label: "10+5", timer: 10, bonus: 5 },

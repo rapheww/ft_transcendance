@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
-import ChessPreview from "../Chess/ChessPreview";
+import ChessPreview from "../../Chess/preview/ChessPreview";
 
 interface PreviewProps {
   previewOnClose: () => void;
@@ -9,7 +9,12 @@ interface PreviewProps {
   light: string | null;
 }
 
-const Preview = ({ previewOpen, previewOnClose, dark, light }: PreviewProps) => {
+const Preview = ({
+  previewOpen,
+  previewOnClose,
+  dark,
+  light,
+}: PreviewProps) => {
   return createPortal(
     <div
       className={`
@@ -22,22 +27,23 @@ const Preview = ({ previewOpen, previewOnClose, dark, light }: PreviewProps) => 
     >
       <div
         className={`
-                    w-[90%] max-w-2xl
+                    w-[90%] max-w-xl lg:max-w-2xl
                     transition-all duration-500 ease-out
                     ${previewOpen ? "opacity-100 scale-100" : "opacity-0 scale-95"}
                     `}
       >
         <div className="w-full flex justify-center items-center">
           <div className="mt-10 flex flex-col text-white w-full">
-            <div className="bg-mist-800 max-h-[90vh] flex justify-center items-center flex-col rounded-lg p-5 gap-5">
+            <div className="bg-black/30 border border-white/30 backdrop:blur-lg max-h-[90vh] overflow-y-auto overscroll-contain flex items-center flex-col rounded-lg p-2 sm:p-3 lg:p-4 gap-2 sm:gap-3 lg:gap-5">
               <button
                 onClick={previewOnClose}
-                className="cursor-pointer place-self-end"
+                className="cursor-pointer place-self-end rounded-lg hover:bg-gray-400/30"
               >
                 <X size={30} />
               </button>
-              <h1 className="text-xl font-extrabold">ChessBoard Preview</h1>
-              <ChessPreview dark={dark} light={light} />
+              <div className="w-[min(100%,70vh)]">
+                <ChessPreview dark={dark} light={light} />
+              </div>
             </div>
           </div>
         </div>

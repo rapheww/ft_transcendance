@@ -24,7 +24,7 @@ export default function Waiting() {
   const matched = useRef(false);
   const leaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const chrono = timer === "5" || timer === "10" ? Number(timer) : 5;
+  const chrono = timer === "1" || timer === "5" || timer === "10" ? Number(timer) : 5;
   const increment = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
 
   useEffect(() => {

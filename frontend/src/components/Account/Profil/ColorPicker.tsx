@@ -33,22 +33,22 @@ const ColorPicker = ({colorOpen , colorOnClose, Color, setter} : ColorProps) => 
     >
       <div
         className={`
-                    w-[90%] max-w-2xl
+                    w-[90%] max-w-md lg:max-w-lg
                     transition-all duration-500 ease-out
                     ${colorOpen ? "opacity-100 scale-100" : "opacity-0 scale-95"}
                     `}
       >
         <div className="w-full flex justify-center items-center">
           <div className="mt-10 flex flex-col text-white w-full">
-            <div className="bg-mist-800 max-h-[90vh] flex justify-center items-center flex-col rounded-lg p-5 gap-5">
+            <div className="bg-black/30 border border-white/30 backdrop:blur-lg max-h-[90vh] overflow-y-auto flex items-center flex-col rounded-lg p-4 sm:p-5 gap-4 sm:gap-5">
               <button
                 onClick={colorOnClose}
                 className="cursor-pointer place-self-end rounded-lg hover:bg-gray-400/30"
               >
                 <X size={30} />
               </button>
-              <h1 className="text-xl font-extrabold">Color Editor</h1>
-              <div style={{ zoom: 1.3 }}>
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold">Color Editor</h1>
+              <div className="zoom-[1] sm:zoom-[1.3]">
                 <Sketch 
                   color={hex} 
                   onChange={(color) => setHex(color.hex)} 
@@ -60,7 +60,7 @@ const ColorPicker = ({colorOpen , colorOnClose, Color, setter} : ColorProps) => 
                     setter(hex);
                     colorOnClose()
                 }}
-                className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group">
+                className="relative inline-flex items-center justify-center mt-3 px-6 py-3 lg:px-8 lg:py-3 lg:text-lg overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group">
                 <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>
                 <span className="absolute top-0 left-0 w-full bg-linear-to-b from-white to-transparent opacity-5 h-1/3"></span>
                 <span className="absolute bottom-0 left-0 w-full h-1/3 bg-linear-to-t from-white to-transparent opacity-5"></span>

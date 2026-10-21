@@ -4,20 +4,19 @@ import { useState } from "react";
 import { useAuth } from "../AuthProvider";
 
 const NavLinks = () => {
-  const { token } = useAuth();
-  const { logout } = useAuth();
+  const { token, logout } = useAuth();
   const isLogged : boolean = token != '' ? true : false;
   return (
     <>
-      <NavLink to="/chess" className="hover:text-blue-300">Play</NavLink>
       {
         isLogged ? (
-          <div className="flex w-full justify-between">
-            <NavLink to="/profile" className="hover:text-blue-300">Profile</NavLink>
-            <NavLink onClick={logout} to="/" className="hover:text-blue-300">Logout</NavLink>
-          </div>
+          <>
+            <NavLink to="/tournaments" className="hover:bg-white/10 p-2 rounded-sm">Tournaments</NavLink>
+            <NavLink to="/profile" className="hover:bg-white/10 p-2 rounded-sm">Profile</NavLink>
+            <NavLink onClick={logout} to="/" className="hover:bg-white/10 p-2 rounded-sm">Logout</NavLink>
+          </>
         ) : (
-          <NavLink to="/login" className="hover:text-blue-300">Login</NavLink>
+          <NavLink to="/login" className="hover:bg-white/10 p-2 rounded-sm">Login</NavLink>
         )
       }
     </>
@@ -32,7 +31,7 @@ const Navbar = () => {
   return (
     <>
       <nav className="flex justify-end w-1/3">
-        <div className="hidden w-full justify-end gap-60 md:flex lg:mr-15 md:mr-10 sm:mr-5">
+        <div className="hidden w-full justify-end gap-30 md:flex lg:mr-15 md:mr-10 sm:mr-5">
           <NavLinks />
         </div>
         <div className="md:hidden">
@@ -40,7 +39,7 @@ const Navbar = () => {
         </div>
       </nav>
       {isOpen && (
-        <div className="flex flex-col items-center basis-full">
+        <div className="flex flex-col items-center basis-full gap-4 py-2">
           <NavLinks />
         </div>
       )}

@@ -1,12 +1,12 @@
 import Header from "../Navbar/Header";
 import { useEffect, useMemo, useRef, useState } from "react";
-import Chessboard from "./Chessboard";
+import Chessboard from "./board/Chessboard";
 import { Chess as ChessEngine } from "chess.js";
 import { Flag } from "lucide-react";
 import Timer from "./Timer";
 import { useParams } from "react-router-dom";
+import ProfilePreview from "./preview/ProfilePreview";
 import { useAuth } from "../AuthProvider";
-import ProfilePreview from "./ProfilePreview";
 
 export type Moves = {
   move: string;
@@ -123,7 +123,8 @@ export default function Chess() {
 
   const { user, token } = useAuth();
   // Les paramètres de l'URL sont du texte : n'accepter que les durées prévues pour la partie.
-  const chrono = timer === "5" || timer === "10" ? Number(timer) : 0;
+  const chrono =
+    timer === "1" || timer === "5" || timer === "10" ? Number(timer) : 0;
   const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
   const id = Number(gameId);
 
@@ -657,7 +658,12 @@ export default function Chess() {
     };
   }, [open]);
 
-  function sendSocketMove(move: { type: "move"; from: string; to: string }) {
+  function sendSocketMove(move: {
+    type: "move";
+    from: string;
+    to: string;
+    promotion?: string;
+  }) {
     const socket = socketRef.current;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       return false;
@@ -696,15 +702,6 @@ export default function Chess() {
     } catch (error) {
       console.error("Error resigning:", error);
     }
-  }
-
-  function showPrevMove(moveId: string) {
-    // Chaque coup garde la position du plateau qui suit. On peut revoir la partie sans rappeler le serveur.
-    const element = document.getElementById(moveId);
-
-    if (!element?.dataset.fen) return;
-
-    setFen(element.dataset.fen);
   }
 
   useEffect(() => {
@@ -896,6 +893,7 @@ export default function Chess() {
 
             <div className="w-full aspect-square max-h-[65dvh] md:max-h-none md:h-auto md:w-[calc(100dvh-72px-8rem)] lg:h-auto lg:w-[min(calc(100dvh-72px-8rem),calc(100vw-2*clamp(240px,26vw,420px)-14.5rem))] flex items-center justify-center @container-size">
               <Chessboard
+                setMoves={setMoves}
                 setBBonus={setBBonus}
                 setWBonus={setWBonus}
                 setGameOver={setGameOver}
@@ -990,7 +988,7 @@ export default function Chess() {
                     <div
                       id={`mov-white-${i}`}
                       data-fen={mov[0]?.fen}
-                      onClick={() => showPrevMove(`mov-white-${i}`)}
+                      onClick={() => mov[0] && setViewIndex(i * 2)}
                       className={`flex hover:bg-mist-500 cursor-pointer w-[42%] h-auto pl-2 ${
                         viewIndex === i * 2
                           ? "bg-white text-black"
@@ -1003,7 +1001,7 @@ export default function Chess() {
                     <div
                       id={`mov-black-${i}`}
                       data-fen={mov[1]?.fen}
-                      onClick={() => showPrevMove(`mov-black-${i}`)}
+                      onClick={() => mov[1] && setViewIndex(i * 2 + 1)}
                       className={`flex w-[42%] hover:bg-mist-500 cursor-pointer h-auto pl-2 ${
                         viewIndex === i * 2 + 1
                           ? "bg-white text-black"

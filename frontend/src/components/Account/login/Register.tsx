@@ -1,15 +1,18 @@
 import { NavLink } from "react-router-dom";
-import Header from "../Navbar/Header";
 import { useState } from "react";
-import { useAuth } from "../AuthProvider";
+import { useAuth } from "../../AuthProvider";
+import Header from "../../Navbar/Header";
 
 const Register = () => {
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [invalid, setInvalid] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const { login } = useAuth();
+  const inputClassname = `input outline-0 border bg-white/3 border-white-50 focus:border-white-50 focus-within:border-white/50 w-full lg:h-12 lg:text-lg 2xl:text-base`;
+  const { login } = useAuth();
 
   //register handling
   async function handleRegister(event : any) {
@@ -19,12 +22,11 @@ const Register = () => {
       console.log("passwords are different !");
       const bd = document.getElementById("confirm-password");
       if (bd) {
-        bd.className += " border-2 border-red-500";
+        bd.className = "input outline-0 border bg-white/3 border-red-500 w-full";
       }
       return;
     }
 
-    console.log("login ... wait...");
     try {
       const url = "http://127.0.0.1:8000/api/users/";
       const response = await fetch(url, {
@@ -38,13 +40,10 @@ const Register = () => {
       });
 
       //MORE STATUS CODE TO HANDLE
-      if (response.status != 201) {
-        const divReg = document.getElementById("register")
-        if (!divReg) return;
-        divReg.className = "flex min-h-100 w-full max-w-xl flex-col justify-center border-2 border-red-300 shadow-xl shadow-red-500 bg-mist-800/75 rounded-md p-6 sm:p-10"
-        return;
-      } else {
-        console.log("register success");
+      if (!response.ok) {
+        const infos = await response.json()
+        if(!infos) return;
+        throw infos.detail
       }
 
       //Login time
@@ -56,18 +55,20 @@ const Register = () => {
       });
 
       if (LogResponse.status != 200) {
-        console.log("CANT LOGIN");
-        return;
+        const infos = await LogResponse.json()
+        if(!infos) return;
+        throw infos.detail
       } else {
-        console.log("login success");
         const accessData = await LogResponse.json();
         login({
           username: username,
           token: accessData.access_token,
         });
       }
-    } catch {
-      console.log("error fetch");
+    } catch (error) {
+      setInvalid(true);
+      setErrorMessage(error as string);
+      return;
     }
   }
 
@@ -78,37 +79,39 @@ const Register = () => {
       <div className="flex justify-center items-center min-h-[calc(100vh-56px)] px-4 py-8">
         <div
           id="register"
-          className=" 
-            flex 
-            min-h-100 
-            w-full 
-            max-w-xl 
-            flex-col 
-            justify-center 
-            border-2 
-            border-white
-            bg-mist-800/75 
-            rounded-md 
-            p-6 
-            sm:p-10"
+          className={`
+            flex
+            min-h-100 lg:min-h-110 2xl:min-h-125
+            w-full
+            max-w-xl 2xl:max-w-2xl
+            flex-col
+            justify-center
+            border-2
+            ${invalid ? "border-red-500/60" : "border-white/50"}
+            bg-black/20 backdrop-blur-xs
+            rounded-md
+            p-6
+            sm:p-10 lg:p-12 2xl:p-14
+          `}
         >
-          <div className="flex flex-col items-center mb-8">
-            <h1 className="text-3xl sm:text-5xl mb-3">Register</h1>
-            <p className="text-center text-lg">
+          <div className="flex flex-col items-center mb-8 lg:mb-10">
+            <h1 className="text-2xl sm:text-3xl 2xl:text-4xl mb-3">Register</h1>
+            <p className="text-center text-base lg:text-lg">
               Already have an account ?{" "}
-              <NavLink to="/login" className="text-gray-400 underline">
+              <NavLink to="/login" className="text-gray-400 hover:text-gray-300">
                 Login
               </NavLink>
             </p>
           </div>
           <form 
             onSubmit={handleRegister}
-            className="flex flex-col items-center w-full gap-3"
+            className="flex flex-col items-center w-full gap-3 lg:gap-4"
           >
             <input
               type="text"
-              className="input border border-gray-300 w-full"
+              className={inputClassname}
               placeholder="Username"
+              autoComplete="username"
               value={username}
               onChange={(event) => {
                 setUsername(event.target.value);
@@ -116,7 +119,7 @@ const Register = () => {
             />
             <input
               type="text"
-              className="input border border-gray-300 w-full"
+              className={inputClassname}
               placeholder="Email"
               value={email}
               onChange={(event) => {
@@ -125,8 +128,9 @@ const Register = () => {
             />
             <input
               type="password"
-              className="input border border-gray-300 w-full"
+              className={inputClassname}
               placeholder="Password"
+              autoComplete="current-password"
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value);
@@ -135,18 +139,17 @@ const Register = () => {
             <input
               id="confirm-password"
               type="password"
-              className="input border border-gray-300 w-full"
+              className={inputClassname}
               placeholder="Confirm password"
               value={confirmPassword}
               onChange={(event) => {
                 setConfirmPassword(event.target.value);
-                const bd = document.getElementById("confirm-password");
-                if (bd) bd.className = "input border border-gray-300 w-full";
               }}
             />
+            <p className={`text-md sm:text-lg 2xl:text-lg text-red-500/60 ${errorMessage === null ? 'hidden' : ''}`}>{errorMessage}</p>
             <button
               type="submit"
-              className="relative inline-flex items-center justify-center mt-3 px-6 py-3 overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group"
+              className="relative inline-flex items-center justify-center mt-3 px-6 py-3 lg:px-8 lg:py-3 lg:text-lg overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group"
             >
               <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>
               <span className="absolute top-0 left-0 w-full bg-linear-to-b from-white to-transparent opacity-5 h-1/3"></span>
