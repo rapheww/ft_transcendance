@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import AliasPath, BaseModel, Field
 
 
 class GameCreate(BaseModel):
@@ -20,7 +20,14 @@ class MoveRequest(BaseModel):
 class GameResponse(BaseModel):
     id: int
     white_player_id: int
+    white_player_name: str = Field(
+        validation_alias=AliasPath("white_player", "username"))
     black_player_id: int | None
+    black_player_name: str | None = Field(
+        default=None,
+        validation_alias=AliasPath("black_player", "username"))
+    opponent_type: str
+    ai_difficulty: str | None
     status: str
     result: str | None
     current_fen: str

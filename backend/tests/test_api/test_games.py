@@ -46,7 +46,9 @@ def test_create_game(client: TestClient):
 
     assert body["id"] is not None
     assert body["white_player_id"] == 1
+    assert body["white_player_name"] == "alice"
     assert body["black_player_id"] is None
+    assert body["black_player_name"] is None
     assert body["status"] == "waiting"
     assert body["result"] is None
     assert body["current_fen"] is not None
@@ -76,6 +78,8 @@ def test_join_game(client: TestClient):
     assert body["white_player_id"] == game["white_player_id"]
     assert body["black_player_id"] is not None
     assert body["black_player_id"] != body["white_player_id"]
+    assert body["white_player_name"] == "alice"
+    assert body["black_player_name"] == "bob"
     assert body["status"] == "active"
     assert body["result"] is None
 

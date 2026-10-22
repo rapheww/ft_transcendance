@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.db.base import Base
 
 
@@ -14,6 +14,10 @@ class Game(Base):
 
     black_player_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"),
                                                         nullable=True)
+
+    white_player: Mapped["User"] = relationship(foreign_keys=[white_player_id])
+    black_player: Mapped["User | None"] = relationship(
+        foreign_keys=[black_player_id])
 
     opponent_type: Mapped[str] = mapped_column(String(20),
                                                nullable=False,

@@ -549,9 +549,23 @@ export function useGame(id: number, token: string | null) {
         ? game?.white_player_id
         : null;
 
-  const opponentName = opponentId
-    ? `Player ${opponentId}`
-    : "Waiting for opponent";
+  const opponentName =
+    (playerColor === "white"
+      ? game?.black_player_name
+      : playerColor === "black"
+        ? game?.white_player_name
+        : undefined) ??
+    (opponentId
+      ? `Player ${opponentId}`
+      : game?.opponent_type === "ai"
+        ? `AI${game.ai_difficulty ? ` (${game.ai_difficulty})` : ""}`
+        : "Waiting for opponent");
+  const playerName =
+    (playerColor === "white"
+      ? game?.white_player_name
+      : playerColor === "black"
+        ? game?.black_player_name
+        : undefined);
 
   // Chaque coup joué change le joueur dont le chronomètre est actif.
   const wTurn = !gameOver && moves.length % 2 === 0;
@@ -637,6 +651,7 @@ export function useGame(id: number, token: string | null) {
     socketError,
     opponentConnected,
     playerColor,
+    playerName,
     opponentId,
     canPlay,
     sendSocketMove,

@@ -49,6 +49,7 @@ export default function Chess() {
     socketError,
     opponentConnected,
     playerColor,
+    playerName,
     opponentName,
     wTurn,
     bTurn,
@@ -230,11 +231,11 @@ export default function Chess() {
               <p
                 onClick={() => {
                   setOpen(true);
-                  setUsername(user || "You");
+                  setUsername(playerName || "You");
                 }}
                 className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
               >
-                {user || "You"} ({playerColor})
+                {playerName || user || "You"} ({playerColor})
               </p>
 
               <div
