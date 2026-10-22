@@ -26,6 +26,8 @@ export function useGame(id: number, token: string | null) {
   const [socketStatus, setSocketStatus] = useState<SocketStatus>("connecting");
   const [socketError, setSocketError] = useState("");
   const [opponentConnected, setOpponentConnected] = useState(false);
+  const [chat, setChat] = useState<{message: string, username: string}[]>([]);
+  
 
   const socketRef = useRef<WebSocket | null>(null);
   const socketFenRef = useRef<string>("");
@@ -367,6 +369,13 @@ export function useGame(id: number, token: string | null) {
             : current,
         );
       }
+
+      if (data.type === "chat"){
+        console.log(data.message);
+        console.log(data.username);
+        if(data.message && data.username)
+          setChat((prev) => [...prev, {message:data.message as string, username: data.username as string}])
+      }
     }
 
     async function tryRefreshToken(): Promise<boolean> {
@@ -565,6 +574,21 @@ export function useGame(id: number, token: string | null) {
     return true;
   }
 
+  function sendChat(chat: {
+    type: "chat";
+    message: string;
+    username: string
+  }) {
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+
+    console.log('2', chat.username)
+    socket.send(JSON.stringify(chat));
+    return true;
+  }
+
   async function sendResign() {
     // Enregistrer l'abandon auprès du serveur et mettre l'écran à jour après sa confirmation.
     if (!token || !game || playerColor === "") return;
@@ -616,9 +640,11 @@ export function useGame(id: number, token: string | null) {
     opponentId,
     canPlay,
     sendSocketMove,
+    sendChat,
     sendResign,
     opponentName,
     wTurn,
-    bTurn
+    bTurn,
+    chat
   };
 }

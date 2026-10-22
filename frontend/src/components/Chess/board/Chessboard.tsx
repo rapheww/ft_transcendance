@@ -100,6 +100,15 @@ export default function Chessboard({
   //useEffect pour charger le fen quand un mouv est clique
   useEffect(() => {
     if (!fenInit) return;
+
+    const key = (f: string) => f.split(" ").slice(0, 2).join(" "); // position + trait
+    if (key(fenInit) !== key(chessRef.current.fen())) {
+      const played = chessRef.current
+        .moves({ verbose: true })
+        .find((m) => key(m.after) === key(fenInit));
+      if (played) lastMove.current = { from: played.from, to: played.to };
+    }
+
     chessRef.current.load(fenInit);
     setFen(fenInit);
   }, [fenInit]);
@@ -434,12 +443,7 @@ export default function Chessboard({
       return;
     }
 
-    setBgColor(
-      params.target,
-      params.x,
-      params.y,
-      params.chessboard,
-    );
+    setBgColor(params.target, params.x, params.y, params.chessboard);
     afterMove(played);
   }
 
