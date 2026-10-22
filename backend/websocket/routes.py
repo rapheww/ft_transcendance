@@ -232,6 +232,7 @@ async def game_websocket(websocket: WebSocket,
                 # ====== CHAT EVENT ======
                 elif event_type == "chat":
                     message = data.get("message")
+                    username = data.get("username")
                     # check message exists and is a non-empty string
                     if not isinstance(message, str) or not message.strip():
                         await websocket.send_json({
@@ -254,6 +255,7 @@ async def game_websocket(websocket: WebSocket,
                         game_id, {
                             "type": "chat",
                             "user_id": user_id,
+                            "username": username,
                             "message": message.strip()
                         })
             except (GameNotActive, NotAPlayer, NotYourTurn, IllegalMove,

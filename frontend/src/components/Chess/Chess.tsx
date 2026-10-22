@@ -10,52 +10,77 @@ import { useGame } from "./utils/useGame";
 import type { Moves } from "./utils/game";
 
 export default function Chess() {
-  const [showMoves, setShowMoves] = useState(true);
-  const [showChat, setShowChat] = useState(false);
-  const [wBonus, setWBonus] = useState(false);
-  const [bBonus, setBBonus] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [username, setUsername] = useState("");
-  
-  
+  const [showMoves, setShowMoves] = useState<boolean>(true);
+  const [showChat, setShowChat] = useState<boolean>(false);
+  const [wBonus, setWBonus] = useState<boolean>(false);
+  const [bBonus, setBBonus] = useState<boolean>(false);
+  const [open, setOpen] = useState<boolean>(false);
+  const [username, setUsername] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
   const movesListRef = useRef<HTMLDivElement>(null);
   const { timer, bonus, gameId } = useParams<{
     timer: string;
     bonus: string;
     gameId: string;
   }>();
-  
+
   const { user, token } = useAuth();
 
   // Les paramètres de l'URL sont du texte : n'accepter que les durées prévues pour la partie.
   const chrono =
-  timer === "1" || timer === "5" || timer === "10" ? Number(timer) : 0;
+    timer === "1" || timer === "5" || timer === "10" ? Number(timer) : 0;
   const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
   const id = Number(gameId);
-  
-  const {game, fen, moves, setMoves, viewIndex, setViewIndex, gameOver, setGameOver, result, setResult, loading, loadError, socketStatus, socketError, opponentConnected, playerColor, playerName, opponentName, wTurn, bTurn, canPlay, sendSocketMove, sendResign} = useGame(id, token);
-   
+
+  const {
+    game,
+    fen,
+    moves,
+    setMoves,
+    viewIndex,
+    setViewIndex,
+    gameOver,
+    setGameOver,
+    result,
+    setResult,
+    loading,
+    loadError,
+    socketStatus,
+    socketError,
+    opponentConnected,
+    playerColor,
+    playerName,
+    opponentName,
+    wTurn,
+    bTurn,
+    canPlay,
+    sendSocketMove,
+    sendChat,
+    sendResign,
+    chat,
+  } = useGame(id, token);
+
   const movePairs = useMemo(() => {
     // Afficher les coups blancs et noirs côte à côte dans la liste des coups.
     const pairs: (Moves | null)[][] = [];
-    
+
     for (let i = 0; i < moves.length; i += 2) {
       pairs.push([moves[i], moves[i + 1] ?? null]);
     }
-    
+
     return pairs;
   }, [moves]);
-  
+
   useEffect(() => {
     // Faire défiler la liste jusqu'aux nouveaux coups reçus sans demander au joueur de le faire.
     if (movesListRef.current) {
       movesListRef.current.scrollTop = movesListRef.current.scrollHeight;
     }
   }, [moves]);
-  
+
   useEffect(() => {
     if (!open) return;
-    
+
     // La touche Échap ferme l'aperçu du profil. Écouter cette touche seulement pendant son ouverture.
     function escHandler(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -63,14 +88,14 @@ export default function Chess() {
         setOpen(false);
       }
     }
-    
+
     document.addEventListener("keydown", escHandler);
-    
+
     return () => {
       document.removeEventListener("keydown", escHandler);
     };
   }, [open]);
-  
+
   if (loading) {
     // Afficher le chargement, l'erreur ou le refus d'accès avant les commandes de la partie.
     return (
@@ -119,15 +144,18 @@ export default function Chess() {
                 }}
                 className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer flex items-center gap-2"
               >
-               
-                  <>
-                    {opponentName}
-                    <span
-                      aria-hidden
-                      title={opponentConnected ? "Opponent connected" : "Opponent disconnected"}
-                      className={`w-2 h-2 rounded-full inline-block ${opponentConnected ? "bg-green-400" : "bg-gray-500"}`}
-                    />
-                  </>
+                <>
+                  {opponentName}
+                  <span
+                    aria-hidden
+                    title={
+                      opponentConnected
+                        ? "Opponent connected"
+                        : "Opponent disconnected"
+                    }
+                    className={`w-2 h-2 rounded-full inline-block ${opponentConnected ? "bg-green-400" : "bg-gray-500"}`}
+                  />
+                </>
               </p>
 
               {/* Afficher l'état de la connexion, y compris pour les outils d'assistance. */}
@@ -234,26 +262,25 @@ export default function Chess() {
             className="flex order-2 shrink-0 w-full md:h-full md:max-h-[80%] md:w-[clamp(240px,26vw,520px)] lg:col-start-3 lg:row-start-1 lg:justify-self-start rounded-md shadow-[0_0_6px_#000000] bg-mist-800 items-center justify-center flex-col"
           >
             {/* Ces boutons permettent de passer de la liste des coups au chat. */}
-            <div className="w-full h-[5%] min-h-10 flex items-center justify-center rounded-t-md p-2 bg-mist-900/70">
-              <p
+            <div className="w-full h-[5%] min-h-10 flex items-center justify-center rounded-t-md bg-mist-900/70">
+              <div
+                className={`flex justify-center items-center uppercase w-1/2 h-full ${showMoves ? "bg-gray-400/40" : "hover:bg-gray-400/20"} rounded-tl-md cursor-pointer`}
                 onClick={() => {
                   setShowChat(false);
                   setShowMoves(true);
                 }}
-                className="text-center uppercase w-1/2 hover:bg-gray-400/20 rounded-md cursor-pointer"
               >
-                movements
-              </p>
-
-              <p
+                <p>movements</p>
+              </div>
+              <div
+                className={`flex justify-center items-center uppercase w-1/2 h-full ${showChat ? "bg-gray-400/40" : "hover:bg-gray-400/20"} rounded-tr-md cursor-pointer`}
                 onClick={() => {
                   setShowMoves(false);
                   setShowChat(true);
                 }}
-                className="text-center uppercase w-1/2 hover:bg-gray-400/20 rounded-md cursor-pointer"
               >
-                CHAT
-              </p>
+                <p>CHAT</p>
+              </div>
             </div>
 
             <div
@@ -326,15 +353,34 @@ export default function Chess() {
                 showChat ? "flex" : "hidden"
               } flex-col w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth`}
             >
-              <div className="w-full h-[92%] flex justify-center items-center">
-                <p>MESSAGE HERE</p>
+              <div className="w-full h-[92%] flex flex-col gap-1 items-center">
+                {chat.map((c, i) => (
+                  <div key={i} className={`flex flex-row gap-2 w-full p-2 ${c.username != user ? 'bg-gray-700' : ''}`}>
+                    <p>{c.username}: </p>
+                    <p>{c.message}</p>
+                  </div>
+                ))}
               </div>
 
-              <input
-                type="text"
-                placeholder="type your message here"
-                className="input input-primary w-full h-[8%] min-h-10 border-black border-t-2 rounded-b-md rounded-t-none"
-              />
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setMessage("");
+                  if(user){
+                    console.log("1 ", user);
+                    sendChat({ type: "chat", message: message, username: user});
+                  }
+                }}
+                className="h-[8%] flex flex-col items-center w-full"
+              >
+                <input
+                  type="text"
+                  placeholder="type your message here"
+                  className="input input-primary outline-0 w-full h-full min-h-10 border-black border-t-2 rounded-b-md rounded-t-none"
+                  onChange={(e) => setMessage(e.target.value)}
+                  value={message}
+                />
+              </form>
             </div>
           </div>
         </div>

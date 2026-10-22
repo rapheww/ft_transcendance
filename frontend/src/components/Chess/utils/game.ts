@@ -31,6 +31,7 @@ export interface GameSocketMessage {
   san?: string;
   message?: unknown;
   user_id?: number;
+  username?: string;
 }
 
 export type SocketStatus =
