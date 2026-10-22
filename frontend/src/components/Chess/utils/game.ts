@@ -32,6 +32,15 @@ export interface GameSocketMessage {
   message?: unknown;
   user_id?: number;
   username?: string;
+  id?: number;
+  chat?: ChatMessage[];
+}
+
+export interface ChatMessage {
+  id: number;
+  user_id: number;
+  username: string;
+  message: string;
 }
 
 export type SocketStatus =

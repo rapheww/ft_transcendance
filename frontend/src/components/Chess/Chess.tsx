@@ -354,8 +354,8 @@ export default function Chess() {
               } flex-col w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth`}
             >
               <div className="w-full h-[92%] flex flex-col gap-1 items-center">
-                {chat.map((c, i) => (
-                  <div key={i} className={`flex flex-row gap-2 w-full p-2 ${c.username != user ? 'bg-gray-700' : ''}`}>
+                {chat.map((c) => (
+                  <div key={c.id} className={`flex flex-row gap-2 w-full p-2 ${c.username != user ? 'bg-gray-700' : ''}`}>
                     <p>{c.username}: </p>
                     <p>{c.message}</p>
                   </div>
@@ -367,7 +367,6 @@ export default function Chess() {
                   e.preventDefault();
                   setMessage("");
                   if(user){
-                    console.log("1 ", user);
                     sendChat({ type: "chat", message: message, username: user});
                   }
                 }}

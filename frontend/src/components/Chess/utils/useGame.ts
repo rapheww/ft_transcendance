@@ -7,6 +7,7 @@ import {
   MAX_RECONNECT_ATTEMPTS,
   MAX_RECONNECT_DELAY_MS,
   readSocketGameState,
+  type ChatMessage,
   type GameInfo,
   type GameSocketMessage,
   type Moves,
@@ -26,7 +27,7 @@ export function useGame(id: number, token: string | null) {
   const [socketStatus, setSocketStatus] = useState<SocketStatus>("connecting");
   const [socketError, setSocketError] = useState("");
   const [opponentConnected, setOpponentConnected] = useState(false);
-  const [chat, setChat] = useState<{message: string, username: string}[]>([]);
+  const [chat, setChat] = useState<ChatMessage[]>([]);
   
 
   const socketRef = useRef<WebSocket | null>(null);
@@ -51,6 +52,7 @@ export function useGame(id: number, token: string | null) {
       setFen("");
       setMoves([]);
       setViewIndex(-1);
+      setChat([]);
       setGameOver(false);
       setResult("0-0");
       // Oublier aussi les données reçues par WebSocket quand on ouvre une autre partie.
@@ -150,6 +152,18 @@ export function useGame(id: number, token: string | null) {
     let retryCount = 0;
     let snapshotReceived = false;
     let pendingMoves: Moves[] = [];
+    let pendingChat: ChatMessage[] = [];
+
+    function isChatMessage(value: unknown): value is ChatMessage {
+      if (!value || typeof value !== "object") return false;
+      const message = value as Partial<ChatMessage>;
+      return (
+        Number.isInteger(message.id) &&
+        Number.isInteger(message.user_id) &&
+        typeof message.username === "string" &&
+        typeof message.message === "string"
+      );
+    }
 
     // L'adresse WebSocket transporte le jeton de connexion dans son URL pour que le serveur
     // puisse vérifier qui ouvre la connexion.
@@ -239,6 +253,15 @@ export function useGame(id: number, token: string | null) {
             pendingMoves = [];
             setMoves((history) => queuedMoves.reduce(appendMove, history));
           }
+          const chatHistory = Array.isArray(data.chat)
+            ? data.chat.filter(isChatMessage)
+            : [];
+          const syncedChat = new Map<number, ChatMessage>();
+          [...chatHistory, ...pendingChat].forEach((message) => {
+            syncedChat.set(message.id, message);
+          });
+          setChat([...syncedChat.values()]);
+          pendingChat = [];
         } else {
           setSocketError("The server snapshot did not include move history.");
         }
@@ -370,11 +393,17 @@ export function useGame(id: number, token: string | null) {
         );
       }
 
-      if (data.type === "chat"){
-        console.log(data.message);
-        console.log(data.username);
-        if(data.message && data.username)
-          setChat((prev) => [...prev, {message:data.message as string, username: data.username as string}])
+      if (data.type === "chat") {
+        if (!isChatMessage(data)) return;
+        if (!snapshotReceived) {
+          pendingChat.push(data);
+          return;
+        }
+        setChat((previous) =>
+          previous.some((message) => message.id === data.id)
+            ? previous
+            : [...previous, data],
+        );
       }
     }
 

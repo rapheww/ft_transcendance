@@ -9,6 +9,8 @@ from backend.services import game_service
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from backend.exceptions.game import GameNotFound, GameNotActive, NotAPlayer, NotYourTurn, IllegalMove, NotAIGame, InvalidDifficulty
 from backend.websocket.ai_turn import start_ai_turn
+from backend.models.chat_message import ChatMessage
+from backend.models.user import User
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -73,6 +75,9 @@ async def game_websocket(websocket: WebSocket,
         # the read are delivered after the client connects.
         with SessionLocal() as snapshot_db:
             game = game_service.get_game(snapshot_db, game_id)
+            chat_messages = (snapshot_db.query(ChatMessage).filter(
+                ChatMessage.game_id == game_id).order_by(
+                    ChatMessage.id.asc()).all())
         board = chess.Board(game.current_fen)
         await websocket.send_json({
             "type":
@@ -89,6 +94,12 @@ async def game_websocket(websocket: WebSocket,
             game.status,
             "result":
             game.result,
+            "chat": [{
+                "id": chat_message.id,
+                "user_id": chat_message.user_id,
+                "username": chat_message.username,
+                "message": chat_message.message
+            } for chat_message in chat_messages],
             "turn":
             "white" if board.turn == chess.WHITE else "black"
         })
@@ -232,7 +243,6 @@ async def game_websocket(websocket: WebSocket,
                 # ====== CHAT EVENT ======
                 elif event_type == "chat":
                     message = data.get("message")
-                    username = data.get("username")
                     # check message exists and is a non-empty string
                     if not isinstance(message, str) or not message.strip():
                         await websocket.send_json({
@@ -251,13 +261,31 @@ async def game_websocket(websocket: WebSocket,
                             "message is too long"
                         })
                         continue
-                    await manager.broadcast(
-                        game_id, {
+                    with SessionLocal() as chat_db:
+                        sender = chat_db.query(User).filter(
+                            User.id == user_id).first()
+                        if sender is None:
+                            await websocket.send_json({
+                                "type": "error",
+                                "message": "Chat sender no longer exists"
+                            })
+                            continue
+                        chat_message = ChatMessage(
+                            game_id=game_id,
+                            user_id=user_id,
+                            username=sender.username,
+                            message=message.strip())
+                        chat_db.add(chat_message)
+                        chat_db.commit()
+                        chat_db.refresh(chat_message)
+                        persisted_message = {
                             "type": "chat",
-                            "user_id": user_id,
-                            "username": username,
-                            "message": message.strip()
-                        })
+                            "id": chat_message.id,
+                            "user_id": chat_message.user_id,
+                            "username": chat_message.username,
+                            "message": chat_message.message
+                        }
+                    await manager.broadcast(game_id, persisted_message)
             except (GameNotActive, NotAPlayer, NotYourTurn, IllegalMove,
                     NotAIGame, InvalidDifficulty) as error:
                 await websocket.send_json({

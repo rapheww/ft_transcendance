@@ -67,3 +67,50 @@ def test_websocket_reconnect_resyncs_pgn_and_move_data(client: TestClient,
 
     assert reconnect_snapshot["type"] == "game_connected"
     assert "1. e4" in reconnect_snapshot["pgn"]
+
+
+def test_websocket_chat_is_persisted_and_restored(client: TestClient, engine,
+                                                   monkeypatch):
+    monkeypatch.setattr(game_websocket_routes, "SessionLocal",
+                        lambda: Session(engine))
+    monkeypatch.setattr(game_websocket_routes, "start_ai_turn", lambda _: None)
+    white_token = create_user_token(client, "chat_white")
+    black_token = create_user_token(client, "chat_black")
+
+    response = client.post("/api/games/",
+                           headers={"Authorization": "Bearer " + white_token})
+    assert response.status_code == 201
+    game_id = response.json()["id"]
+
+    response = client.post(
+        f"/api/games/{game_id}/join",
+        headers={"Authorization": "Bearer " + black_token})
+    assert response.status_code == 200
+
+    with client.websocket_connect(
+            f"/ws/games/{game_id}?token={white_token}") as websocket:
+        initial_snapshot = websocket.receive_json()
+        assert initial_snapshot["chat"] == []
+
+        websocket.send_json({
+            "type": "chat",
+            "message": "  hello again  ",
+            "username": "spoofed"
+        })
+        chat_event = websocket.receive_json()
+        while chat_event["type"] != "chat":
+            chat_event = websocket.receive_json()
+
+        assert chat_event["username"] == "chat_white"
+        assert chat_event["message"] == "hello again"
+
+    with client.websocket_connect(
+            f"/ws/games/{game_id}?token={black_token}") as websocket:
+        reconnect_snapshot = websocket.receive_json()
+
+    assert reconnect_snapshot["chat"] == [{
+        "id": chat_event["id"],
+        "user_id": chat_event["user_id"],
+        "username": "chat_white",
+        "message": "hello again"
+    }]
