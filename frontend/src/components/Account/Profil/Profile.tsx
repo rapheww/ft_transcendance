@@ -134,6 +134,7 @@ const Profil = () => {
                   <div className="w-full min-h-0 flex-1 flex-col justify-center items-center overflow-scroll scroll-smooth">
                     {history.map((match, i) => (
                       <div
+                        key={i}
                         className={`w-full flex items-center justify-center`}
                       >
                         <div

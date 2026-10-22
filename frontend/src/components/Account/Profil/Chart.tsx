@@ -65,7 +65,12 @@ export default function Chart({ username }: ChartProps) {
     const date = new Date(s.date)
     return {
       ...s,
-      date: date.toLocaleDateString('fr-FR'),
+      date: date.toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    })
     };
   });
 
