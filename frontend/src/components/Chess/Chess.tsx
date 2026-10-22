@@ -33,7 +33,7 @@ export default function Chess() {
   const add = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
   const id = Number(gameId);
   
-  const {game, fen, moves, setMoves, viewIndex, setViewIndex, gameOver, setGameOver, result, setResult, loading, loadError, socketStatus, socketError, opponentConnected, playerColor, opponentName, wTurn, bTurn, canPlay, sendSocketMove, sendResign} = useGame(id, token);
+  const {game, fen, moves, setMoves, viewIndex, setViewIndex, gameOver, setGameOver, result, setResult, loading, loadError, socketStatus, socketError, opponentConnected, playerColor, playerName, opponentName, wTurn, bTurn, canPlay, sendSocketMove, sendResign} = useGame(id, token);
    
   const movePairs = useMemo(() => {
     // Afficher les coups blancs et noirs côte à côte dans la liste des coups.
@@ -203,11 +203,11 @@ export default function Chess() {
               <p
                 onClick={() => {
                   setOpen(true);
-                  setUsername(user || "You");
+                  setUsername(playerName || "You");
                 }}
                 className="text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
               >
-                {user || "You"} ({playerColor})
+                {playerName || user || "You"} ({playerColor})
               </p>
 
               <div

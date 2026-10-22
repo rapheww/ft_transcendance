@@ -9,7 +9,11 @@ export interface GameInfo {
   // Les identifiants peuvent être absents tant qu'un joueur attend son adversaire.
   id: number;
   white_player_id: number | null;
+  white_player_name?: string;
   black_player_id: number | null;
+  black_player_name?: string | null;
+  opponent_type?: string;
+  ai_difficulty?: string | null;
   status: string;
   current_fen: string;
   fen?: string;
