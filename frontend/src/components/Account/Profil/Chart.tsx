@@ -65,18 +65,23 @@ export default function Chart({ username }: ChartProps) {
     const date = new Date(s.date)
     return {
       ...s,
-      date: date.toLocaleDateString('fr-FR'),
+      date: date.toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    })
     };
   });
 
-  //garde 1 jours sur 2 a partir de 15 jours et et 1 jours sur 15 a partir de 3 mois 
+  //garde 1 jours sur 2 a partir de 15 jours et et 1 jours sur 15 a partir de 3 mois
   const displayData =
   chartData.length > 90
     ? chartData.filter((_, i) => i % 15 === 0 || i === chartData.length - 1)
     : chartData.length > 20
       ? chartData.filter((_, i) => i % 2 === 0 || i === chartData.length - 1)
       : chartData;
-  
+
   if (chartData.length > 1) {
     return (
       <div className="w-full h-full flex justify-center items-center">

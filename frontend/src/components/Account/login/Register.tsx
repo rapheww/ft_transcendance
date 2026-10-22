@@ -18,8 +18,9 @@ const Register = () => {
   async function handleRegister(event : any) {
     if (event) event.preventDefault();
 
+    
+
     if (confirmPassword != password) {
-      console.log("passwords are different !");
       const bd = document.getElementById("confirm-password");
       if (bd) {
         bd.className = "input outline-0 border bg-white/3 border-red-500 w-full";
@@ -28,6 +29,7 @@ const Register = () => {
     }
 
     try {
+      if(!username || !password || !email) throw (["Empty field/s"])
       const url = "http://127.0.0.1:8000/api/users/";
       const response = await fetch(url, {
         method: "POST",
@@ -40,10 +42,10 @@ const Register = () => {
       });
 
       //MORE STATUS CODE TO HANDLE
-      if (!response.ok) {
+      if (response.status != 201) {
         const infos = await response.json()
         if(!infos) return;
-        throw infos.detail
+        throw infos.detail[0].msg
       }
 
       //Login time
@@ -67,7 +69,7 @@ const Register = () => {
       }
     } catch (error) {
       setInvalid(true);
-      setErrorMessage(error as string);
+      setErrorMessage(error as string)
       return;
     }
   }

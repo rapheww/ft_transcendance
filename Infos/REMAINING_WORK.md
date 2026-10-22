@@ -5,7 +5,7 @@
 - implementer websockets frontend
 - mode spectateur
 - systeme recommandation machine learning
-- faire du parsing pour ce qui est password, email et username
+- sortir du deployement local
 - peaufiner ce qui est deja present (front et back)
 
 ## Frontend
@@ -107,14 +107,14 @@
 	- [x] Add avatar and board-color fields to the user model/schema and an Alembic migration if these are the selected customization options; define validation and sensible defaults.
 	- [x] Extend the authenticated user read/update endpoints to return and persist those fields, and ensure one user's settings cannot be changed by another user.
 	- [x] Add/update service and repository tests for valid changes, invalid values, unchanged fields, and unauthorized requests.
-	- [ ] If the project chooses a different player interaction such as invitations or matchmaking queue, define its API/WebSocket contract and add persistence/authorization as needed; current game APIs only support creating and joining by ID.
+	- [x] If the project chooses a different player interaction such as invitations or matchmaking queue, define its API/WebSocket contract and add persistence/authorization as needed; current game APIs only support creating and joining by ID.
 	- **Done when:** frontend-required profile settings survive database reloads and user-to-user game/chat flows are authorized and usable.
 
 - [ ] **Harden and complete WebSocket/game behavior**
-	- [ ] Remove the `/ws/test/games/{game_id}/{user_id}` route from production, or ensure it is only registered in an isolated test configuration and cannot bypass authentication.
-	- [ ] Test missing, malformed, expired, and wrong-type tokens; reject users who are not players in the requested game before accepting the WebSocket.
-	- [ ] Validate WebSocket event shape and field types (including chess square syntax and chat length); return consistent errors without crashing the connection.
-	- [ ] Ensure all move outcomes are computed/persisted by the backend and broadcast from the committed game state; reject moves for finished games or the wrong player/turn.
+	- [x] Remove the `/ws/test/games/{game_id}/{user_id}` route from production, or ensure it is only registered in an isolated test configuration and cannot bypass authentication.
+	- [x] Test missing, malformed, expired, and wrong-type tokens; reject users who are not players in the requested game before accepting the WebSocket.
+	- [x] Validate WebSocket event shape and field types (including chess square syntax and chat length); return consistent errors without crashing the connection.
+	- [x] Ensure all move outcomes are computed/persisted by the backend and broadcast from the committed game state; reject moves for finished games or the wrong player/turn.
 	- [ ] Handle both players connecting/disconnecting, duplicate connections, abrupt network loss, and reconnection; send the current authoritative state when a player reconnects.
 	- [ ] Check that chat and move events do not leak across game IDs, and clean up connection-manager state after either socket closes.
 	- [ ] Add focused tests for authorization, legal/illegal moves, chat validation, disconnect cleanup, and finished-game behavior.

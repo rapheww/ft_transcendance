@@ -1,24 +1,35 @@
+import { useEffect, useState } from "react";
 import ChessPreview from "./Chess/preview/ChessPreview";
 import { API } from "./Chess/utils/api";
 import Header from "./Navbar/Header";
 import { useNavigate } from "react-router-dom";
 
+interface LeaderBoard {
+  username: string;
+  elo: number;
+  wins: number;
+  games_played: number;
+}
+
 const Home = () => {
   const navigate = useNavigate();
+  const [leaderboard, SetLeaderboard] = useState<LeaderBoard[] | null>(null);
 
-  async function getLeaderBoard(){
-    try{
-      const response = await fetch (`${API}/stats/leaderboard`);
-      if(!response.ok)
-        throw("need token");
+  async function getLeaderBoard() {
+    try {
+      const response = await fetch(`${API}/stats/leaderboard`);
+      if (!response.ok) throw "need token";
       const infos = await response.json();
-      if(!infos) return;
-      console.log(infos);
-    } catch{
+      if (!infos) return;
+      SetLeaderboard(infos);
+    } catch {
       return;
     }
   }
 
+  useEffect(() => {
+    getLeaderBoard();
+  }, []);
   return (
     <div className="flex flex-col items-center min-h-screen">
       <Header />
@@ -26,16 +37,24 @@ const Home = () => {
         <h1 className="text-4xl sm:text-6xl md:text-7xl m-6 sm:m-10 uppercase">
           Chess
         </h1>
-        <div className="grid grid-cols-1 lg:grid-cols-3 items-center w-full gap-8 px-4">         
-          <div className="flex flex-col items-center justify-start w-full h-full p-3">
-            <div className="w-full flex justify-center m-8">
-              <h1>LeaderBoard</h1>
+        <div className="grid grid-cols-1 lg:grid-cols-3 items-center w-full gap-8 px-4">
+          {leaderboard && (
+            <div className="flex flex-col items-center justify-start w-full h-full p-3">
+              <div className="w-full flex justify-center m-8">
+                <h1>LeaderBoard</h1>
+              </div>
+              <div className="bg-black/20 backdrop-blur-xs w-[50%] max-h-50 md:max-h-75 overflow-y-auto overflow-x-hidden border-white/30 border flex flex-col items-center gap-2">
+                {leaderboard.map((l, i) => (
+                  <div key={i} className={`w-full h-10 md:h-15 flex flex-row justify-center items-center gap-1 ${i % 2 === 0 ? "bg-gray-50/5" : ""} p-2`}>
+                    <p className="text-sm lg:text-lg">#{i + 1}</p>
+                    <p className="text-sm lg:text-lg">{l.username}</p>
+                    <p className="text-sm lg:text-lg">elo: {l.elo}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="bg-black/20 backdrop-blur-xs w-[50%] h-[70%] border-white/30 border flex justify-center items-center">
-            {
-            }
-            </div>
-          </div>
+          )}
+
           <div className="flex flex-col items-center justify-center w-full min-w-0">
             <div className="w-full max-w-[50vh]">
               <ChessPreview dark={""} light={""} />

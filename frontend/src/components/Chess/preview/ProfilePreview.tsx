@@ -11,10 +11,8 @@ interface Props {
 
 const ProfilePreview = ({ onClose, open, username }: Props) => {
   const [profil, setProfil] = useState<ProfilType | null>();
-  const defaultPfp = "frontend/src/assets/pfp.png";
   useEffect(() => {
     if (!open || !username) return;
-    setProfil(undefined);
     (async () => {
       try {
         const response = await fetch(
@@ -48,18 +46,18 @@ const ProfilePreview = ({ onClose, open, username }: Props) => {
       >
         <div
           className="
-          w-full 
-          min-h-[calc(100vh-56px)] 
-          flex 
-          flex-col 
-          justify-center 
+          w-full
+          min-h-[calc(100vh-56px)]
+          flex
+          flex-col
+          justify-center
           items-center"
         >
           <div className="w-[75%] bg-black/70 backdrop-blur-sm rounded-md border border-white/50 overflow-hidden">
             <div id="profil-banner" className="h-50 w-full p-4">
               <button
                 onClick={() => {
-                  setProfil(null);  
+                  setProfil(null);
                   onClose();
                 }}
                 className="absolute top-2 right-2 z-10 cursor-pointer p-1 rounded-lg hover:bg-gray-400/30"
@@ -69,7 +67,7 @@ const ProfilePreview = ({ onClose, open, username }: Props) => {
               <div className="w-full h-full bg-white/15 rounded-md flex flex-row items-center justify-center">
                 <div
                   className="
-              w-full 
+              w-full
               h-full
               bg-no-repeat
               bg-cover

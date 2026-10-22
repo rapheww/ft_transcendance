@@ -17,14 +17,21 @@ import { Chess, KING, type Square } from "chess.js";
 import GameOver from "../popup/GameOver";
 import { useAuth } from "../../AuthProvider";
 import Promotion from "../popup/Promotion";
-import type { Moves } from "../Chess";
-import { postMove } from "../utils/api";
 import { gameOverScreen, moveAnimation } from "../utils/animation";
+import type { Moves } from "../utils/game";
 
 export interface ChessboardProps {
   setMoves: React.Dispatch<React.SetStateAction<Moves[]>>;
   setBBonus: React.Dispatch<React.SetStateAction<boolean>>;
   setWBonus: React.Dispatch<React.SetStateAction<boolean>>;
+  playerColor: string;
+  canPlay: boolean;
+  sendSocketMove: (move: {
+    type: "move";
+    from: string;
+    to: string;
+    promotion?: string;
+  }) => boolean;
   gameId: number;
   fenInit: string;
   gameOver: boolean;
@@ -37,6 +44,9 @@ export default function Chessboard({
   setMoves,
   setBBonus,
   setWBonus,
+  playerColor,
+  canPlay,
+  sendSocketMove,
   setGameOver,
   setResult,
   gameId,
@@ -67,7 +77,6 @@ export default function Chessboard({
   const [arrows, setArrows] = useState<
     { fromx: number; fromy: number; tox: number | null; toy: number | null }[]
   >([]);
-  const [currentFen, setCurrentFen] = useState<string | null>(null);
   const [open, setOpen] = useState<boolean>(false);
   const [promoOpen, setPromoOpen] = useState<boolean>(false);
   const [pendingPromo, setPendinPromo] = useState<{
@@ -91,7 +100,6 @@ export default function Chessboard({
   //useEffect pour charger le fen quand un mouv est clique
   useEffect(() => {
     if (!fenInit) return;
-    if (!currentFen) setCurrentFen(chessRef.current.fen());
     chessRef.current.load(fenInit);
     setFen(fenInit);
   }, [fenInit]);
@@ -146,7 +154,7 @@ export default function Chessboard({
             "radial-gradient(circle, rgba(0,0,0,0.2) 20%, transparent 21%)";
         tile.style.cursor = "pointer";
         setMoveTile((prev) => {
-          let newMoveTile = [...prev];
+          const newMoveTile = [...prev];
           newMoveTile.push(tile);
           return newMoveTile;
         });
@@ -154,34 +162,20 @@ export default function Chessboard({
     }
   }
 
-  async function sendMove(move: string, turn: "b" | "w") {
-    try {
-      const bob =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzkyNDI1OTEzLCJ0eXBlIjoiYWNjZXNzIn0.SSOm_imQTYmCjUh0fUjLUXs4q9e1M8h_yeRbefIxEkM";
-      const infos = await postMove(move, gameId, turn === "b" ? bob : token);
-      if (!infos.ok) {
-        chessRef.current.undo();
-        setFen(chessRef.current.fen());
-        return false;
-      }
-      if (infos.current_fen != chessRef.current.fen()) {
-        chessRef.current.load(infos.current_fen);
-        setFen(infos.current_fen);
-      }
-      if (infos.status === "finished") {
-        setGameOver(true);
-        setResult(infos.result);
-      }
-      return true;
-    } catch {
-      console.log("error makeMove");
-      return false;
-    }
+  async function sendMove(move: string): Promise<boolean> {
+    if (!token || !canPlay) return false;
+
+    return sendSocketMove({
+      type: "move",
+      from: move.slice(0, 2),
+      to: move.slice(2, 4),
+      ...(move.length > 4 ? { promotion: move[4] } : {}),
+    });
   }
 
   function afterMove(played: string) {
     setMoves((prev) => {
-      let tmp = [...prev];
+      const tmp = [...prev];
       tmp.push({ move: played, fen: chessRef.current.fen() });
       return tmp;
     });
@@ -202,11 +196,14 @@ export default function Chessboard({
   function getCoords(e: React.MouseEvent) {
     const rect = document.getElementById("chessboard")!.getBoundingClientRect();
     const tileSize = rect.width / 8;
+    const col = Math.floor((e.clientX - rect.left) / tileSize);
+    const row = Math.floor((e.clientY - rect.top) / tileSize);
+    const flipped = playerColor === "black";
     return {
       rect,
       tileSize,
-      x: Math.floor((e.clientX - rect.left) / tileSize),
-      y: 7 - Math.floor((e.clientY - rect.top) / tileSize),
+      x: flipped ? 7 - col : col,
+      y: flipped ? row : 7 - row,
     };
   }
 
@@ -214,7 +211,6 @@ export default function Chessboard({
     target: { x: number; y: number } | undefined,
     x: number,
     y: number,
-    chessboard: HTMLElement,
     active: HTMLElement | null,
   ) {
     lastMove.current = target ? { from: `${oldPos}`, to: `${newPos}` } : null;
@@ -222,7 +218,7 @@ export default function Chessboard({
       const originTile = tileColor.find(
         (m) => m.tile === (active!.parentNode as HTMLElement),
       );
-      const dest = chessboard.children[(7 - y) * 8 + x] as HTMLElement;
+      const dest = getTileElement(x, y) as HTMLElement;
       const destExisting = tileColor.find((m) => m.tile === dest);
       const destColor = destExisting ? destExisting.bg : getColor(dest);
 
@@ -266,37 +262,37 @@ export default function Chessboard({
     setCircles([]);
   }
 
-  function showCircle(e: React.MouseEvent){
+  function showCircle(e: React.MouseEvent) {
     if (lastPick) {
-        resetPiece(lastPick.piece);
-        const back = lastPick.piece.parentNode as HTMLElement;
-        back.style.backgroundColor = lastPick.bg;
-      }
-      removeDot();
-      setDraw(true);
-      const { x, y } = getCoords(e);
-      console.log(x, y);
-      setFrom({ x: x, y: 7 - y });
-      setArrows((prev) => [
-        ...prev,
-        { fromx: x, fromy: y, tox: null, toy: null },
-      ]);
-      let tile = e.target as HTMLElement;
-      if(tile.className.indexOf("chess-piece") != -1)
-          tile = tile.parentNode as HTMLElement;
-      if (!tile) return;
-      const svg = tile.querySelector<SVGSVGElement>("svg.circle");
-      if (!svg) return;
-      svg.style.visibility =
-        svg.style.visibility === "hidden" ? "visible" : "hidden";
-      circles.push({
-        svg: svg,
-        tile: `${horizontalAxis[x]}${verticalAxis[y]}` as Square,
-      });
+      resetPiece(lastPick.piece);
+      const back = lastPick.piece.parentNode as HTMLElement;
+      back.style.backgroundColor = lastPick.bg;
+    }
+    removeDot();
+    setDraw(true);
+    const { x, y } = getCoords(e);
+    console.log(x, y);
+    setFrom({ x: x, y: y });
+    setArrows((prev) => [
+      ...prev,
+      { fromx: x, fromy: y, tox: null, toy: null },
+    ]);
+    let tile = e.target as HTMLElement;
+    if (tile.className.indexOf("chess-piece") != -1)
+      tile = tile.parentNode as HTMLElement;
+    if (!tile) return;
+    const svg = tile.querySelector<SVGSVGElement>("svg.circle");
+    if (!svg) return;
+    svg.style.visibility =
+      svg.style.visibility === "hidden" ? "visible" : "hidden";
+    circles.push({
+      svg: svg,
+      tile: `${horizontalAxis[x]}${verticalAxis[y]}` as Square,
+    });
   }
 
   function grabPiece(e: React.MouseEvent) {
-    if (gameOver) return;
+    if (gameOver || !canPlay) return;
 
     //enlever les cercles
     if (e.button != 2) {
@@ -308,12 +304,6 @@ export default function Chessboard({
     if (e.button === 2) {
       showCircle(e);
       return;
-    }
-
-    //set current fen visible
-    if (currentFen) {
-      chessRef.current.load(currentFen);
-      setCurrentFen("");
     }
 
     const chessboard = document.getElementById("chessboard");
@@ -334,7 +324,11 @@ export default function Chessboard({
 
     const element = e.target as HTMLElement;
     if (!element.classList.contains("chess-piece")) return;
-    let back = element.parentNode as HTMLElement;
+    const piece = chessRef.current.get(
+      `${horizontalAxis[x]}${verticalAxis[y]}` as Square,
+    );
+    if (!piece || piece.color !== (playerColor === "white" ? "w" : "b")) return;
+    const back = element.parentNode as HTMLElement;
     if (!back) return;
 
     setGridX(x);
@@ -375,20 +369,23 @@ export default function Chessboard({
   function movePiece(e: React.MouseEvent) {
     if (from != null && draw) {
       const { x, y } = getCoords(e);
-      if (x != from.x || 7 - y != from.y) {
+      if (x != from.x || y != from.y) {
         setArrows((prev) => {
           const tmp = prev.slice(0, prev.length - 1);
-          return [...tmp, { fromx: from.x, fromy: from.y, tox: x, toy: 7 - y }];
+          return [...tmp, { fromx: from.x, fromy: from.y, tox: x, toy: y }];
         });
-        const fromCircle = getTileElement(from.x, 7 - from.y)
+        const fromCircle = getTileElement(from.x, from.y);
         if (!fromCircle) return;
         const svg = fromCircle.querySelector<SVGSVGElement>("svg.circle");
         if (!svg) return;
-        svg.style.visibility = "hidden"
-        const tmp = circles.filter((c) => c.tile != `${horizontalAxis[from.x]}${verticalAxis[7 - from.y]}` as Square)
+        svg.style.visibility = "hidden";
+        const tmp = circles.filter(
+          (c) =>
+            c.tile !=
+            (`${horizontalAxis[from.x]}${verticalAxis[from.y]}` as Square),
+        );
         setCircles(tmp);
-      } 
-      else {
+      } else {
         setArrows((prev) => {
           const tmp = prev.slice(0, prev.length - 1);
           return [
@@ -396,10 +393,16 @@ export default function Chessboard({
             { fromx: from.x, fromy: from.y, tox: null, toy: null },
           ];
         });
-        const svg = getTileElement(from.x, 7 - from.y)?.querySelector<SVGSVGElement>("svg.circle");
-        if (!svg) return; 
+        const svg = getTileElement(
+          from.x,
+          from.y,
+        )?.querySelector<SVGSVGElement>("svg.circle");
+        if (!svg) return;
         svg.style.visibility = "visible";
-        circles.push({svg: svg, tile: `${horizontalAxis[x]}${verticalAxis[7 - y]}` as Square});
+        circles.push({
+          svg: svg,
+          tile: `${horizontalAxis[x]}${verticalAxis[y]}` as Square,
+        });
       }
     } else if (activePiece && activePiece.classList.contains("chess-piece")) {
       const chessboard = document.getElementById("chessboard");
@@ -412,21 +415,30 @@ export default function Chessboard({
   async function promotion(choice: "q" | "r" | "b" | "n") {
     if (!pendingPromo || !params) return;
 
-    const turn = chessRef.current.turn();
     const played = chessRef.current.move({
       from: pendingPromo.from,
       to: pendingPromo.to,
       promotion: choice,
     }).san;
 
-    await sendMove(pendingPromo?.from + pendingPromo?.to + choice, turn);
+    const sent = await sendMove(pendingPromo.from + pendingPromo.to + choice);
+    if (!sent) {
+      chessRef.current.undo();
+      setFen(chessRef.current.fen());
+      if (params.active) resetPiece(params.active);
+      setActivePiece(null);
+      removeDot();
+      setPromoOpen(false);
+      setPendinPromo(null);
+      setParams(null);
+      return;
+    }
 
     setBgColor(
       params.target,
       params.x,
       params.y,
       params.chessboard,
-      params.active,
     );
     afterMove(played);
   }
@@ -437,22 +449,22 @@ export default function Chessboard({
     piece?: HTMLElement,
   ) {
     const active = piece ?? activePiece;
-    if (gameOver) return;
+    if (gameOver || !canPlay) return;
 
     if (e?.button == 2 && from && from) {
       const { x, y } = getCoords(e);
       console.log(x, y);
       setDraw(false);
-      if (x != from.x || 7 - y != from.y) {
+      if (x != from.x || y != from.y) {
         setArrows((prev) => {
           const tmp = prev.slice(0, prev.length - 1);
-          return [...tmp, { fromx: from.x, fromy: from.y, tox: x, toy: 7 - y }];
+          return [...tmp, { fromx: from.x, fromy: from.y, tox: x, toy: y }];
         });
       }
     }
 
     if (active && (e || target)) {
-      let played: string = "";
+      let played: string;
       const chessboard = document.getElementById("chessboard");
       if (!chessboard) return;
       const { x, y } = target ?? getCoords(e!);
@@ -496,21 +508,28 @@ export default function Chessboard({
 
         //normal move
         else {
-          const turn = chessRef.current.turn();
           const moveNow = chessRef.current.move({
             from: `${oldPos}`,
             to: `${newPos}`,
           });
           played = moveNow.san;
-          sendMove(oldPos + newPos, turn);
+          const sent = await sendMove(oldPos + newPos);
+          if (!sent) {
+            chessRef.current.undo();
+            setFen(chessRef.current.fen());
+            resetPiece(active);
+            setActivePiece(null);
+            removeDot();
+            return;
+          }
         }
-      } catch (error) {
+      } catch {
         resetPiece(active);
         setActivePiece(null);
         return;
       }
 
-      setBgColor(target, x, y, chessboard, active);
+      setBgColor(target, x, y, chessboard);
       resetPiece(active);
       removeDot();
       setActivePiece(null);
@@ -522,33 +541,60 @@ export default function Chessboard({
   //render du board
   const grid = chessRef.current.board();
 
-  let board = [];
-  for (let j = 7; j >= 0; j--) {
-    for (let i = 0; i < 8; i++) {
-      const p = grid[7 - j][i];
-      const image = p
-        ? `/src/assets/${names[p.type]}_${p.color}.png`
-        : undefined;
-      const square = `${horizontalAxis[i]}${verticalAxis[j]}`;
-      board.push(
-        <Tile
-          key={`${j}, ${i}`}
-          image={image}
-          number={i + j + 2}
-          gameOver={gameOver}
-          inCheck={square === checkedKing}
-        />,
-      );
+  const board = [];
+  if (playerColor === "white") {
+    for (let j = 7; j >= 0; j--) {
+      for (let i = 0; i < 8; i++) {
+        const p = grid[7 - j][i];
+        const image = p
+          ? `/src/assets/${names[p.type]}_${p.color}.png`
+          : undefined;
+        const square = `${horizontalAxis[i]}${verticalAxis[j]}`;
+        board.push(
+          <Tile
+            key={`${j}, ${i}`}
+            image={image}
+            number={i + j + 2}
+            gameOver={gameOver}
+            inCheck={square === checkedKing}
+          />,
+        );
+      }
+    }
+  } else {
+    for (let j = 0; j < 8; j++) {
+      for (let i = 7; i >= 0; i--) {
+        const p = grid[7 - j][i];
+        const image = p
+          ? `/src/assets/${names[p.type]}_${p.color}.png`
+          : undefined;
+        const square = `${horizontalAxis[i]}${verticalAxis[j]}`;
+        board.push(
+          <Tile
+            key={`${j}, ${i}`}
+            image={image}
+            number={i + j + 2}
+            gameOver={gameOver}
+            inCheck={square === checkedKing}
+          />,
+        );
+      }
     }
   }
 
   //arrow render
-  let allsvg: React.ReactElement[] = [];
+  const toScreen = (x: number, y: number) =>
+    playerColor === "black" ? { col: 7 - x, row: y } : { col: x, row: 7 - y };
+
+  const allsvg: React.ReactElement[] = [];
   arrows.map((a, i) => {
     if (a.tox == null || a.toy == null) return;
-    const hypo = Math.hypot(a.tox - a.fromx, a.toy - a.fromy);
+    const f = toScreen(a.fromx, a.fromy);
+    const t = toScreen(a.tox, a.toy);
+    const hypo = Math.hypot(t.col - f.col, t.row - f.row);
     allsvg.push(
       <svg
+        key={i}
         viewBox="0 0 8 8"
         className="absolute inset-0 w-full h-full pointer-events-none z-20"
       >
@@ -567,10 +613,10 @@ export default function Chessboard({
           </marker>
         </defs>
         <line
-          x1={a.fromx + 0.5}
-          y1={a.fromy + 0.5}
-          x2={a.tox + 0.5 - ((a.tox - a.fromx) / hypo) * (3.2 * 0.12)}
-          y2={a.toy + 0.5 - ((a.toy - a.fromy) / hypo) * (3.2 * 0.12)}
+          x1={f.col + 0.5}
+          y1={f.row + 0.5}
+          x2={t.col + 0.5 - ((t.col - f.col) / hypo) * (3.2 * 0.12)}
+          y2={t.row + 0.5 - ((t.row - f.row) / hypo) * (3.2 * 0.12)}
           stroke="rgba(80, 138, 82, 0.8)"
           strokeWidth="0.12"
           markerEnd={`url(#triangle${i})`}
@@ -586,6 +632,7 @@ export default function Chessboard({
       onMouseLeave={cancelMove}
       onContextMenu={(e) => e.preventDefault()}
       id="chessboard"
+      data-flipped={playerColor === "black"}
       className={`relative bg-black grid grid-cols-8 grid-rows-8 w-[min(100cqw,100cqh)] h-[min(100cqw,100cqh)] aspect-square select-none rounded-xl overflow-hidden border-2 border-black shadow-[0_0_30px_#000000]`}
       style={{
         gridTemplateColumns: "repeat(8, 1fr)",

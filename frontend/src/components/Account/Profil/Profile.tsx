@@ -65,11 +65,11 @@ const Profil = () => {
       <Header />
       <div
         className="
-          w-full 
-          min-h-[calc(100vh-56px)] 
-          flex 
-          flex-col 
-          justify-center 
+          w-full
+          min-h-[calc(100vh-56px)]
+          flex
+          flex-col
+          justify-center
           items-center
           py-6"
       >
@@ -80,7 +80,7 @@ const Profil = () => {
             <div className="w-full h-full bg-white/3 rounded-md flex flex-row items-center justify-center">
               <div
                 className="
-                w-full 
+                w-full
                 h-full
                 bg-no-repeat
                 bg-cover
@@ -134,6 +134,7 @@ const Profil = () => {
                   <div className="w-full min-h-0 flex-1 flex-col justify-center items-center overflow-scroll scroll-smooth">
                     {history.map((match, i) => (
                       <div
+                        key={i}
                         className={`w-full flex items-center justify-center`}
                       >
                         <div

@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field
 class GameCreate(BaseModel):
     initial_time_seconds: int | None = Field(default=None, gt=0)
     increment_seconds: int = Field(default=0, ge=0)
+    opponent_type: str = Field(default="human")
+    ai_difficulty: str | None = Field(default=None)
 
 
 class GameJoin(BaseModel):

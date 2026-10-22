@@ -37,8 +37,9 @@ export function getColor(back: HTMLElement): string | null {
 export function getTileElement(x: number, y: number): HTMLElement | null {
   const chessboard = document.getElementById("chessboard");
   if (!chessboard) return null;
-  const index = (7 - y) * 8 + x;
-  return chessboard.children[index] as HTMLElement;
+  const flipped = chessboard.dataset.flipped === "true";
+  const index = flipped ? y * 8 + (7 - x) : (7 - y) * 8 + x;
+  return chessboard.children[index] as HTMLElement ?? null;
 }
 
 export function squareToPos(square: string) {

@@ -63,7 +63,7 @@ def create_game(db: Session,
     if opponent_type == "human":
         ai_difficulty = None
     else:
-        if ai_difficulty not in ("easy", "medium", "strong"):
+        if ai_difficulty not in ("easy", "medium", "hard"):
             raise InvalidDifficulty()
         initial_time_seconds = None
         increment_seconds = 0

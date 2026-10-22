@@ -37,6 +37,7 @@ help:
 	@echo "  make db-stop         Stop PostgreSQL container"
 	@echo "  make db-status       Show PostgreSQL container status"
 	@echo "  make migrate         Run database migrations"
+	@echo "  make seed-bots       Generate and insert 32 AI bots"
 	@echo ""
 	@echo "  make backend         Start FastAPI backend"
 	@echo "  make frontend        Start Vite frontend"
@@ -112,6 +113,9 @@ db-status:
 migrate:
 	$(VENV_PYTHON) -m alembic -c backend/alembic.ini upgrade head
 
+seed-bots:
+	$(VENV_PYTHON) -m backend.scripts.generate_bots
+
 # ---------------------------------------------------------------------------
 # Development servers
 # ---------------------------------------------------------------------------
@@ -163,4 +167,4 @@ fclean: clean
 	@echo "Full clean complete."
 
 
-.PHONY: help setup install install-backend install-frontend db db-stop db-status migrate backend frontend dev test lint build clean fclean
+.PHONY: help setup install install-backend install-frontend db db-stop db-status migrate seed-bots backend frontend dev test lint build clean fclean
