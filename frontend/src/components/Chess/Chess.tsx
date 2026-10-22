@@ -353,10 +353,10 @@ export default function Chess() {
                 showChat ? "flex" : "hidden"
               } flex-col w-full h-[95%] max-h-[95%] overflow-y-scroll scroll-smooth`}
             >
-              <div className="w-full h-[92%] flex flex-col gap-1 justify-center items-center">
+              <div className="w-full h-[92%] flex flex-col gap-1 items-center">
                 {chat.map((c, i) => (
-                  <div key={i} className="flex flex-row gap-2">
-                    <p>{c.username}</p>
+                  <div key={i} className={`flex flex-row gap-2 w-full p-2 ${c.username != user ? 'bg-gray-700' : ''}`}>
+                    <p>{c.username}: </p>
                     <p>{c.message}</p>
                   </div>
                 ))}
