@@ -48,6 +48,11 @@ async def run_ai_turn(game_id: int):
                 fen = game.current_fen
                 status = game.status
                 result = game.result
+                white_time_remaining = game.white_time_remaining
+                black_time_remaining = game.black_time_remaining
+                increment_seconds = game.increment_seconds
+                last_move_at = (game.last_move_at.isoformat()
+                                if game.last_move_at else None)
             # the game changed while the AI was thinking (resign, draw...): just stop
             except (GameNotActive, NotYourTurn):
                 db.rollback()
@@ -73,14 +78,22 @@ async def run_ai_turn(game_id: int):
                 "to": chess.square_name(ai_move.to_square),
                 "uci": ai_move.uci(),
                 "san": san,
-                "fen": fen
+                "fen": fen,
+                "white_time_remaining": white_time_remaining,
+                "black_time_remaining": black_time_remaining,
+                "increment_seconds": increment_seconds,
+                "last_move_at": last_move_at,
             })
 
         await manager.broadcast(game_id, {
             "type": "game_state",
             "fen": fen,
             "status": status,
-            "result": result
+            "result": result,
+            "white_time_remaining": white_time_remaining,
+            "black_time_remaining": black_time_remaining,
+            "increment_seconds": increment_seconds,
+            "last_move_at": last_move_at,
         })
         if status == "finished":
             await manager.broadcast(game_id, {

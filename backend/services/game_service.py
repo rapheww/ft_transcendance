@@ -142,6 +142,10 @@ def get_game(db: Session, game_id: int) -> Game:
     return game
 
 
+def list_active_games(db: Session) -> list[Game]:
+    return GameRepository(db).list_active_games()
+
+
 def make_move(db: Session, game_id: int, user_id: int, move: str) -> Game:
     try:
         repository = GameRepository(db)

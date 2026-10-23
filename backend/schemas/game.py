@@ -43,3 +43,18 @@ class GameResponse(BaseModel):
     created_at: datetime
     finished_at: datetime | None
     model_config = {"from_attributes": True}
+
+
+class OngoingGameResponse(BaseModel):
+    id: int
+    white_player_name: str = Field(
+        validation_alias=AliasPath("white_player", "username"))
+    black_player_name: str | None = Field(
+        default=None,
+        validation_alias=AliasPath("black_player", "username"))
+    opponent_type: str
+    ai_difficulty: str | None
+    initial_time_seconds: int | None
+    increment_seconds: int
+
+    model_config = {"from_attributes": True}

@@ -9,6 +9,7 @@ import DefaultLayout from "./components/DefaultLayout";
 import Login from "./components/Account/login/Login";
 import Register from "./components/Account/login/Register";
 import Tournaments from "./components/Tournaments/Tournaments";
+import Spectator from "./components/Chess/Spectator";
 
 function App() {
 
@@ -19,6 +20,7 @@ function App() {
             <Route path="/" element={<Home />}/>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/watch/:gameId" element={<Spectator />} />
             <Route element={<DefaultLayout />}>
               {/* The game ID lets the chess screen load the exact game created or matched by the backend. */}
               <Route path="/chess/:timer/:bonus/:gameId" element={<Chess />} />

@@ -15,7 +15,11 @@ import {
   type SocketStatus,
 } from "./game";
 
-export function useGame(id: number, token: string | null) {
+export function useGame(
+  id: number,
+  token: string | null,
+  spectatorMode = false,
+) {
   const [moves, setMoves] = useState<Moves[]>([]);
   const [viewIndex, setViewIndex] = useState(-1);
   const [game, setGame] = useState<GameInfo | null>(null);
@@ -28,6 +32,7 @@ export function useGame(id: number, token: string | null) {
   const [socketError, setSocketError] = useState("");
   const [opponentConnected, setOpponentConnected] = useState(false);
   const [chat, setChat] = useState<ChatMessage[]>([]);
+  const [spectatorCount, setSpectatorCount] = useState(0);
   
 
   const socketRef = useRef<WebSocket | null>(null);
@@ -35,6 +40,8 @@ export function useGame(id: number, token: string | null) {
   const socketSnapshotReceivedRef = useRef(false);
   const socketGameStateRef = useRef<SocketGameState | null>(null);
   const gameOverRef = useRef(false);
+  const waitingForSpectatableGame =
+    spectatorMode && (!game || game.status === "waiting");
 
   useEffect(() => {
     gameOverRef.current = gameOver;
@@ -60,7 +67,7 @@ export function useGame(id: number, token: string | null) {
       socketGameStateRef.current = null;
       gameOverRef.current = false;
 
-      if (!token) {
+      if (!token && !spectatorMode) {
         setLoadError("You must be signed in to load this game.");
         setLoading(false);
         return;
@@ -74,7 +81,7 @@ export function useGame(id: number, token: string | null) {
 
       try {
         const response = await fetch(`http://127.0.0.1:8000/api/games/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
           signal: controller.signal,
         });
 
@@ -109,6 +116,16 @@ export function useGame(id: number, token: string | null) {
                   socketState.result !== undefined
                     ? socketState.result
                     : data.result,
+                white_time_remaining:
+                  socketState.white_time_remaining ??
+                  data.white_time_remaining,
+                black_time_remaining:
+                  socketState.black_time_remaining ??
+                  data.black_time_remaining,
+                increment_seconds:
+                  socketState.increment_seconds ?? data.increment_seconds,
+                last_move_at:
+                  socketState.last_move_at ?? data.last_move_at,
               }
             : data,
         );
@@ -144,7 +161,8 @@ export function useGame(id: number, token: string | null) {
   }, [id, token]);
 
   useEffect(() => {
-    if (!token || !Number.isInteger(id) || id <= 0) return;
+    if ((!token && !spectatorMode) || !Number.isInteger(id) || id <= 0) return;
+    if (waitingForSpectatableGame) return;
     socketFenRef.current = "";
     let stopped = false;
     let terminal = gameOverRef.current;
@@ -167,7 +185,9 @@ export function useGame(id: number, token: string | null) {
 
     // L'adresse WebSocket transporte le jeton de connexion dans son URL pour que le serveur
     // puisse vérifier qui ouvre la connexion.
-    const socketUrl = `ws://127.0.0.1:8000/ws/games/${id}?token=${encodeURIComponent(token)}`;
+    const socketUrl = token
+      ? `ws://127.0.0.1:8000/ws/games/${id}?token=${encodeURIComponent(token)}`
+      : `ws://127.0.0.1:8000/ws/games/${id}`;
 
     function receiveMove(data: GameSocketMessage) {
       if (typeof data.san !== "string" || typeof data.fen !== "string") return;
@@ -225,6 +245,10 @@ export function useGame(id: number, token: string | null) {
           fen: data.fen ?? "",
           status: data.status,
           result: data.result,
+          white_time_remaining: data.white_time_remaining,
+          black_time_remaining: data.black_time_remaining,
+          increment_seconds: data.increment_seconds,
+          last_move_at: data.last_move_at,
         };
         if (data.fen) {
           socketFenRef.current = data.fen;
@@ -275,9 +299,20 @@ export function useGame(id: number, token: string | null) {
                   current_fen: data.fen ?? current.current_fen,
                   status,
                   result: data.result ?? current.result,
+                  white_time_remaining:
+                    data.white_time_remaining ?? current.white_time_remaining,
+                  black_time_remaining:
+                    data.black_time_remaining ?? current.black_time_remaining,
+                  increment_seconds:
+                    data.increment_seconds ?? current.increment_seconds,
+                  last_move_at: data.last_move_at ?? current.last_move_at,
                 }
               : current,
           );
+        }
+        if (typeof data.spectator_count === "number" &&
+            Number.isInteger(data.spectator_count)) {
+          setSpectatorCount(data.spectator_count);
         }
 
         if (data.status === "finished") {
@@ -310,6 +345,15 @@ export function useGame(id: number, token: string | null) {
             data.result !== undefined
               ? data.result
               : previousSocketState?.result,
+          white_time_remaining:
+            data.white_time_remaining ??
+            previousSocketState?.white_time_remaining,
+          black_time_remaining:
+            data.black_time_remaining ??
+            previousSocketState?.black_time_remaining,
+          increment_seconds:
+            data.increment_seconds ?? previousSocketState?.increment_seconds,
+          last_move_at: data.last_move_at ?? previousSocketState?.last_move_at,
         };
         if (data.fen) {
           socketFenRef.current = data.fen;
@@ -325,6 +369,13 @@ export function useGame(id: number, token: string | null) {
                   current_fen: data.fen ?? current.current_fen,
                   status,
                   result: data.result ?? current.result,
+                  white_time_remaining:
+                    data.white_time_remaining ?? current.white_time_remaining,
+                  black_time_remaining:
+                    data.black_time_remaining ?? current.black_time_remaining,
+                  increment_seconds:
+                    data.increment_seconds ?? current.increment_seconds,
+                  last_move_at: data.last_move_at ?? current.last_move_at,
                 }
               : current,
           );
@@ -350,7 +401,28 @@ export function useGame(id: number, token: string | null) {
         if (data.fen) {
           socketFenRef.current = data.fen;
         }
+        setGame((current) =>
+          current
+            ? {
+                ...current,
+                white_time_remaining:
+                  data.white_time_remaining ?? current.white_time_remaining,
+                black_time_remaining:
+                  data.black_time_remaining ?? current.black_time_remaining,
+                increment_seconds:
+                  data.increment_seconds ?? current.increment_seconds,
+                last_move_at: data.last_move_at ?? current.last_move_at,
+              }
+            : current,
+        );
         receiveMove(data);
+        return;
+      }
+
+      if (data.type === "spectator_count") {
+        if (typeof data.count === "number" && Number.isInteger(data.count)) {
+          setSpectatorCount(data.count);
+        }
         return;
       }
 
@@ -520,7 +592,7 @@ export function useGame(id: number, token: string | null) {
         }
       }
     };
-  }, [id, token]);
+  }, [id, token, waitingForSpectatableGame]);
 
   useEffect(() => {
     // Après la réception de nouveaux coups ou de l'historique du serveur, afficher la position actuelle.
@@ -600,7 +672,8 @@ export function useGame(id: number, token: string | null) {
   const wTurn = !gameOver && moves.length % 2 === 0;
   const bTurn = !gameOver && moves.length % 2 === 1;
 
-  const canPlay = socketStatus === "connected" && !gameOver;
+  const canPlay =
+    playerColor !== "" && socketStatus === "connected" && !gameOver;
 
   function sendSocketMove(move: {
     type: "move";
@@ -689,6 +762,7 @@ export function useGame(id: number, token: string | null) {
     opponentName,
     wTurn,
     bTurn,
-    chat
+    chat,
+    spectatorCount,
   };
 }

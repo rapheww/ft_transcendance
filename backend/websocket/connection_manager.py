@@ -6,6 +6,7 @@ class ConnectionManager:
     def __init__(self):
         # {game_id: {user_id: websocket}}
         self.connections = {}
+        self.spectators = {}
 
     async def connect(self, game_id: int, user_id: int, websocket: WebSocket):
         await websocket.accept()
@@ -24,9 +25,30 @@ class ConnectionManager:
             except Exception:
                 pass
 
+    async def connect_spectator(self, game_id: int, user_id: int | str,
+                                websocket: WebSocket):
+        await websocket.accept()
+        game_spectators = self.spectators.setdefault(game_id, {})
+        old_socket = game_spectators.get(user_id)
+        game_spectators[user_id] = websocket
+        if old_socket is not None and old_socket is not websocket:
+            try:
+                await old_socket.close(code=4001,
+                                       reason="replaced by new connection")
+            except Exception:
+                pass
+
     def disconnect(self, game_id: int, user_id: int,
                    websocket: WebSocket) -> bool:
-        game_connections = self.connections.get(game_id)
+        return self._disconnect(self.connections, game_id, user_id, websocket)
+
+    def disconnect_spectator(self, game_id: int, user_id: int | str,
+                             websocket: WebSocket) -> bool:
+        return self._disconnect(self.spectators, game_id, user_id, websocket)
+
+    def _disconnect(self, connection_group: dict, game_id: int,
+                    user_id: int | str, websocket: WebSocket) -> bool:
+        game_connections = connection_group.get(game_id)
         # report that nothing was removed
         if not game_connections:
             return False
@@ -36,28 +58,29 @@ class ConnectionManager:
         if game_connections.get(user_id) is not websocket:
             return False
         game_connections.pop(user_id, None)
-        # ---- CLEANUP EMPTY GAME ----
-        # remove the game entry when no players remain connected
         if not game_connections:
+            connection_group.pop(game_id, None)
+        if not self.connections.get(game_id) and not self.spectators.get(game_id):
             self.connections.pop(game_id, None)
+            self.spectators.pop(game_id, None)
         return True
 
     async def broadcast(self, game_id: int, message: dict):
-        if game_id not in self.connections:
-            return
-
         dead_connections = []
-        # broadcast only to users connected to this game
-        for user_id, websocket in list(self.connections[game_id].items()):
-            try:
-                await websocket.send_json(message)
-            # ---- DEAD SOCKET / ABRUPT NETWORK LOSS CASE ----
-            # remember failed sockets and clean them after the loop
-            except Exception:
-                dead_connections.append((user_id, websocket))
-        # do not modify the dictionary while iterating over it
-        for user_id, websocket in dead_connections:
-            self.disconnect(game_id, user_id, websocket)
+        for connection_group, is_spectator in (
+                (self.connections, False), (self.spectators, True)):
+            for user_id, websocket in list(
+                    connection_group.get(game_id, {}).items()):
+                try:
+                    await websocket.send_json(message)
+                except Exception:
+                    dead_connections.append(
+                        (is_spectator, user_id, websocket))
+        for is_spectator, user_id, websocket in dead_connections:
+            if is_spectator:
+                self.disconnect_spectator(game_id, user_id, websocket)
+            else:
+                self.disconnect(game_id, user_id, websocket)
 
     def valid_event(self, event: str) -> bool:
         return isinstance(event, str) and event in {"move", "chat"}
@@ -68,6 +91,9 @@ class ConnectionManager:
 
     def get_connection(self, game_id: int, user_id: int) -> WebSocket | None:
         return self.connections.get(game_id, {}).get(user_id)
+
+    def spectator_count(self, game_id: int) -> int:
+        return len(self.spectators.get(game_id, {}))
 
     async def send_personal_message(self, game_id: int, user_id: int,
                                     message: dict) -> bool:

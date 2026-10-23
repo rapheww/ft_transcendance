@@ -38,6 +38,7 @@ export interface ChessboardProps {
   result: string;
   setGameOver: React.Dispatch<React.SetStateAction<boolean>>;
   setResult: React.Dispatch<React.SetStateAction<string>>;
+  readOnly?: boolean;
 }
 
 export default function Chessboard({
@@ -53,6 +54,7 @@ export default function Chessboard({
   fenInit,
   gameOver,
   result,
+  readOnly = false,
 }: ChessboardProps) {
   const chessRef = useRef(new Chess(fenInit));
   const checkedKing: string | null = chessRef.current.isCheck()
@@ -114,7 +116,7 @@ export default function Chessboard({
   }, [fenInit]);
 
   //gameOver
-  gameOverScreen(gameId, token, setResult, setOpen, gameOver);
+  gameOverScreen(gameId, token, setResult, setOpen, gameOver, !readOnly);
 
   function removeDot() {
     for (let i = 0; i < moveTile.length; i++) {
@@ -630,14 +632,14 @@ export default function Chessboard({
   });
   return (
     <div
-      onMouseMove={(e) => movePiece(e)}
-      onMouseDown={(e) => grabPiece(e)}
-      onMouseUp={(e) => dropPiece(e)}
-      onMouseLeave={cancelMove}
+      onMouseMove={readOnly ? undefined : (e) => movePiece(e)}
+      onMouseDown={readOnly ? undefined : (e) => grabPiece(e)}
+      onMouseUp={readOnly ? undefined : (e) => dropPiece(e)}
+      onMouseLeave={readOnly ? undefined : cancelMove}
       onContextMenu={(e) => e.preventDefault()}
       id="chessboard"
       data-flipped={playerColor === "black"}
-      className={`relative bg-black grid grid-cols-8 grid-rows-8 w-[min(100cqw,100cqh)] h-[min(100cqw,100cqh)] aspect-square select-none rounded-xl overflow-hidden border-2 border-black shadow-[0_0_30px_#000000]`}
+      className={`relative bg-black grid grid-cols-8 grid-rows-8 w-[min(100cqw,100cqh)] h-[min(100cqw,100cqh)] aspect-square select-none rounded-xl overflow-hidden border-2 border-black shadow-[0_0_30px_#000000] ${readOnly ? "pointer-events-none cursor-default" : ""}`}
       style={{
         gridTemplateColumns: "repeat(8, 1fr)",
         gridTemplateRows: "repeat(8, 1fr)",
@@ -645,13 +647,22 @@ export default function Chessboard({
     >
       {board}
       {allsvg}
-      <GameOver open={open} onClose={() => setOpen(false)} result={result} color={playerColor}/>
-      <Promotion
-        open={promoOpen}
-        onClose={() => setPromoOpen(false)}
-        setChoice={promotion}
-        color={pendingPromo?.color as string}
-      />
+      {!readOnly && (
+        <GameOver
+          open={open}
+          onClose={() => setOpen(false)}
+          result={result}
+          color={playerColor}
+        />
+      )}
+      {!readOnly && (
+        <Promotion
+          open={promoOpen}
+          onClose={() => setPromoOpen(false)}
+          setChoice={promotion}
+          color={pendingPromo?.color as string}
+        />
+      )}
     </div>
   );
 }

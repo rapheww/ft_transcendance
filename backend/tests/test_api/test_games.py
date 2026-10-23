@@ -103,6 +103,38 @@ def test_get_missing_game_returns_404(client: TestClient):
     assert response.json() == {"detail": "Game not found"}
 
 
+def test_list_ongoing_games_only_returns_active_games(client: TestClient):
+    white_token = create_user(client, "live_white", "live_white@example.com")
+    black_token = create_user(client, "live_black", "live_black@example.com")
+
+    active_response = client.post(
+        "/api/games/",
+        headers={"Authorization": f"Bearer {white_token}"},
+        json={
+            "initial_time_seconds": 300,
+            "increment_seconds": 5
+        })
+    waiting_response = client.post(
+        "/api/games/",
+        headers={"Authorization": f"Bearer {white_token}"})
+    assert active_response.status_code == 201
+    assert waiting_response.status_code == 201
+
+    join_response = client.post(
+        f"/api/games/{active_response.json()['id']}/join",
+        headers={"Authorization": f"Bearer {black_token}"})
+    assert join_response.status_code == 200
+
+    response = client.get("/api/games/ongoing")
+
+    assert response.status_code == 200
+    assert [game["id"] for game in response.json()] == [
+        active_response.json()["id"]
+    ]
+    assert response.json()[0]["white_player_name"] == "live_white"
+    assert response.json()[0]["black_player_name"] == "live_black"
+
+
 def test_create_game_without_token_returns_401(client: TestClient):
     response = client.post("/api/games/")
 

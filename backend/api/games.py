@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from backend.core.dependencies import get_current_user
 from backend.db.session import get_db
 from backend.models.user import User
-from backend.schemas.game import GameResponse, MoveRequest, GameCreate
+from backend.schemas.game import (
+    GameResponse, MoveRequest, GameCreate, OngoingGameResponse)
 from backend.services import game_service
 from backend.websocket.connection_manager import manager
 from backend.exceptions.game import (
@@ -15,6 +16,11 @@ from backend.exceptions.game import (
     DrawNotClaimable, InvalidOpponent)
 
 router = APIRouter()
+
+
+@router.get("/ongoing", response_model=list[OngoingGameResponse])
+def list_ongoing_games(db: Session = Depends(get_db)):
+    return game_service.list_active_games(db)
 
 
 @router.post("/", response_model=GameResponse, status_code=201)
@@ -92,7 +98,12 @@ async def make_move(
                     "to": move_request.move[2:4],
                     "uci": move_request.move,
                     "san": san,
-                    "fen": game.current_fen
+                    "fen": game.current_fen,
+                    "white_time_remaining": game.white_time_remaining,
+                    "black_time_remaining": game.black_time_remaining,
+                    "increment_seconds": game.increment_seconds,
+                    "last_move_at": game.last_move_at.isoformat()
+                    if game.last_move_at else None
                 })
 
         await manager.broadcast(
@@ -100,7 +111,12 @@ async def make_move(
                 "type": "game_state",
                 "fen": game.current_fen,
                 "status": game.status,
-                "result": game.result
+                "result": game.result,
+                "white_time_remaining": game.white_time_remaining,
+                "black_time_remaining": game.black_time_remaining,
+                "increment_seconds": game.increment_seconds,
+                "last_move_at": game.last_move_at.isoformat()
+                if game.last_move_at else None
             })
 
         if game.status == "finished":

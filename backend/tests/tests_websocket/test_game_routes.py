@@ -69,6 +69,108 @@ def test_websocket_reconnect_resyncs_pgn_and_move_data(client: TestClient,
     assert "1. e4" in reconnect_snapshot["pgn"]
 
 
+def test_spectator_receives_live_moves_but_cannot_act(client: TestClient,
+                                                      engine, monkeypatch):
+    monkeypatch.setattr(game_websocket_routes, "SessionLocal",
+                        lambda: Session(engine))
+    monkeypatch.setattr(game_websocket_routes, "start_ai_turn", lambda _: None)
+    white_token = create_user_token(client, "spectated_white")
+    black_token = create_user_token(client, "spectated_black")
+    spectator_token = create_user_token(client, "viewer")
+
+    response = client.post("/api/games/",
+                           headers={"Authorization": "Bearer " + white_token},
+                           json={
+                               "initial_time_seconds": 300,
+                               "increment_seconds": 5
+                           })
+    assert response.status_code == 201
+    game_id = response.json()["id"]
+
+    response = client.post(
+        f"/api/games/{game_id}/join",
+        headers={"Authorization": "Bearer " + black_token})
+    assert response.status_code == 200
+
+    with client.websocket_connect(
+            f"/ws/games/{game_id}?token={white_token}") as player_socket:
+        player_snapshot = player_socket.receive_json()
+        assert player_snapshot["role"] == "player"
+
+        with client.websocket_connect(
+                f"/ws/games/{game_id}?token={spectator_token}"
+        ) as spectator_socket:
+            snapshot = spectator_socket.receive_json()
+            assert snapshot["type"] == "game_connected"
+            assert snapshot["role"] == "spectator"
+            assert snapshot["color"] is None
+            assert snapshot["spectator_count"] == 1
+            assert snapshot["white_time_remaining"] is not None
+            assert snapshot["black_time_remaining"] is not None
+            assert snapshot["increment_seconds"] == 5
+            assert snapshot["last_move_at"] is not None
+
+            with client.websocket_connect(
+                    f"/ws/games/{game_id}") as guest_socket:
+                guest_snapshot = guest_socket.receive_json()
+                assert guest_snapshot["type"] == "game_connected"
+                assert guest_snapshot["role"] == "spectator"
+                assert guest_snapshot["user_id"] is None
+                assert guest_snapshot["spectator_count"] == 2
+                assert guest_snapshot["chat"] == []
+
+                guest_socket.send_json({
+                    "type": "move",
+                    "from": "e2",
+                    "to": "e4"
+                })
+                guest_message = guest_socket.receive_json()
+                while guest_message["type"] != "error":
+                    guest_message = guest_socket.receive_json()
+                assert guest_message["message"] == (
+                    "Spectators cannot send game actions")
+
+            player_socket.send_json({
+                "type": "move",
+                "from": "e2",
+                "to": "e4"
+            })
+            player_move = player_socket.receive_json()
+            while player_move["type"] != "move":
+                player_move = player_socket.receive_json()
+            spectator_move = spectator_socket.receive_json()
+            while spectator_move["type"] != "move":
+                spectator_move = spectator_socket.receive_json()
+
+            assert spectator_move["fen"] == player_move["fen"]
+            assert spectator_move["san"] == "e4"
+            assert spectator_move["white_time_remaining"] is not None
+            assert spectator_move["last_move_at"] is not None
+
+            state_update = spectator_socket.receive_json()
+            while state_update["type"] != "game_state":
+                state_update = spectator_socket.receive_json()
+
+            spectator_socket.send_json({
+                "type": "move",
+                "from": "e7",
+                "to": "e5"
+            })
+            rejected_action = spectator_socket.receive_json()
+            assert rejected_action["type"] == "error"
+            assert rejected_action["message"] == (
+                "Spectators cannot send game actions")
+
+        count_update = player_socket.receive_json()
+        while count_update["type"] != "spectator_count":
+            count_update = player_socket.receive_json()
+        assert count_update["count"] == 0
+
+    response = client.get(f"/api/games/{game_id}")
+    assert response.status_code == 200
+    assert response.json()["current_fen"] == spectator_move["fen"]
+
+
 def test_websocket_chat_is_persisted_and_restored(client: TestClient, engine,
                                                    monkeypatch):
     monkeypatch.setattr(game_websocket_routes, "SessionLocal",
