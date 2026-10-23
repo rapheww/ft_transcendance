@@ -645,7 +645,7 @@ export default function Chessboard({
     >
       {board}
       {allsvg}
-      <GameOver open={open} onClose={() => setOpen(false)} result={result} />
+      <GameOver open={open} onClose={() => setOpen(false)} result={result} color={playerColor}/>
       <Promotion
         open={promoOpen}
         onClose={() => setPromoOpen(false)}
