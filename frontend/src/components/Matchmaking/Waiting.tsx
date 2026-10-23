@@ -3,8 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import Header from "../Navbar/Header";
 import { useAuth } from "../AuthProvider";
 import "/src/index.css";
+import { API } from "../Chess/utils/api";
 
-const API = "http://127.0.0.1:8000";
+export const allTime = ['1+0', '1+1', '2+0', '2+1', '3+0', '3+2', '5+0', '5+3', '10+0', '10+5', '15+0', '15+10']
 
 type MatchResponse = {
   status: "waiting" | "matched";
@@ -24,8 +25,16 @@ export default function Waiting() {
   const matched = useRef(false);
   const leaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const chrono = timer === "1" || timer === "5" || timer === "10" ? Number(timer) : 5;
-  const increment = bonus === "0" || bonus === "5" ? Number(bonus) : 0;
+  const time: string = timer + "+" + bonus
+  let i = 0;
+  let chrono = 5;
+  let increment = 5;
+  for (; i < allTime.length; i++)
+    if(allTime[i] === time) break;
+  if(allTime[i]){
+    chrono = Number(timer);
+    increment = Number(bonus);
+  }
 
   useEffect(() => {
     if (!token) {
@@ -48,7 +57,7 @@ export default function Waiting() {
 
     // Polling detects a match when the opponent is assigned asynchronously.
     async function checkStatus(): Promise<boolean> {
-      const response = await fetch(`${API}/api/matchmaking/status`, {
+      const response = await fetch(`${API}/matchmaking/status`, {
         headers,
       });
 
@@ -91,7 +100,7 @@ export default function Waiting() {
     // A join can return a match immediately; 409 means stay in the existing queue and poll status.
     async function start() {
       try {
-        const response = await fetch(`${API}/api/matchmaking/join`, {
+        const response = await fetch(`${API}/matchmaking/join`, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -136,7 +145,7 @@ export default function Waiting() {
         // Defer leaving by one task so a quick effect restart can cancel cleanup instead.
         leaveTimeout.current = setTimeout(() => {
           leaveTimeout.current = null;
-          void fetch(`${API}/api/matchmaking/leave`, {
+          void fetch(`${API}/matchmaking/leave`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
           }).catch(() => {});

@@ -9,7 +9,7 @@ const Login = () => {
   const [invalid, setInvalid] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const inputClassname = `input outline-0 border bg-white/3 border-white/50 focus:border-white-50 focus-within:border-white/50 w-full lg:h-12 lg:text-lg 2xl:text-base`;
+  const inputClassname = `input outline-0 border bg-white/3 border-white/50 focus:border-white/50 focus-within:border-white/50 w-full lg:h-12 lg:text-lg 2xl:text-base`;
 
   const { login } = useAuth();
   //login handling
