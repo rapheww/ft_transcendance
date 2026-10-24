@@ -8,6 +8,9 @@ import Mode from "./components/Matchmaking/Mode";
 import Waiting from "./components/Matchmaking/Waiting";
 import AuthProvider from "./components/AuthProvider";
 import DefaultLayout from "./components/DefaultLayout";
+import RecommendationTest from "./components/Recommendations/RecommendationTest";
+import TournamentTest from "./components/Tournaments/TournamentTest";
+import NotificationTest from "./components/Notifications/NotificationTest";
 
 function App() {
 
@@ -23,6 +26,9 @@ function App() {
               <Route path="/profile" element={<Profil />} />
               <Route path="/mode" element={<Mode />} />
               <Route path="/matchmaking/:timer/:bonus" element={<Waiting />} />
+              <Route path="/test-recommendations" element={<RecommendationTest />} />
+              <Route path="/tournament-test" element={<TournamentTest />} />
+              <Route path="/notification-test" element={<NotificationTest />} />
             </Route>
 
         </Routes>

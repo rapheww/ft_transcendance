@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import chess
+import time
 from backend.db.session import SessionLocal
 from backend.services import game_service
 from backend.ai.chess_ai import choose_ai_move
@@ -32,21 +33,66 @@ async def run_ai_turn(game_id: int):
         # fresh session: always read the latest committed game state
         with SessionLocal() as db:
             try:
+                # ----- CHECK INITIAL GAME STATE -----
                 game = game_service.get_game(db, game_id)
                 board = chess.Board(game.current_fen)
-                if (game.opponent_type != "ai" or game.status != "active"
-                        or board.turn != chess.BLACK):
+                if (
+                    game.opponent_type != "ai" 
+                    or game.status != "active"
+                    or board.turn != chess.BLACK
+                ):
                     return
-                ai_move = await asyncio.to_thread(choose_ai_move, board,
-                                                  game.ai_difficulty)
+
+                # ----- AI THINKING -----
+                think_start = time.monotonic()
+
+                ai_move = await asyncio.to_thread(
+                    choose_ai_move, 
+                    board,
+                    game.ai_difficulty
+                )
+
+                elapsed = time.monotonic() - think_start
+
+                # AI should appear to think for at least 1 second
+                minimum_think_time = 1.0
+
+                if elapsed < minimum_think_time:
+                    await asyncio.sleep(
+                        minimum_think_time - elapsed
+                    )
+
+                # ----- RECHECK GAME AFTER THINKING -----
+                # The game may have changed while the AI was calculating/waiting
+                db.expire_all()
+
+                game = game_service.get_game(db, game_id)
+                board_now = chess.Board(game.current_fen)
+
+                if (
+                    game.opponent_type != "ai"
+                    or game.status != "active"
+                    or board_now.turn != chess.BLACK
+                ):
+                    return
 
                 if ai_move is None:
                     raise RuntimeError("AI returned no move in an active game")
-                db.expire_all()
-                game = game_service.make_ai_move(db, game_id, ai_move)
+
+                # Use the latest board to create SAN
+                san = board_now.san(ai_move)
+
+                # ----- APPLY AI MOVE -----
+                game = game_service.make_ai_move(
+                    db, 
+                    game_id, 
+                    ai_move
+                )
+
                 fen = game.current_fen
                 status = game.status
                 result = game.result
+
             # the game changed while the AI was thinking (resign, draw...): just stop
             except (GameNotActive, NotYourTurn):
                 db.rollback()
@@ -54,29 +100,64 @@ async def run_ai_turn(game_id: int):
 
             except Exception:
                 db.rollback()
-                logger.exception("AI move failed in game %s", game_id)
+                logger.exception(
+                    "AI move failed in game %s", 
+                    game_id
+                )
+
                 # tell the player; reconnection calls start_ai_turn again
                 await manager.broadcast(
-                    game_id, {
+                    game_id, 
+                    {
                         "type": "error",
                         "code": "ai_error",
                         "message": "AI failed to move, reconnect to retry"
-                    })
+                    }
+                )
                 return
 
+        # ----- BROADCAST AI MOVE -----
         await manager.broadcast(
-            game_id, {
+            game_id, 
+            {
                 "type": "move",
                 "player": "ai",
                 "from": chess.square_name(ai_move.from_square),
                 "to": chess.square_name(ai_move.to_square),
-                "uci": ai_move.uci()
-            })
+                "uci": ai_move.uci(),
+                "san": san,
+                "fen": fen
+            }
+        )
 
-        await manager.broadcast(game_id, {"type": "game_state", "fen": fen})
-        if status == "finished":
-            await manager.broadcast(game_id, {
-                "type": "game_over",
+        # ----- BROADCAST UPDATED GAME STATE -----
+        await manager.broadcast(
+            game_id, 
+            {
+                "type": "game_state",
+                "fen": fen,
+                "status": status,
                 "result": result
-            })
-            ai_locks.pop(game_id, None)
+            }
+        )
+
+        # ----- GAME OVER -----
+        if status == "finished":
+            await manager.broadcast(
+                game_id, 
+                {
+                    "type": "game_over",
+                    "result": result
+                }
+            )
+            
+# if __name__ == "__main__":
+#     async def test():
+#         game_id = 1
+
+#         start_ai_turn(game_id)
+
+#         # keep the event loop alive long enough
+#         # for the background AI task to finish
+#         await asyncio.sleep(10)
+#     asyncio.run(test())

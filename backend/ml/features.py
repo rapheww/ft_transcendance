@@ -68,12 +68,11 @@ def extract_playing_style(game: Game, user_id: int) -> dict | None:
     opening_moves = []
 
     for ply, move in enumerate(pgn_game.mainline_moves()):
-        is_player_move = board.turn == player_color
 
         if ply < 6:
             opening_moves.append(move.uci())
 
-        if is_player_move:
+        if board.turn == player_color:
             stats["moves"] += 1
             if board.is_capture(move):
                 stats["captures"] += 1
@@ -85,9 +84,12 @@ def extract_playing_style(game: Game, user_id: int) -> dict | None:
                 stats["early_queen"] = True
             if board.gives_check(move):
                 stats["checks"] += 1
+
         board.push(move)
         stats["game_length"] += 0.5
+
     stats["opening"] = tuple(opening_moves)
+    
     return stats
 
 def extract_player_profile(db: Session, user_id: int) -> dict:
