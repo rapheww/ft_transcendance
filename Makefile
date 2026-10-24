@@ -113,6 +113,18 @@ migrate:
 	$(VENV_PYTHON) -m alembic -c backend/alembic.ini upgrade head
 
 # ---------------------------------------------------------------------------
+# Bot generation and simulation
+# ---------------------------------------------------------------------------
+
+seed-bots:
+	$(VENV_PYTHON) -m backend.scripts.generate_bots
+
+simulate-bots:
+	$(VENV_PYTHON) -m backend.scripts.simulate_bot_games
+
+prepare-bots: seed-bots simulate-bots
+
+# ---------------------------------------------------------------------------
 # Development servers
 # ---------------------------------------------------------------------------
 
