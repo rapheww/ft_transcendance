@@ -42,9 +42,9 @@ export function moveAnimation(
   }, [fen]);
 }
 
-export function gameOverScreen(gameId: number, token: string, setResult: React.Dispatch<React.SetStateAction<string>>, setOpen: React.Dispatch<React.SetStateAction<boolean>>, gameOver: boolean) {
+export function gameOverScreen(gameId: number, token: string, setResult: React.Dispatch<React.SetStateAction<string>>, setOpen: React.Dispatch<React.SetStateAction<boolean>>, gameOver: boolean, enabled = true) {
   useEffect(() => {
-    if (!gameOver) return;
+    if (!gameOver || !enabled) return;
 
     console.log("game over detected");
     async function receiveResult() {
@@ -61,5 +61,5 @@ export function gameOverScreen(gameId: number, token: string, setResult: React.D
       }
     }
     receiveResult();
-  }, [gameOver]);
+  }, [gameOver, enabled]);
 }

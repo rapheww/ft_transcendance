@@ -11,25 +11,75 @@ interface LeaderBoard {
   games_played: number;
 }
 
+interface OngoingGame {
+  id: number;
+  white_player_name: string;
+  black_player_name: string | null;
+  opponent_type: string;
+  ai_difficulty: string | null;
+  initial_time_seconds: number | null;
+  increment_seconds: number;
+}
+
 const Home = () => {
   const navigate = useNavigate();
   const [leaderboard, SetLeaderboard] = useState<LeaderBoard[] | null>(null);
-
-  async function getLeaderBoard() {
-    try {
-      const response = await fetch(`${API}/stats/leaderboard`);
-      if (!response.ok) throw "need token";
-      const infos = await response.json();
-      if (!infos) return;
-      SetLeaderboard(infos);
-    } catch {
-      return;
-    }
-  }
+  const [ongoingGames, setOngoingGames] = useState<OngoingGame[]>([]);
+  const [gamesError, setGamesError] = useState("");
 
   useEffect(() => {
-    getLeaderBoard();
+    let cancelled = false;
+
+    async function getLeaderBoard() {
+      try {
+        const response = await fetch(`${API}/stats/leaderboard`);
+        if (!response.ok) throw new Error("Could not load leaderboard.");
+        const infos = await response.json();
+        if (!cancelled && infos) SetLeaderboard(infos);
+      } catch {
+        if (!cancelled) SetLeaderboard(null);
+      }
+    }
+
+    void getLeaderBoard();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function getOngoingGames() {
+      try {
+        const response = await fetch(`${API}/games/ongoing`);
+        if (!response.ok) {
+          throw new Error(`Could not load ongoing games (${response.status}).`);
+        }
+        const games = (await response.json()) as OngoingGame[];
+        if (!cancelled) {
+          setOngoingGames(games);
+          setGamesError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setGamesError(
+            error instanceof Error
+              ? error.message
+              : "Could not load ongoing games.",
+          );
+        }
+      }
+    }
+
+    void getOngoingGames();
+    const interval = window.setInterval(() => void getOngoingGames(), 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
   return (
     <div className="flex flex-col items-center min-h-screen">
       <Header />
@@ -99,6 +149,60 @@ const Home = () => {
               </button>
             </div>
           </div>
+
+          <section className="flex h-full w-full flex-col items-center justify-start p-3">
+            <div className="m-8 flex w-full items-center justify-center gap-2">
+              <h2>Ongoing matches</h2>
+              <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-300">
+                {ongoingGames.length} LIVE
+              </span>
+            </div>
+            <div className="flex max-h-75 w-full flex-col gap-2 overflow-y-auto overflow-x-hidden border border-white/30 bg-black/20 p-2 backdrop-blur-xs">
+              {gamesError ? (
+                <p role="alert" className="p-3 text-center text-sm text-red-300">
+                  {gamesError}
+                </p>
+              ) : ongoingGames.length === 0 ? (
+                <p className="p-3 text-center text-sm text-gray-300">
+                  No ongoing matches right now.
+                </p>
+              ) : (
+                ongoingGames.map((game) => {
+                  const blackName =
+                    game.black_player_name ||
+                    (game.opponent_type === "ai" ? "Computer" : "Black");
+                  const timeControl =
+                    game.initial_time_seconds === null
+                      ? "Untimed"
+                      : `${Math.floor(game.initial_time_seconds / 60)}+${game.increment_seconds}`;
+
+                  return (
+                    <button
+                      key={game.id}
+                      type="button"
+                      onClick={() => navigate(`/watch/${game.id}`)}
+                      className="flex w-full items-center justify-between gap-3 rounded-sm bg-gray-50/5 p-3 text-left transition-colors hover:bg-gray-50/15"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold">
+                          {game.white_player_name} vs {blackName}
+                        </span>
+                        <span className="mt-1 block text-xs text-gray-400">
+                          {timeControl}
+                          {game.opponent_type === "ai" &&
+                            game.ai_difficulty &&
+                            ` · ${game.ai_difficulty} AI`}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-red-500/15 px-2 py-1 text-[10px] font-bold tracking-wider text-red-300">
+                        WATCH
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </div>

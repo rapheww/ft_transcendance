@@ -1,5 +1,5 @@
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from backend.models.game import Game
 from backend.models.tournament import TournamentMatch
 
@@ -17,6 +17,13 @@ class GameRepository:
 
     def get_by_id(self, game_id: int) -> Game | None:
         return (self.db.query(Game).filter(Game.id == game_id).first())
+
+    def list_active_games(self, limit: int = 50) -> list[Game]:
+        return (self.db.query(Game).filter(
+            Game.status == "active").options(
+                joinedload(Game.white_player),
+                joinedload(Game.black_player)).order_by(
+                Game.created_at.desc()).limit(limit).all())
 
     def get_by_id_for_update(self, game_id: int) -> Game | None:
         return (self.db.query(Game).filter(

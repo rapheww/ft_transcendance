@@ -19,6 +19,10 @@ export interface GameInfo {
   fen?: string;
   pgn: string;
   result: string | null;
+  white_time_remaining?: number | null;
+  black_time_remaining?: number | null;
+  increment_seconds?: number;
+  last_move_at?: string | null;
 }
 
 export interface GameSocketMessage {
@@ -34,6 +38,12 @@ export interface GameSocketMessage {
   username?: string;
   id?: number;
   chat?: ChatMessage[];
+  white_time_remaining?: number | null;
+  black_time_remaining?: number | null;
+  increment_seconds?: number;
+  last_move_at?: string | null;
+  spectator_count?: number;
+  count?: number;
 }
 
 export interface ChatMessage {
@@ -58,6 +68,10 @@ export interface SocketGameState {
   fen: string;
   status?: string;
   result?: string | null;
+  white_time_remaining?: number | null;
+  black_time_remaining?: number | null;
+  increment_seconds?: number;
+  last_move_at?: string | null;
 }
 
 export function getMoveHistory(pgn: string): Moves[] {

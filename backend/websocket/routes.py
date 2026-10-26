@@ -1,6 +1,7 @@
 import jwt
 import chess
 import logging
+from uuid import uuid4
 from sqlalchemy.orm import Session
 from backend.db.session import get_db, SessionLocal
 from backend.core.security import decode_access_token
@@ -23,24 +24,21 @@ async def game_websocket(websocket: WebSocket,
 
     # ------ TOKEN CHECK ------
     token = websocket.query_params.get("token")
-    # reject missing token
-    if token is None:
-        await websocket.close(code=1008)
-        return
-
-    try:
-        payload = decode_access_token(token)
-        if payload is None:
+    user_id = None
+    if token is not None:
+        try:
+            payload = decode_access_token(token)
+            if payload is None:
+                await websocket.close(code=1008)
+                return
+            if payload.get("type") != "access":
+                await websocket.close(code=1008)
+                return
+            user_id = int(payload["sub"])
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, KeyError,
+                ValueError, TypeError, HTTPException):
             await websocket.close(code=1008)
             return
-        if payload.get("type") != "access":
-            await websocket.close(code=1008)
-            return
-        user_id = int(payload["sub"])
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, KeyError,
-            ValueError, TypeError, HTTPException):
-        await websocket.close(code=1008)
-        return
 
     # ------ GAME & PLAYER CHECK ------
     try:
@@ -50,40 +48,46 @@ async def game_websocket(websocket: WebSocket,
         await websocket.close(code=1008)
         return
 
-    # check the user belongs to this game
-    if game.opponent_type == "ai":
-        if user_id != game.white_player_id:
-            await websocket.close(code=1008)
-            return
-    else:
-        if user_id not in (game.white_player_id, game.black_player_id):
-            await websocket.close(code=1008)
-            return
+    is_player = (user_id is not None
+                 and user_id in (game.white_player_id, game.black_player_id))
+    is_spectator = not is_player
+    if is_spectator and game.status not in ("active", "finished"):
+        await websocket.close(code=1008)
+        return
 
-    if user_id == game.white_player_id:
-        player_color = "white"
-    else:
-        player_color = "black"
+    spectator_id = (user_id if user_id is not None else
+                    f"guest:{uuid4().hex}")
+    player_color = None
+    if is_player:
+        player_color = ("white" if user_id == game.white_player_id else
+                        "black")
 
     db.close()
 
     # ====== PREPARATION FOR EVENT LOOP ======
     try:
-        await manager.connect(game_id, user_id, websocket)
+        if is_spectator:
+            await manager.connect_spectator(game_id, spectator_id, websocket)
+        else:
+            await manager.connect(game_id, user_id, websocket)
 
         # Register before reading the snapshot so any moves broadcast during
         # the read are delivered after the client connects.
         with SessionLocal() as snapshot_db:
             game = game_service.get_game(snapshot_db, game_id)
-            chat_messages = (snapshot_db.query(ChatMessage).filter(
-                ChatMessage.game_id == game_id).order_by(
-                    ChatMessage.id.asc()).all())
+            chat_messages = []
+            if is_player:
+                chat_messages = (snapshot_db.query(ChatMessage).filter(
+                    ChatMessage.game_id == game_id).order_by(
+                        ChatMessage.id.asc()).all())
         board = chess.Board(game.current_fen)
         await websocket.send_json({
             "type":
             "game_connected",
             "user_id":
             user_id,
+            "role":
+            "spectator" if is_spectator else "player",
             "color":
             player_color,
             "fen":
@@ -101,19 +105,39 @@ async def game_websocket(websocket: WebSocket,
                 "message": chat_message.message
             } for chat_message in chat_messages],
             "turn":
-            "white" if board.turn == chess.WHITE else "black"
+            "white" if board.turn == chess.WHITE else "black",
+            "white_time_remaining":
+            game.white_time_remaining,
+            "black_time_remaining":
+            game.black_time_remaining,
+            "increment_seconds":
+            game.increment_seconds,
+            "last_move_at":
+            game.last_move_at.isoformat() if game.last_move_at else None,
+            "spectator_count":
+            manager.spectator_count(game_id)
         })
 
-        await manager.broadcast(game_id, {
-            "type": "player_joined",
-            "user_id": user_id
-        })
+        if is_player:
+            await manager.broadcast(game_id, {
+                "type": "player_joined",
+                "user_id": user_id
+            })
+        else:
+            await manager.broadcast(game_id, {
+                "type": "spectator_count",
+                "count": manager.spectator_count(game_id)
+            })
     except (WebSocketDisconnect, RuntimeError):
-        manager.disconnect(game_id, user_id, websocket)
+        if is_spectator:
+            manager.disconnect_spectator(game_id, spectator_id, websocket)
+        else:
+            manager.disconnect(game_id, user_id, websocket)
         return
 
     # retry a stuck AI turn when the player reconnects
-    start_ai_turn(game_id)
+    if is_player:
+        start_ai_turn(game_id)
     # ====== EVENT LOOP ======
     try:
         while True:
@@ -140,6 +164,13 @@ async def game_websocket(websocket: WebSocket,
             # (dead clients are detected by uvicorn's own protocol pings)
             if event_type == "ping":
                 await websocket.send_json({"type": "pong"})
+                continue
+
+            if is_spectator:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Spectators cannot send game actions"
+                })
                 continue
 
             # ------ EVENT TYPE CHECK ------
@@ -223,7 +254,16 @@ async def game_websocket(websocket: WebSocket,
                                 "uci": uci,
                                 "san": board_before.san(
                                     chess.Move.from_uci(uci)),
-                                "fen": fen
+                                "fen": fen,
+                                "white_time_remaining":
+                                game.white_time_remaining,
+                                "black_time_remaining":
+                                game.black_time_remaining,
+                                "increment_seconds":
+                                game.increment_seconds,
+                                "last_move_at":
+                                game.last_move_at.isoformat()
+                                if game.last_move_at else None
                             })
 
                     await manager.broadcast(game_id, {
@@ -231,6 +271,11 @@ async def game_websocket(websocket: WebSocket,
                         "fen": fen,
                         "status": status,
                         "result": result,
+                        "white_time_remaining": game.white_time_remaining,
+                        "black_time_remaining": game.black_time_remaining,
+                        "increment_seconds": game.increment_seconds,
+                        "last_move_at": game.last_move_at.isoformat()
+                        if game.last_move_at else None,
                     })
                     if status == "finished":
                         await manager.broadcast(game_id, {
@@ -312,8 +357,17 @@ async def game_websocket(websocket: WebSocket,
         pass
     # always executes after the try and except blocks
     finally:
-        manager.disconnect(game_id, user_id, websocket)
-        if not manager.is_connected(game_id, user_id):
+        if is_spectator:
+            removed = manager.disconnect_spectator(
+                game_id, spectator_id, websocket)
+            if removed:
+                await manager.broadcast(game_id, {
+                    "type": "spectator_count",
+                    "count": manager.spectator_count(game_id)
+                })
+        else:
+            manager.disconnect(game_id, user_id, websocket)
+        if is_player and not manager.is_connected(game_id, user_id):
             await manager.broadcast(game_id, {
                 "type": "player_left",
                 "user_id": user_id
