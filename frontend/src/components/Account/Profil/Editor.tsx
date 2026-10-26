@@ -49,7 +49,6 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
           alert("changements error");
           return false;
       }
-      console.log('changements success')
       setNewUsername("");
       setNewPfp("");
       if (body.board_dark_color)
@@ -60,7 +59,6 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
       return true;
     }
     catch{
-      console.log('error changes');
     }
   }
 

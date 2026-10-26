@@ -90,25 +90,27 @@ export default function Mode() {
           Select a game mode
         </h1>
 
-        <div className="relative grid grid-cols-4 grid-rows-3 flex-wrap justify-center items-center gap-2 w-full lg:w-1/3">
-          {modes.map((mode) => (
-            <div
-              className={`flex justify-center items-center w-full h-15 md:h-20 lg:h-25 border-white/30 border p-3 rounded-md ${selectedMode === mode.label ? "bg-white/10" : "bg-black/30 hover:bg-white/5"}  hover:cursor-pointer`}
-              onClick={() => setSelectedMode(mode.label)}
-            >
-              {mode.label}
-            </div>
-          ))}
-          <div className="absolute grid grid-rows-3 -z-10 w-full text-center inset-0 h-full items-center">
-            <div className="opacity-20 text-center text-6xl">
+        <div className="w-full h-full flex flex-row items-center justify-center">
+          <div className="grid grid-rows-3 h-full">
+            <div className="opacity-40 text-center h-15 md:h-20 lg:h-25 [writing-mode:sideways-lr] text-md md:text-lg lg:text-2xl">
               BULLET
             </div>
-            <div className="opacity-20 text-center text-6xl">
+            <div className="opacity-40 text-center  h-15 md:h-20 lg:h-25 [writing-mode:sideways-lr] text-md md:text-lg lg:text-2xl">
               BLITZ
             </div>
-            <div className="  opacity-20 text-center text-6xl">
+            <div className="  opacity-40 text-center h-15 md:h-20 lg:h-25 [writing-mode:sideways-lr] text-md md:text-lg lg:text-2xl">
               RAPID
             </div>
+          </div>
+          <div className="grid grid-cols-4 grid-rows-3 flex-wrap justify-center items-center gap-0.5 w-full lg:w-1/2">
+            {modes.map((mode) => (
+              <div
+                className={`flex justify-center items-center w-full h-15 md:h-20 lg:h-25 border-white/30 border p-3 rounded-md ${selectedMode === mode.label ? "bg-white/10" : "bg-black/40 backdrop-blur-xs hover:bg-white/5"} backdrop-blur-xs hover:cursor-pointer`}
+                onClick={() => setSelectedMode(mode.label)}
+              >
+                {mode.label}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -130,7 +132,7 @@ export default function Mode() {
               <span className="absolute bottom-0 left-0 w-full h-1/3 bg-linear-to-t from-white to-transparent opacity-5"></span>
               <span className="absolute bottom-0 left-0 w-4 h-full bg-linear-to-r from-white to-transparent opacity-5"></span>
               <span className="absolute bottom-0 right-0 w-4 h-full bg-linear-to-l from-white to-transparent opacity-5"></span>
-              <span className="absolute inset-0 w-full h-full border border-white rounded-md opacity-10"></span>
+              <span className="absolute inset-0 w-full h-full border  roflex max-h-75 ex-col gap-2 overflow-y-auto overflow-x-hidden border-white/30 bg-black/20 p-2 backdrop-blur-xsunded-md opacity-10"></span>
               <span className="absolute w-0 h-0 transition-all duration-350 ease-out bg-white rounded-full group-hover:w-56 group-hover:h-56 opacity-5"></span>
               <span className="relative">Find opponent</span>
             </button>

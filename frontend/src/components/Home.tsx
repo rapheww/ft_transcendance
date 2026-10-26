@@ -3,6 +3,7 @@ import ChessPreview from "./Chess/preview/ChessPreview";
 import { API } from "./Chess/utils/api";
 import Header from "./Navbar/Header";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthProvider";
 
 interface LeaderBoard {
   username: string;
@@ -26,6 +27,8 @@ const Home = () => {
   const [leaderboard, SetLeaderboard] = useState<LeaderBoard[] | null>(null);
   const [ongoingGames, setOngoingGames] = useState<OngoingGame[]>([]);
   const [gamesError, setGamesError] = useState("");
+
+  const {profil} = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -84,18 +87,21 @@ const Home = () => {
     <div className="flex flex-col items-center min-h-screen">
       <Header />
       <div className="flex flex-col justify-center items-center flex-1 w-full px-4">
-        <h1 className="text-4xl sm:text-6xl md:text-7xl m-6 sm:m-10 uppercase">
-          Chess
+        <h1 className="text-4xl sm:text-6xl md:text-7xl m-6 sm:m-10 uppercase flex flex-row">
+          42<p className={`text-sky-400`}>Chess</p>
         </h1>
         <div className="grid grid-cols-1 lg:grid-cols-3 items-center w-full gap-8 px-4">
           {leaderboard && (
             <div className="flex flex-col items-center justify-start w-full h-full p-3">
               <div className="w-full flex justify-center m-8">
-                <h1>LeaderBoard</h1>
+                <h1 className="text-lg lg:text-xl">LeaderBoard</h1>
               </div>
-              <div className="bg-black/20 backdrop-blur-xs w-[50%] max-h-50 md:max-h-75 overflow-y-auto overflow-x-hidden border-white/30 border flex flex-col items-center gap-2">
+              <div className="bg-black/20 backdrop-blur-xs w-[70%] max-h-50 md:max-h-75 overflow-y-auto overflow-x-hidden border-white/30 border flex flex-col items-center gap-2 p-2 ">
                 {leaderboard.map((l, i) => (
-                  <div key={i} className={`w-full h-10 md:h-15 flex flex-row justify-center items-center gap-1 ${i % 2 === 0 ? "bg-gray-50/5" : ""} p-2`}>
+                  <div
+                    key={i}
+                    className={`w-full h-10 md:h-15 flex flex-row justify-center items-center gap-1 ${i % 2 === 0 ? "bg-gray-50/5" : ""} p-2 rounded-sm`}
+                  >
                     <p className="text-sm lg:text-lg">#{i + 1}</p>
                     <p className="text-sm lg:text-lg">{l.username}</p>
                     <p className="text-sm lg:text-lg">elo: {l.elo}</p>
@@ -150,16 +156,23 @@ const Home = () => {
             </div>
           </div>
 
-          <section className="flex h-full w-full flex-col items-center justify-start p-3">
-            <div className="m-8 flex w-full items-center justify-center gap-2">
-              <h2>Ongoing matches</h2>
-              <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-300">
-                {ongoingGames.length} LIVE
+          <div className="flex h-full w-full flex-col items-center justify-start p-3">
+            <div className="m-8 flex w-full items-center justify-center gap-3">
+              <h2 className="text-lg lg:text-xl">Ongoing matches</h2>
+
+              <span className="relative flex">
+                <span className="absolute inline-flex h-full w-full animate-soft-ping rounded-full bg-red-500 opacity-30"></span>
+                <span className="relative rounded-full bg-red-500/15 px-5 py-1 text-sm font-semibold text-red-300">
+                  {ongoingGames.length} LIVE
+                </span>
               </span>
             </div>
-            <div className="flex max-h-75 w-full flex-col gap-2 overflow-y-auto overflow-x-hidden border border-white/30 bg-black/20 p-2 backdrop-blur-xs">
+            <div className="bg-black/20 backdrop-blur-xs w-[70%] max-h-50 md:max-h-75 overflow-y-auto overflow-x-hidden border-white/30 border flex flex-col items-center gap-2 p-2 ">
               {gamesError ? (
-                <p role="alert" className="p-3 text-center text-sm text-red-300">
+                <p
+                  role="alert"
+                  className="p-3 text-center text-sm text-red-300"
+                >
                   {gamesError}
                 </p>
               ) : ongoingGames.length === 0 ? (
@@ -202,7 +215,7 @@ const Home = () => {
                 })
               )}
             </div>
-          </section>
+          </div>
         </div>
       </div>
     </div>

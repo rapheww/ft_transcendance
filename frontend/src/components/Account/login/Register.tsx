@@ -10,7 +10,7 @@ const Register = () => {
   const [email, setEmail] = useState<string>("");
   const [invalid, setInvalid] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
+  const [logging, setLogging] = useState<boolean>(false);
   const inputClassname = `input outline-0 border bg-white/3 border-white-50 focus:border-white-50 focus-within:border-white/50 w-full lg:h-12 lg:text-lg 2xl:text-base`;
   const { login } = useAuth();
 
@@ -29,6 +29,7 @@ const Register = () => {
     }
 
     try {
+      setLogging(true);
       if(!username || !password || !email) throw (["Empty field/s"])
       const url = "http://127.0.0.1:8000/api/users/";
       const response = await fetch(url, {
@@ -68,6 +69,7 @@ const Register = () => {
         });
       }
     } catch (error) {
+      setLogging(false)
       setInvalid(true);
       setErrorMessage(error as string)
       return;
@@ -153,6 +155,27 @@ const Register = () => {
               type="submit"
               className="relative inline-flex items-center justify-center mt-3 px-6 py-3 lg:px-8 lg:py-3 lg:text-lg overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group"
             >
+              <svg className={`mr-3 size-5 animate-spin ${logging ? 'flex' : 'hidden'}`} viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  opacity="0.2"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray="66 264"
+                />
+              </svg>
               <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>
               <span className="absolute top-0 left-0 w-full bg-linear-to-b from-white to-transparent opacity-5 h-1/3"></span>
               <span className="absolute bottom-0 left-0 w-full h-1/3 bg-linear-to-t from-white to-transparent opacity-5"></span>

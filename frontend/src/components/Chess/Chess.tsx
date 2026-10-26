@@ -55,7 +55,6 @@ export default function Chess() {
     loadError,
     socketStatus,
     socketError,
-    opponentConnected,
     playerColor,
     playerName,
     opponentName,
@@ -151,7 +150,7 @@ export default function Chess() {
         <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3">
           {/* Le centre contient le plateau et les chronomètres. Le panneau latéral montre les coups ou le chat. */}
           <div className="relative flex flex-col shrink-0 w-(--board) justify-center items-center order-1 gap-2">
-            <div className="flex flex-row justify-between items-center gap-2 w-full h-10 shrink-0 px-2 sm:px-3 rounded-sm bg-mist-400/10">
+            <div className="flex flex-row justify-between items-center gap-2 w-full h-10 shrink-0 px-2 sm:px-3 rounded-sm bg-black/20 backdrop-blur-xs ">
               <p
                 onClick={() => {
                   setOpen(true);
@@ -161,15 +160,6 @@ export default function Chess() {
               >
                 <>
                   {opponentName}
-                  <span
-                    aria-hidden
-                    title={
-                      opponentConnected
-                        ? "Opponent connected"
-                        : "Opponent disconnected"
-                    }
-                    className={`w-2 h-2 shrink-0 rounded-full inline-block ${opponentConnected ? "bg-green-400" : "bg-gray-500"}`}
-                  />
                 </>
               </p>
 
@@ -242,7 +232,7 @@ export default function Chess() {
               />
             </div>
 
-            <div className="flex flex-row justify-between items-center gap-2 w-full h-10 shrink-0 px-2 sm:px-3 rounded-sm bg-mist-400/10">
+            <div className="flex flex-row justify-between items-center gap-2 w-full h-10 shrink-0 px-2 sm:px-3 rounded-sm bg-black/20 backdrop-blur-xs ">
               <p
                 onClick={() => {
                   setOpen(true);

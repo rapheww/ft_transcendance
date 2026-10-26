@@ -76,7 +76,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setToken("");
     setProfil(emptyProfil);
     localStorage.removeItem("user");
-    console.log("logout appelé");
     navigate("/login");
   }, [navigate]);
 
@@ -115,7 +114,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         if(response.ok) setProfil(await response.json());
       } catch {
-        console.log("error");
       }
     };
     // parse expiry and schedule refresh

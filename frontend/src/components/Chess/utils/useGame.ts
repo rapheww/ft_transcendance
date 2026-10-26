@@ -33,7 +33,7 @@ export function useGame(
   const [opponentConnected, setOpponentConnected] = useState(false);
   const [chat, setChat] = useState<ChatMessage[]>([]);
   const [spectatorCount, setSpectatorCount] = useState(0);
-  
+  const opponentId = useRef<number | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
   const socketFenRef = useRef<string>("");
@@ -42,6 +42,44 @@ export function useGame(
   const gameOverRef = useRef(false);
   const waitingForSpectatableGame =
     spectatorMode && (!game || game.status === "waiting");
+
+  const userId = token ? getUserIdFromToken(token) : null;
+
+  const playerColor: string =
+    game && userId !== null
+      ? game.white_player_id === userId
+        ? "white"
+        : game.black_player_id === userId
+          ? "black"
+          : ""
+      : "";
+
+  opponentId.current = !game
+  ? null
+  : playerColor === "white"
+    ? game.black_player_id
+    : playerColor === "black"
+      ? game.white_player_id
+      : null;
+
+  const opponentName =
+    (playerColor === "white"
+      ? game?.black_player_name
+      : playerColor === "black"
+        ? game?.white_player_name
+        : undefined) ??
+    (opponentId
+      ? `Player ${opponentId}`
+      : game?.opponent_type === "ai"
+        ? `AI${game.ai_difficulty ? ` (${game.ai_difficulty})` : ""}`
+        : "Waiting for opponent");
+
+  const playerName =
+    playerColor === "white"
+      ? game?.white_player_name
+      : playerColor === "black"
+        ? game?.black_player_name
+        : undefined;
 
   useEffect(() => {
     gameOverRef.current = gameOver;
@@ -117,15 +155,12 @@ export function useGame(
                     ? socketState.result
                     : data.result,
                 white_time_remaining:
-                  socketState.white_time_remaining ??
-                  data.white_time_remaining,
+                  socketState.white_time_remaining ?? data.white_time_remaining,
                 black_time_remaining:
-                  socketState.black_time_remaining ??
-                  data.black_time_remaining,
+                  socketState.black_time_remaining ?? data.black_time_remaining,
                 increment_seconds:
                   socketState.increment_seconds ?? data.increment_seconds,
-                last_move_at:
-                  socketState.last_move_at ?? data.last_move_at,
+                last_move_at: socketState.last_move_at ?? data.last_move_at,
               }
             : data,
         );
@@ -310,8 +345,10 @@ export function useGame(
               : current,
           );
         }
-        if (typeof data.spectator_count === "number" &&
-            Number.isInteger(data.spectator_count)) {
+        if (
+          typeof data.spectator_count === "number" &&
+          Number.isInteger(data.spectator_count)
+        ) {
           setSpectatorCount(data.spectator_count);
         }
 
@@ -325,12 +362,6 @@ export function useGame(
           gameOverRef.current = false;
           setGameOver(false);
         }
-
-        // presence: if the snapshot or subsequent broadcasts included the
-        // opponent's connection events, they'll be handled by player_joined/
-        // player_left. Reset opponentConnected when receiving a fresh snapshot
-        // so presence will reflect future join/leave events.
-        setOpponentConnected(false);
 
         return;
       }
@@ -427,15 +458,17 @@ export function useGame(
       }
 
       if (data.type === "player_joined") {
-        // mark opponent as connected when we see their join event
-        if (typeof data.user_id === "number" && data.user_id === opponentId) {
+        console.log("Opponent ID:", opponentId.current);
+        console.log("Joined user ID:", data.user_id);
+        if (typeof data.user_id === "number" && data.user_id === opponentId.current) {
+          console.log("joined");
           setOpponentConnected(true);
         }
         return;
       }
 
       if (data.type === "player_left") {
-        if (typeof data.user_id === "number" && data.user_id === opponentId) {
+        if (typeof data.user_id === "number" && data.user_id === opponentId.current) {
           setOpponentConnected(false);
         }
         return;
@@ -632,42 +665,6 @@ export function useGame(
     };
   }, [moves.length]);
 
-  const userId = token ? getUserIdFromToken(token) : null;
-
-  const playerColor: string =
-    game && userId !== null
-      ? game.white_player_id === userId
-        ? "white"
-        : game.black_player_id === userId
-          ? "black"
-          : ""
-      : "";
-
-  const opponentId =
-    playerColor === "white"
-      ? game?.black_player_id
-      : playerColor === "black"
-        ? game?.white_player_id
-        : null;
-
-  const opponentName =
-    (playerColor === "white"
-      ? game?.black_player_name
-      : playerColor === "black"
-        ? game?.white_player_name
-        : undefined) ??
-    (opponentId
-      ? `Player ${opponentId}`
-      : game?.opponent_type === "ai"
-        ? `AI${game.ai_difficulty ? ` (${game.ai_difficulty})` : ""}`
-        : "Waiting for opponent");
-  const playerName =
-    (playerColor === "white"
-      ? game?.white_player_name
-      : playerColor === "black"
-        ? game?.black_player_name
-        : undefined);
-
   // Chaque coup joué change le joueur dont le chronomètre est actif.
   const wTurn = !gameOver && moves.length % 2 === 0;
   const bTurn = !gameOver && moves.length % 2 === 1;
@@ -690,17 +687,12 @@ export function useGame(
     return true;
   }
 
-  function sendChat(chat: {
-    type: "chat";
-    message: string;
-    username: string
-  }) {
+  function sendChat(chat: { type: "chat"; message: string; username: string }) {
     const socket = socketRef.current;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       return false;
     }
 
-    console.log('2', chat.username)
     socket.send(JSON.stringify(chat));
     return true;
   }

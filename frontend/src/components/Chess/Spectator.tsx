@@ -128,7 +128,7 @@ export default function Spectator() {
               isLive
                 ? "bg-red-500/15 text-red-300"
                 : gameOver
-                  ? "bg-mist-700 text-gray-200"
+                  ? "bg-green-600/20 text-gray-200"
                   : "bg-amber-400/15 text-amber-200"
             }`}
           >
@@ -177,7 +177,7 @@ export default function Spectator() {
         ) : (
           <div className="flex w-full max-w-5xl flex-col items-center gap-4 lg:flex-row lg:items-stretch">
             <section className="flex w-full max-w-[min(100%,42rem)] flex-col gap-2">
-              <div className="flex min-h-12 items-center justify-between rounded-md bg-mist-800 px-4">
+              <div className="flex min-h-12 items-center justify-between rounded-md bg-black/20 backdrop-blur-xs px-4">
                 <span className="min-w-0 truncate font-semibold">
                   {blackName}
                   <span className="ml-2 text-xs uppercase tracking-wider text-gray-400">
@@ -188,7 +188,7 @@ export default function Spectator() {
                   className={`rounded px-3 py-1 font-mono text-lg font-bold ${
                     isBlackTurn && !gameOver
                       ? "bg-white text-mist-900"
-                      : "bg-black/20"
+                      : ""
                   }`}
                 >
                   {formatClock(
@@ -216,7 +216,7 @@ export default function Spectator() {
                   readOnly
                 />
               </div>
-              <div className="flex min-h-12 items-center justify-between rounded-md bg-mist-800 px-4">
+              <div className="flex min-h-12 items-center justify-between rounded-md bg-black/20 backdrop-blur-xs px-4">
                 <span className="min-w-0 truncate font-semibold">
                   {whiteName}
                   <span className="ml-2 text-xs uppercase tracking-wider text-gray-400">
@@ -227,7 +227,7 @@ export default function Spectator() {
                   className={`rounded px-3 py-1 font-mono text-lg font-bold ${
                     isWhiteTurn && !gameOver
                       ? "bg-white text-mist-900"
-                      : "bg-black/20"
+                      : ""
                   }`}
                 >
                   {formatClock(
@@ -239,66 +239,68 @@ export default function Spectator() {
                 </span>
               </div>
             </section>
-
-            <aside className="flex max-h-[min(70dvh,42rem)] min-h-64 w-full flex-col overflow-hidden rounded-lg bg-mist-800 shadow-lg lg:mt-14 lg:max-w-sm">
-              <div className="border-b border-white/10 px-4 py-3">
-                <h2 className="font-semibold">Moves</h2>
-                <p className="text-xs text-gray-400">
-                  Select a move to review the position
-                </p>
+            <div
+            id="mov-resume"
+            className="flex max-h-[min(70dvh,42rem)] min-h-64 w-full flex-col overflow-hidden rounded-md shadow-[0_0_6px_#000000] bg-black/20 backdrop-blur-xs lg:mt-14 lg:max-w-sm"
+          >
+            {/* Ces boutons permettent de passer de la liste des coups au chat. */}
+            <div className="w-full h-10 shrink-0 flex items-center justify-center rounded-t-md border-b border-white/30">
+              <div
+                className={`flex justify-center items-center uppercase w-1/2 h-full "bg-white/15" rounded-tl-md cursor-pointer`}
+              >
+                <p>movements</p>
               </div>
+            </div>
+
+            <div
+              id="moves"
+              className={`moves-list flex flex-col w-full flex-1 min-h-0`}
+            >
               <div
                 ref={movesListRef}
-                className="flex-1 overflow-y-auto py-2"
-                aria-label="Move history"
+                className="w-full flex-1 min-h-0 flex flex-col overflow-y-auto scroll-smooth"
               >
-                {movePairs.length === 0 ? (
-                  <p className="px-4 py-3 text-sm text-gray-400">
-                    No moves yet
-                  </p>
-                ) : (
-                  movePairs.map((pair, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-[3rem_1fr_1fr] text-sm"
-                    >
-                      <span className="bg-mist-700 px-3 py-2 text-gray-400">
-                        {index + 1}.
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => pair[0] && setViewIndex(index * 2)}
-                        className={`px-3 py-2 text-left hover:bg-mist-600 ${
-                          viewIndex === index * 2
-                            ? "bg-white font-semibold text-mist-900"
-                            : ""
-                        }`}
-                        aria-label={`Move ${index + 1}, white: ${pair[0]?.move ?? ""}`}
-                      >
-                        {pair[0]?.move ?? ""}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => pair[1] && setViewIndex(index * 2 + 1)}
-                        className={`px-3 py-2 text-left hover:bg-mist-600 ${
-                          viewIndex === index * 2 + 1
-                            ? "bg-white font-semibold text-mist-900"
-                            : ""
-                        }`}
-                        aria-label={`Move ${index + 1}, black: ${pair[1]?.move ?? ""}`}
-                      >
-                        {pair[1]?.move ?? ""}
-                      </button>
+                {movePairs.map((mov, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-row w-full justify-center text-justify h-8 shrink-0"
+                  >
+                    <div className="flex justify-center w-[16%] bg-white/1 border-r border-white/20 h-auto">
+                      {i + 1}
                     </div>
-                  ))
-                )}
+
+                    {/* Cette position correspond au plateau juste après le coup. */}
+                    <div
+                      id={`mov-white-${i}`}
+                      data-fen={mov[0]?.fen}
+                      onClick={() => mov[0] && setViewIndex(i * 2)}
+                      className={`flex hover:bg-white/15 cursor-pointer w-[42%] h-auto pl-2 ${
+                        viewIndex === i * 2 ? "bg-white/25" : ""
+                      }`}
+                    >
+                      {mov[0]?.move}
+                    </div>
+
+                    <div
+                      id={`mov-black-${i}`}
+                      data-fen={mov[1]?.fen}
+                      onClick={() => mov[1] && setViewIndex(i * 2 + 1)}
+                      className={`flex w-[42%] hover:bg-white/15 cursor-pointer h-auto pl-2 ${
+                        viewIndex === i * 2 + 1 ? "bg-white/25" : ""
+                      }`}
+                    >
+                      {mov[1]?.move ?? ""}
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="border-t border-white/10 px-4 py-3 text-xs text-gray-400">
                 {viewIndex < moves.length - 1
                   ? "Reviewing a previous position"
                   : "Following the live position"}
               </div>
-            </aside>
+            </div>
+          </div>
           </div>
         )}
       </main>

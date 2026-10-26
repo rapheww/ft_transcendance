@@ -20,7 +20,6 @@ export async function postMove(move: string, gameId: number, token: string) {
 
     return true;
   } catch {
-    console.log("error makeMove");
     return false;
   }
 }

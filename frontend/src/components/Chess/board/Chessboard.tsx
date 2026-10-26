@@ -282,7 +282,6 @@ export default function Chessboard({
     removeDot();
     setDraw(true);
     const { x, y } = getCoords(e);
-    console.log(x, y);
     setFrom({ x: x, y: y });
     setArrows((prev) => [
       ...prev,
@@ -459,7 +458,6 @@ export default function Chessboard({
 
     if (e?.button == 2 && from && from) {
       const { x, y } = getCoords(e);
-      console.log(x, y);
       setDraw(false);
       if (x != from.x || y != from.y) {
         setArrows((prev) => {
