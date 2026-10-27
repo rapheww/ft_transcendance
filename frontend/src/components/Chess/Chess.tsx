@@ -1,9 +1,9 @@
 import Header from "../Navbar/Header";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Chessboard from "./board/Chessboard";
-import { EqualNot, Flag } from "lucide-react";
+import { EqualNot, Flag, Undo2 } from "lucide-react";
 import Timer from "./Timer";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ProfilePreview from "./preview/ProfilePreview";
 import { useAuth } from "../AuthProvider";
 import { useGame } from "./utils/useGame";
@@ -26,6 +26,7 @@ export default function Chess() {
     gameId: string;
   }>();
 
+  const navigate = useNavigate()
   const { user, token } = useAuth();
 
   // Les paramètres de l'URL sont du texte : n'accepter que les durées prévues pour la partie.
@@ -158,9 +159,7 @@ export default function Chess() {
                 }}
                 className="min-w-0 overflow-hidden whitespace-nowrap text-sm sm:text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer flex items-center gap-2"
               >
-                <>
-                  {opponentName}
-                </>
+                <>{opponentName}</>
               </p>
 
               {/* Afficher l'état de la connexion, y compris pour les outils d'assistance. */}
@@ -333,23 +332,37 @@ export default function Chess() {
                 ))}
               </div>
 
-              <div className="h-12 shrink-0 w-full flex flex-row justify-center items-center gap-3 border-t border-white/30">
-                <button
-                  type="button"
-                  onClick={sendResign}
-                  className="flex justify-center items-center w-12 h-8 border-2 border-white/20 rounded-sm hover:bg-red-600/40 hover:scale-110 duration-300"
-                >
-                  <EqualNot />
-                </button>
+              {!gameOver && (
+                <div className="h-12 shrink-0 w-full flex flex-row justify-center items-center gap-3 border-t border-white/30">
+                  <button
+                    type="button"
+                    onClick={sendResign}
+                    className="flex justify-center items-center w-12 h-8 border-2 border-white/20 rounded-sm hover:bg-red-600/40 hover:scale-110 duration-300"
+                  >
+                    <EqualNot />
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={sendResign}
-                  className="flex justify-center items-center w-12 h-8 border-2 border-white/20 rounded-sm hover:bg-red-600/40 hover:scale-110 duration-300"
-                >
-                  <Flag />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={sendResign}
+                    className="flex justify-center items-center w-12 h-8 border-2 border-white/20 rounded-sm hover:bg-red-600/40 hover:scale-110 duration-300"
+                  >
+                    <Flag />
+                  </button>
+                </div>
+              )}
+              {gameOver && (
+                <div className="h-12 shrink-0 w-full flex flex-row justify-center items-center gap-3 border-t border-white/30">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/")}
+                    className="flex justify-center items-center w-20 h-8 border-2 border-white/20 bg-white/10 rounded-sm hover:bg-red-600/40 hover:scale-110 duration-300"
+                  >
+                    <p className="mr-2 text-lg">Back</p>
+                    <Undo2 size={20}/>
+                  </button>
+                </div>
+              )}
             </div>
 
             <div

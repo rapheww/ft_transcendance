@@ -69,7 +69,7 @@ const GameOver = ({ open, onClose, result, color }: Props) => {
       >
         <div className="w-full flex justify-center items-center">
           <div className="flex flex-col text-white w-full">
-            <div className="bg-mist-800 max-h-[90vh] flex justify-center items-center flex-col rounded-lg p-5 gap-2">
+            <div className="bg-black/90 backdrop-blur-xs border border-white/50 shadow-xl md:shadow-2xl shadow-black max-h-[90vh] flex justify-center items-center flex-col rounded-lg p-5 gap-2">
               <button
                 onClick={onClose}
                 className="cursor-pointer place-self-end"
@@ -78,7 +78,7 @@ const GameOver = ({ open, onClose, result, color }: Props) => {
               </button>
               <h1 className="text-2xl font-extrabold">{colorResult}</h1>
               <p className="text-2xl">{result}</p>
-              <p className="mt-2 text-sm">click on the king at the top left to go to home page</p>
+              <p className="mt-2 text-sm">return to home to start a new game</p>
             </div>
           </div>
         </div>

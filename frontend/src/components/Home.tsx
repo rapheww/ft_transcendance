@@ -3,7 +3,6 @@ import ChessPreview from "./Chess/preview/ChessPreview";
 import { API } from "./Chess/utils/api";
 import Header from "./Navbar/Header";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthProvider";
 
 interface LeaderBoard {
   username: string;
@@ -27,8 +26,6 @@ const Home = () => {
   const [leaderboard, SetLeaderboard] = useState<LeaderBoard[] | null>(null);
   const [ongoingGames, setOngoingGames] = useState<OngoingGame[]>([]);
   const [gamesError, setGamesError] = useState("");
-
-  const {profil} = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -178,6 +175,7 @@ const Home = () => {
               ) : ongoingGames.length === 0 ? (
                 <p className="p-3 text-center text-sm text-gray-300">
                   No ongoing matches right now.
+                  <img className="mt-2 rounded-2xl" src="https://media.tenor.com/Rd0jrWH5JjgAAAAM/cat-scuba.gif" alt="scuba" />
                 </p>
               ) : (
                 ongoingGames.map((game) => {

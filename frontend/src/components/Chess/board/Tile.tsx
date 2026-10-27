@@ -1,17 +1,22 @@
 import { useAuth } from "../../AuthProvider";
+import { horizontalAxis, verticalAxis } from "../utils/utils";
 
 interface Props {
   number: number;
   image?: string;
   gameOver: boolean;
   inCheck?: boolean;
+  tile: { x: number; y: number };
+  playerColor: string;
 }
 
 export default function Tile({
   number,
   image,
   gameOver,
-  inCheck
+  inCheck,
+  tile,
+  playerColor,
 }: Props) {
   const { profil } = useAuth();
   const isDark = number % 2 === 0;
@@ -19,12 +24,38 @@ export default function Tile({
     ? profil.board_dark_color || "var(--dark-tile)"
     : profil.board_light_color || "var(--light-tile)";
 
+  const leftCol = playerColor === "white" ? tile.y === 0 : tile.y === 7;
+  const bottomRow = playerColor === "white" ? tile.x === 0 : tile.x === 7;
+
+  const displayCol = leftCol ? horizontalAxis[tile.x] : null;
+  const displayRow = bottomRow ? verticalAxis[tile.y] : null;
+
+  const lightColor = profil.board_light_color || "var(--light-tile)";
+  const darkColor = profil.board_dark_color || "var(--dark-tile)";
+  const textColor = isDark ? lightColor : darkColor;
+
   return (
     <div
       className={` relative h-full w-full`}
       data-dark={isDark}
       style={{ backgroundColor: color }}
     >
+      {displayCol && (
+        <p
+          style={{ color: textColor }}
+          className={`absolute bottom-0.5 right-0.5 text-xs lg:text-sm`}
+        >
+          {displayCol}
+        </p>
+      )}
+      {displayRow && (
+        <p
+          style={{ color: textColor }}
+          className="absolute text-black top-0.5 left-0.5 text-xs lg:text-sm"
+        >
+          {displayRow}
+        </p>
+      )}
       {image && (
         <div
           style={{

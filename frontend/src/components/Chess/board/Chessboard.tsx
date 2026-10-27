@@ -561,6 +561,8 @@ export default function Chessboard({
             number={i + j + 2}
             gameOver={gameOver}
             inCheck={square === checkedKing}
+            tile={{x:i, y:j}}
+            playerColor={playerColor}
           />,
         );
       }
@@ -580,6 +582,8 @@ export default function Chessboard({
             number={i + j + 2}
             gameOver={gameOver}
             inCheck={square === checkedKing}
+            tile={{x:i, y:j}}
+            playerColor={playerColor}
           />,
         );
       }
