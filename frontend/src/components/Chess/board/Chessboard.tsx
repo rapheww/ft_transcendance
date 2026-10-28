@@ -22,8 +22,6 @@ import type { Moves } from "../utils/game";
 
 export interface ChessboardProps {
   setMoves: React.Dispatch<React.SetStateAction<Moves[]>>;
-  setBBonus: React.Dispatch<React.SetStateAction<boolean>>;
-  setWBonus: React.Dispatch<React.SetStateAction<boolean>>;
   playerColor: string;
   canPlay: boolean;
   sendSocketMove: (move: {
@@ -43,8 +41,6 @@ export interface ChessboardProps {
 
 export default function Chessboard({
   setMoves,
-  setBBonus,
-  setWBonus,
   playerColor,
   canPlay,
   sendSocketMove,
@@ -195,9 +191,6 @@ export default function Chessboard({
     setPendinPromo(null);
     setParams(null);
 
-    const turn = chessRef.current.turn();
-    setBBonus(turn === "w");
-    setWBonus(turn === "b");
     if (chessRef.current.isGameOver()) {
       setGameOver(true);
       setOpen(true);

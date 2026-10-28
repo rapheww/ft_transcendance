@@ -131,6 +131,10 @@ def test_list_ongoing_games_only_returns_active_games(client: TestClient):
     assert [game["id"] for game in response.json()] == [
         active_response.json()["id"]
     ]
+    assert response.json()[0]["white_player_id"] == active_response.json()[
+        "white_player_id"]
+    assert response.json()[0]["black_player_id"] == join_response.json()[
+        "black_player_id"]
     assert response.json()[0]["white_player_name"] == "live_white"
     assert response.json()[0]["black_player_name"] == "live_black"
 

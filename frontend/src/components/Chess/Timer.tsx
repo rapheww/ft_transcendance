@@ -1,42 +1,41 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Props {
-  time: number;
+  time: number | null;
   turn: boolean;
-  bonus: number;
-  toAdd: boolean;
+  lastMoveAt?: string | null;
   setGameOver: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const Timer = ({ time, turn, bonus, toAdd, setGameOver }: Props) => {
-  const [timeLeft, setTimeLeft] = useState<number>(time);
-  const tickStart = useRef(0); // moment où le tick en cours a démarré
-  const carried = useRef(0); // millisecondes déjà écoulées dans la seconde en cours
+const Timer = ({ time, turn, lastMoveAt, setGameOver }: Props) => {
+  const [clockNow, setClockNow] = useState(() => Date.now());
+  const [startedAt] = useState(() => Date.now());
+
+  const lastMoveTimestamp = lastMoveAt ? Date.parse(lastMoveAt) : Number.NaN;
+  const clockStart = Number.isFinite(lastMoveTimestamp)
+    ? lastMoveTimestamp
+    : startedAt;
+  const elapsed =
+    turn && time !== null
+      ? Math.max(0, Math.floor((clockNow - clockStart) / 1000))
+      : 0;
+  const timeLeft = time === null ? null : Math.max(0, time - elapsed);
 
   useEffect(() => {
-    if (!turn) return;
-    if (timeLeft <= 0) {
-      setGameOver(true);
-      return;
-    }
-    let fired = false;
-    tickStart.current = Date.now()
-    const id = setTimeout(() => {
-      fired = true;
-      carried.current = 0;
-      setTimeLeft((t) => t - 1);
-    }, 1000 - carried.current);
-    return () => {
-      clearTimeout(id);
-       if(!fired) carried.current += Date.now() - tickStart.current;
-    }
-  }, [timeLeft, turn]);
+    if (time === null || !turn) return;
+    const id = window.setInterval(() => {
+      const now = Date.now();
+      setClockNow(now);
+      if (Math.floor((now - clockStart) / 1000) >= time) {
+        setGameOver(true);
+      }
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [clockStart, setGameOver, time, turn]);
 
-  useEffect(() => {
-    if (toAdd) {
-      setTimeLeft((t) => t + bonus);
-    }
-  }, [toAdd]);
+  if (timeLeft === null) {
+    return <h2 className="font-bold text-2xl">--:--</h2>;
+  }
 
   const minuts = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;

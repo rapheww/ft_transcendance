@@ -8,37 +8,22 @@ import ProfilePreview from "./preview/ProfilePreview";
 import { useAuth } from "../AuthProvider";
 import { useGame } from "./utils/useGame";
 import type { Moves } from "./utils/game";
-import { allTime } from "../Matchmaking/Waiting";
 
 export default function Chess() {
   const [showMoves, setShowMoves] = useState<boolean>(true);
   const [showChat, setShowChat] = useState<boolean>(false);
-  const [wBonus, setWBonus] = useState<boolean>(false);
-  const [bBonus, setBBonus] = useState<boolean>(false);
   const [open, setOpen] = useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const movesListRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
-  const { timer, bonus, gameId } = useParams<{
-    timer: string;
-    bonus: string;
+  const { gameId } = useParams<{
     gameId: string;
   }>();
 
   const navigate = useNavigate()
   const { user, token } = useAuth();
 
-  // Les paramètres de l'URL sont du texte : n'accepter que les durées prévues pour la partie.
-  const time: string = timer + "+" + bonus;
-  let i = 0;
-  let chrono = 5;
-  let add = 5;
-  for (; i < allTime.length; i++) if (allTime[i] === time) break;
-  if (allTime[i]) {
-    chrono = Number(timer);
-    add = Number(bonus);
-  }
   const id = Number(gameId);
 
   const {
@@ -195,10 +180,13 @@ export default function Chess() {
                 }`}
               >
                 <Timer
-                  time={chrono * 60}
+                  time={
+                    (playerColor === "black"
+                      ? game.white_time_remaining
+                      : game.black_time_remaining) ?? null
+                  }
                   turn={playerColor === "black" ? wTurn : bTurn}
-                  bonus={add}
-                  toAdd={bBonus}
+                  lastMoveAt={game.last_move_at}
                   setGameOver={setGameOver}
                 />
               </div>
@@ -217,8 +205,6 @@ export default function Chess() {
             <div className="w-(--board) h-(--board) flex items-center justify-center @container-size">
               <Chessboard
                 setMoves={setMoves}
-                setBBonus={setBBonus}
-                setWBonus={setWBonus}
                 setGameOver={setGameOver}
                 setResult={setResult}
                 gameId={id}
@@ -251,10 +237,13 @@ export default function Chess() {
                 }`}
               >
                 <Timer
-                  time={chrono * 60}
+                  time={
+                    (playerColor === "black"
+                      ? game.black_time_remaining
+                      : game.white_time_remaining) ?? null
+                  }
                   turn={playerColor === "black" ? bTurn : wTurn}
-                  bonus={add}
-                  toAdd={wBonus}
+                  lastMoveAt={game.last_move_at}
                   setGameOver={setGameOver}
                 />
               </div>

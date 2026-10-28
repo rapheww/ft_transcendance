@@ -78,17 +78,10 @@ async def run_ai_turn(game_id: int):
 
                 if ai_move is None:
                     raise RuntimeError("AI returned no move in an active game")
-
-                # Use the latest board to create SAN
-                san = board_now.san(ai_move)
-
-                # ----- APPLY AI MOVE -----
-                game = game_service.make_ai_move(
-                    db, 
-                    game_id, 
-                    ai_move
-                )
-
+                san = board.san(ai_move)
+                position_before_move = board.fen()
+                db.expire_all()
+                game = game_service.make_ai_move(db, game_id, ai_move)
                 fen = game.current_fen
                 status = game.status
                 result = game.result
@@ -120,22 +113,21 @@ async def run_ai_turn(game_id: int):
                 )
                 return
 
-        # ----- BROADCAST AI MOVE -----
-        await manager.broadcast(
-            game_id, 
-            {
-                "type": "move",
-                "player": "ai",
-                "from": chess.square_name(ai_move.from_square),
-                "to": chess.square_name(ai_move.to_square),
-                "uci": ai_move.uci(),
-                "san": san,
-                "fen": fen,
-                "white_time_remaining": white_time_remaining,
-                "black_time_remaining": black_time_remaining,
-                "increment_seconds": increment_seconds,
-                "last_move_at": last_move_at,
-            })
+        if fen != position_before_move:
+            await manager.broadcast(
+                game_id, {
+                    "type": "move",
+                    "player": "ai",
+                    "from": chess.square_name(ai_move.from_square),
+                    "to": chess.square_name(ai_move.to_square),
+                    "uci": ai_move.uci(),
+                    "san": san,
+                    "fen": fen,
+                    "white_time_remaining": white_time_remaining,
+                    "black_time_remaining": black_time_remaining,
+                    "increment_seconds": increment_seconds,
+                    "last_move_at": last_move_at,
+                })
 
         await manager.broadcast(game_id, {
             "type": "game_state",

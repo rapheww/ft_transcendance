@@ -47,8 +47,10 @@ class GameResponse(BaseModel):
 
 class OngoingGameResponse(BaseModel):
     id: int
+    white_player_id: int
     white_player_name: str = Field(
         validation_alias=AliasPath("white_player", "username"))
+    black_player_id: int | None
     black_player_name: str | None = Field(
         default=None,
         validation_alias=AliasPath("black_player", "username"))
