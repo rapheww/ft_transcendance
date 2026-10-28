@@ -17,16 +17,15 @@ Total points needed: 14 (19 with bonuses).
 - Major: Remote players — Enable two players on separate computers to play the same game in real-time.
 - Minor: Implement a tournament system.
 - Minor: Game customization options.
+- Major: Introduce an AI Opponent for games.
+- Major: Recommandation system using machine learning.
 
-Total with current implementation: 19
+Total with current implementation: 23
 
 Potential additional modules:
 
-- Major: Multiplayer game (more than two players).
 - Minor: Advanced chat features (enhances the basic chat from "User interaction" module).
 - Major: An organization system.
-- Major: Introduce an AI Opponent for games.
-- Major: Recommandation system using machine learning.
 - Minor: Data export and import functionality.
 
-Total points of bonus modules: 8
+Total points of bonus modules: 4
