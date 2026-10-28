@@ -53,6 +53,7 @@ export default function Chess() {
     chat,
   } = useGame(id, token);
 
+  console.log('opponent', opponentName)
   const movePairs = useMemo(() => {
     // Afficher les coups blancs et noirs côte à côte dans la liste des coups.
     const pairs: (Moves | null)[][] = [];
@@ -214,6 +215,7 @@ export default function Chess() {
                 playerColor={playerColor}
                 canPlay={canPlay}
                 sendSocketMove={sendSocketMove}
+                opponentName={opponentName}
               />
             </div>
 

@@ -37,6 +37,7 @@ export interface ChessboardProps {
   setGameOver: React.Dispatch<React.SetStateAction<boolean>>;
   setResult: React.Dispatch<React.SetStateAction<string>>;
   readOnly?: boolean;
+  opponentName: string;
 }
 
 export default function Chessboard({
@@ -51,6 +52,7 @@ export default function Chessboard({
   gameOver,
   result,
   readOnly = false,
+  opponentName
 }: ChessboardProps) {
   const chessRef = useRef(new Chess(fenInit));
   const checkedKing: string | null = chessRef.current.isCheck()
@@ -648,6 +650,7 @@ export default function Chessboard({
           onClose={() => setOpen(false)}
           result={result}
           color={playerColor}
+          opponentName={opponentName}
         />
       )}
       {!readOnly && (

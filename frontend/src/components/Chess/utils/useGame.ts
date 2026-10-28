@@ -61,15 +61,15 @@ export function useGame(
     : playerColor === "black"
       ? game.white_player_id
       : null;
-
+  
   const opponentName =
     (playerColor === "white"
       ? game?.black_player_name
       : playerColor === "black"
         ? game?.white_player_name
         : undefined) ??
-    (opponentId
-      ? `Player ${opponentId}`
+    (opponentId.current
+      ? `Player ${opponentId.current}`
       : game?.opponent_type === "ai"
         ? `AI${game.ai_difficulty ? ` (${game.ai_difficulty})` : ""}`
         : "Waiting for opponent");
