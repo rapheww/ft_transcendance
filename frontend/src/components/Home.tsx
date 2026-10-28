@@ -175,7 +175,6 @@ const Home = () => {
               ) : ongoingGames.length === 0 ? (
                 <p className="p-3 text-center text-sm text-gray-300">
                   No ongoing matches right now.
-                  <img className="mt-2 rounded-2xl" src="https://media.tenor.com/Rd0jrWH5JjgAAAAM/cat-scuba.gif" alt="scuba" />
                 </p>
               ) : (
                 ongoingGames.map((game) => {

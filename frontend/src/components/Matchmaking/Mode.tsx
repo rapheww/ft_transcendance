@@ -103,8 +103,9 @@ export default function Mode() {
             </div>
           </div>
           <div className="grid grid-cols-4 grid-rows-3 flex-wrap justify-center items-center gap-0.5 w-full lg:w-1/2">
-            {modes.map((mode) => (
+            {modes.map((mode, i) => (
               <div
+                key={i}
                 className={`flex justify-center items-center w-full h-15 md:h-20 lg:h-25 border-white/30 border p-3 rounded-md ${selectedMode === mode.label ? "bg-white/10" : "bg-black/40 backdrop-blur-xs hover:bg-white/5"} backdrop-blur-xs hover:cursor-pointer`}
                 onClick={() => setSelectedMode(mode.label)}
               >

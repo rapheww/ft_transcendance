@@ -1,18 +1,24 @@
 import confetti from "canvas-confetti";
 import { X } from "lucide-react";
 import { useEffect } from "react";
+import { useAuth } from "../../AuthProvider";
 
 interface Props {
   onClose: () => void;
   open: boolean;
   result: string;
   color: string;
+  opponentName: string;
 }
 
-const GameOver = ({ open, onClose, result, color }: Props) => {
+const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
   useEffect(() => {
     if (!open) return;
-    if(result === "0-1" && color != "black" || result === "1-0" && color != "white") return;
+    if (
+      (result === "0-1" && color != "black") ||
+      (result === "1-0" && color != "white")
+    )
+      return;
     let count = 200;
     let defaults = {
       origin: { y: 0.7 },
@@ -50,7 +56,8 @@ const GameOver = ({ open, onClose, result, color }: Props) => {
     });
   }, [open]);
 
-  const colorResult: string = result === "0-1" ? "Black Wins" : "White Wins"
+  const colorResult: string = result === "0-1" ? "black" : "white";
+  const { profil } = useAuth();
   return (
     <div
       className={`
@@ -76,9 +83,13 @@ const GameOver = ({ open, onClose, result, color }: Props) => {
               >
                 <X size={30} />
               </button>
-              <h1 className="text-2xl font-extrabold">{colorResult}</h1>
-              <p className="text-2xl">{result}</p>
-              <p className="mt-2 text-sm">return to home to start a new game</p>
+              <h1 className="text-2xl font-extrabold">{colorResult.toUpperCase()} Wins</h1>
+              <div className="border w-full flex flex-row justify-center h-20 lg:h-30 items-center text-center">
+                <p className="w-1/3">{color === "white" ? profil.username : opponentName}</p>
+                <p className="w-1/3">{result}</p>
+                <p className="w-1/3">{color === "black" ? profil.username : opponentName}</p>
+              </div>
+              <p className="mt-2 text-sm">elo +1000</p>
             </div>
           </div>
         </div>
