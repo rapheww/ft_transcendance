@@ -2,6 +2,7 @@ import confetti from "canvas-confetti";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth, type ProfilType } from "../../AuthProvider";
+import { API } from "../utils/api";
 
 interface Props {
   onClose: () => void;
@@ -62,7 +63,7 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
     (async () => {
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/api/users/${opponentName}`,
+          `${API}/users/${opponentName}`,
         );
         if (!response.ok) return;
         const infos = await response.json();
@@ -71,7 +72,7 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
         console.error(err);
       }
     })();
-  }, [open]);
+  }, [open, opponentName]);
 
   const colorResult: string = result === "0-1" ? "Black Wins" : "White Wins";
   const { profil } = useAuth();
@@ -104,7 +105,7 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
               <div className="border w-full flex flex-row justify-center h-20 lg:h-30 items-center text-center">
                 <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5">
                   <img
-                    src={color === "white" ? profil.avatar : profilOps?.avatar}
+                    src={color === "white" ? profil.avatar : profilOps?.avatar ?? 'https://media.tenor.com/GQAsycjoZG8AAAAj/scuba-scuba-cat.gif'}
                     alt=""
                     className=" h-[80%] object-cover rounded-full"
                   />
@@ -115,7 +116,7 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
                 <p className="w-1/3">{result}</p>
                 <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5">
                   <img
-                    src={color === "black" ? profil.avatar : profilOps?.avatar}
+                    src={color === "black" ? profil.avatar : profilOps?.avatar ?? 'https://media.tenor.com/GQAsycjoZG8AAAAj/scuba-scuba-cat.gif'}
                     alt=""
                     className=" h-[80%] object-cover rounded-full"
                   />

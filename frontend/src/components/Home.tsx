@@ -98,7 +98,7 @@ const Home = () => {
           {leaderboard && (
             <div className="flex flex-col items-center justify-start w-full h-full p-3">
               <div className="w-full flex justify-center m-8">
-                <h1 className="text-lg lg:text-xl">LeaderBoard</h1>
+                <h1 className="text-lg lg:text-xl">Leaderboard</h1>
               </div>
               <div className="bg-black/20 backdrop-blur-xs w-[70%] max-h-50 md:max-h-75 overflow-y-auto overflow-x-hidden border-white/30 border flex flex-col items-center gap-2 p-2 ">
                 {leaderboard.map((l, i) => (

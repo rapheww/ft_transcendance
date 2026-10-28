@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../../AuthProvider";
 import Header from "../../Navbar/Header";
+import { API } from "../../Chess/utils/api";
 
 const Login = () => {
   const [username, setUsername] = useState<string>("");
@@ -16,7 +17,7 @@ const Login = () => {
   async function handleLogin(event: any) {
     if (event) event.preventDefault();
     try {
-      const url = "http://127.0.0.1:8000/api/auth/login";
+      const url = `${API}/auth/login`;
       setLogging(true);
       const response = await fetch(url, {
         method: "POST",
