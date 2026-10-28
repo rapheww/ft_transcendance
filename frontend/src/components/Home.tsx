@@ -5,6 +5,7 @@ import { getUserIdFromToken } from "./Chess/utils/game";
 import Header from "./Navbar/Header";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
+import { Crown } from "lucide-react";
 
 interface LeaderBoard {
   username: string;
@@ -105,7 +106,7 @@ const Home = () => {
                     key={i}
                     className={`w-full h-10 md:h-15 flex flex-row justify-center items-center gap-1 ${i % 2 === 0 ? "bg-gray-50/5" : ""} p-2 rounded-sm`}
                   >
-                    <p className="text-sm lg:text-lg">#{i + 1}</p>
+                    <p className="text-sm lg:text-lg">{i + 1 === 1 ? (<Crown size={20} color="yellow" />) : `#${i + 1}`}</p>
                     <p className="text-sm lg:text-lg">{l.username}</p>
                     <p className="text-sm lg:text-lg">elo: {l.elo}</p>
                   </div>

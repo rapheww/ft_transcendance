@@ -1,7 +1,7 @@
 import confetti from "canvas-confetti";
 import { X } from "lucide-react";
-import { useEffect } from "react";
-import { useAuth } from "../../AuthProvider";
+import { useEffect, useState } from "react";
+import { useAuth, type ProfilType } from "../../AuthProvider";
 
 interface Props {
   onClose: () => void;
@@ -12,6 +12,7 @@ interface Props {
 }
 
 const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
+  const [profilOps, setProfil] = useState<ProfilType | null>();
   useEffect(() => {
     if (!open) return;
     if (
@@ -56,7 +57,23 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
     });
   }, [open]);
 
-  const colorResult: string = result === "0-1" ? "black" : "white";
+  useEffect(() => {
+    if (!open || !opponentName) return;
+    (async () => {
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/users/${opponentName}`,
+        );
+        if (!response.ok) return;
+        const infos = await response.json();
+        setProfil(infos);
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  }, [open]);
+
+  const colorResult: string = result === "0-1" ? "Black Wins" : "White Wins";
   const { profil } = useAuth();
   return (
     <div
@@ -83,11 +100,29 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
               >
                 <X size={30} />
               </button>
-              <h1 className="text-2xl font-extrabold">{colorResult.toUpperCase()} Wins</h1>
+              <h1 className="text-2xl font-extrabold">{colorResult}</h1>
               <div className="border w-full flex flex-row justify-center h-20 lg:h-30 items-center text-center">
-                <p className="w-1/3">{color === "white" ? profil.username : opponentName}</p>
+                <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5">
+                  <img
+                    src={color === "white" ? profil.avatar : profilOps?.avatar}
+                    alt=""
+                    className=" h-[80%] object-cover rounded-full"
+                  />
+                  <p className="text-lg lg:text-xl">
+                    {color === "white" ? profil.username : opponentName}
+                  </p>
+                </div>
                 <p className="w-1/3">{result}</p>
-                <p className="w-1/3">{color === "black" ? profil.username : opponentName}</p>
+                <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5">
+                  <img
+                    src={color === "black" ? profil.avatar : profilOps?.avatar}
+                    alt=""
+                    className=" h-[80%] object-cover rounded-full"
+                  />
+                  <p className="text-lg lg:text-xl">
+                    {color === "black" ? profil.username : opponentName}
+                  </p>
+                </div>
               </div>
               <p className="mt-2 text-sm">elo +1000</p>
             </div>
