@@ -14,6 +14,7 @@ import {
   type SocketGameState,
   type SocketStatus,
 } from "./game";
+import { API } from "./api";
 
 export function useGame(
   id: number,
@@ -55,13 +56,13 @@ export function useGame(
       : "";
 
   opponentId.current = !game
-  ? null
-  : playerColor === "white"
-    ? game.black_player_id
-    : playerColor === "black"
-      ? game.white_player_id
-      : null;
-  
+    ? null
+    : playerColor === "white"
+      ? game.black_player_id
+      : playerColor === "black"
+        ? game.white_player_id
+        : null;
+
   const opponentName =
     (playerColor === "white"
       ? game?.black_player_name
@@ -118,7 +119,7 @@ export function useGame(
       }
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/games/${id}`, {
+        const response = await fetch(`${API}/games/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           signal: controller.signal,
         });
@@ -220,9 +221,10 @@ export function useGame(
 
     // L'adresse WebSocket transporte le jeton de connexion dans son URL pour que le serveur
     // puisse vérifier qui ouvre la connexion.
+    const proto = location.protocol === "https:" ? "wss" : "ws";
     const socketUrl = token
-      ? `ws://127.0.0.1:8000/ws/games/${id}?token=${encodeURIComponent(token)}`
-      : `ws://127.0.0.1:8000/ws/games/${id}`;
+      ? `${proto}://${location.host}/ws/games/${id}?token=${encodeURIComponent(token)}`
+      : `${proto}://${location.host}/ws/games/${id}`;
 
     function receiveMove(data: GameSocketMessage) {
       if (typeof data.san !== "string" || typeof data.fen !== "string") return;
@@ -460,7 +462,10 @@ export function useGame(
       if (data.type === "player_joined") {
         console.log("Opponent ID:", opponentId.current);
         console.log("Joined user ID:", data.user_id);
-        if (typeof data.user_id === "number" && data.user_id === opponentId.current) {
+        if (
+          typeof data.user_id === "number" &&
+          data.user_id === opponentId.current
+        ) {
           console.log("joined");
           setOpponentConnected(true);
         }
@@ -468,7 +473,10 @@ export function useGame(
       }
 
       if (data.type === "player_left") {
-        if (typeof data.user_id === "number" && data.user_id === opponentId.current) {
+        if (
+          typeof data.user_id === "number" &&
+          data.user_id === opponentId.current
+        ) {
           setOpponentConnected(false);
         }
         return;
@@ -520,7 +528,7 @@ export function useGame(
         const parsed = JSON.parse(stored);
         const refresh_token = parsed?.refresh_token;
         if (!refresh_token) return false;
-        const resp = await fetch("http://127.0.0.1:8000/api/auth/refresh", {
+        const resp = await fetch(`${API}/auth/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh_token }),
@@ -702,16 +710,13 @@ export function useGame(
     if (!token || !game || playerColor === "") return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/games/${id}/resign`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+      const response = await fetch(`${API}/games/${id}/resign`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-      );
+      });
 
       if (!response.ok) {
         console.error("Resign rejected:", await response.text());

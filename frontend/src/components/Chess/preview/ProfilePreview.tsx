@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ProfilType } from "../../AuthProvider";
 import Chart from "../../Account/Profil/Chart";
+import { API } from "../utils/api";
 
 interface Props {
   onClose: () => void;
@@ -16,7 +17,7 @@ const ProfilePreview = ({ onClose, open, username }: Props) => {
     (async () => {
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/api/users/${username}`,
+          `${API}/users/${username}`,
         );
         if (!response.ok) return;
         const infos = await response.json();

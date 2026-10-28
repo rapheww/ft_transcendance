@@ -65,6 +65,11 @@ install-backend:
 install-frontend:
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
+	mkdir bin && cd bin
+	@echo "go to bin folder"
+	curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+	chmod +x cloudflared
+
 
 # ---------------------------------------------------------------------------
 # Database
@@ -140,6 +145,7 @@ dev:
 	@trap 'trap - INT TERM EXIT; kill $$(jobs -p) 2>/dev/null; wait' INT TERM EXIT; \
 		$(VENV_PYTHON) -m uvicorn backend.app.main:app --reload & \
 		(cd frontend && npm run dev) & \
+		(cd frontend/bin && ./cloudflared tunnel --url http://localhost:5173) & \
 		wait
 
 # ---------------------------------------------------------------------------
@@ -173,6 +179,7 @@ fclean: clean
 	@echo "Removing dependencies..."
 	@rm -rf $(VENV)
 	@rm -rf frontend/node_modules
+	@rm -rf frontend/bin
 	@echo "Full clean complete."
 
 

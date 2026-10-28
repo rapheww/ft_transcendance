@@ -3,6 +3,7 @@ import ColorPicker from "./ColorPicker";
 import { useEffect, useState } from "react";
 import Preview from "./Preview";
 import { useAuth } from "../../AuthProvider";
+import { API } from "../../Chess/utils/api";
 
 interface Props {
   onClose: () => void;
@@ -26,7 +27,7 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
 
   async function ChangeProfil(){
     try{
-      const url = 'http://127.0.0.1:8000/api/users/me'
+      const url = `${API}/users/me`
 
       const body : {username?: string, avatar?: string, board_light_color?: string, board_dark_color?: string} = {}
       if (newUsername) body.username = newUsername;

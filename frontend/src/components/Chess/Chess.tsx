@@ -9,6 +9,7 @@ import { useAuth } from "../AuthProvider";
 import { useGame } from "./utils/useGame";
 import type { Moves } from "./utils/game";
 
+
 export default function Chess() {
   const [showMoves, setShowMoves] = useState<boolean>(true);
   const [showChat, setShowChat] = useState<boolean>(false);

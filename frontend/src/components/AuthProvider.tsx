@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { API } from "./Chess/utils/api";
 
 type LoginType = {
   username: string;
@@ -85,7 +86,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     async function refreshAccessToken(): Promise<boolean> {
       if (!refreshToken) return false;
       try {
-        const resp = await fetch("http://127.0.0.1:8000/api/auth/refresh", {
+        const resp = await fetch(`${API}/auth/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh_token: refreshToken }),
@@ -106,7 +107,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const checker = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/users/me", {
+        const response = await fetch(`${API}/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) {

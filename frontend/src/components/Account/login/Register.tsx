@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../../AuthProvider";
 import Header from "../../Navbar/Header";
+import { API } from "../../Chess/utils/api";
 
 const Register = () => {
   const [username, setUsername] = useState<string>("");
@@ -31,7 +32,7 @@ const Register = () => {
     try {
       setLogging(true);
       if(!username || !password || !email) throw (["Empty field/s"])
-      const url = "http://127.0.0.1:8000/api/users/";
+      const url = `${API}/users/`;
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,7 +51,7 @@ const Register = () => {
       }
 
       //Login time
-      const urlLog = "http://127.0.0.1:8000/api/auth/login";
+      const urlLog = `${API}/auth/login`;
       const LogResponse = await fetch(urlLog, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

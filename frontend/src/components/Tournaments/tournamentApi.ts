@@ -1,6 +1,7 @@
+import { API } from "../Chess/utils/api";
 import type { Tournament } from "./tournamentTypes";
 
-const API_URL = "http://127.0.0.1:8000/api/tournaments";
+const API_URL = `${API}/tournaments`;
 
 async function request<T>(path: string, token: string, method = "GET"): Promise<T> {
     const response = await fetch(`${API_URL}${path}`, {

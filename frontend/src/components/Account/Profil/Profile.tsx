@@ -44,7 +44,7 @@ const Profil = () => {
   const getProfilInfos = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/users/me", {
+      const response = await fetch(`${API}/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) return;

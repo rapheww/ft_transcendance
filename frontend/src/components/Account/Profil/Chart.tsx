@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 import { useAuth } from "../../AuthProvider";
+import { API } from "../../Chess/utils/api";
 
 type StatsProfil = {
   elo: number;
@@ -47,7 +48,7 @@ export default function Chart({ username }: ChartProps) {
     (async () => {
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/api/stats/player/${username}`,
+          `${API}/stats/player/${username}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
