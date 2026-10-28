@@ -65,8 +65,6 @@ def create_game(db: Session,
     else:
         if ai_difficulty not in ("easy", "medium", "hard"):
             raise InvalidDifficulty()
-        initial_time_seconds = None
-        increment_seconds = 0
     try:
         user_service.get_user_by_id(db, user_id)
         board = chess.Board()
@@ -88,7 +86,10 @@ def create_game(db: Session,
                     increment_seconds=increment_seconds,
                     white_time_remaining=initial_time_seconds,
                     black_time_remaining=initial_time_seconds,
-                    last_move_at=None)
+                    last_move_at=(
+                        datetime.now(timezone.utc)
+                        if opponent_type == "ai"
+                        and initial_time_seconds is not None else None))
 
         repository = GameRepository(db)
         repository.create(game)
@@ -242,8 +243,19 @@ def make_ai_move(db: Session, game_id: int, ai_move: chess.Move) -> Game:
         if ai_move not in board.legal_moves:
             raise IllegalMove()
 
+        now = datetime.now(timezone.utc)
+        if _update_clock(game, board, now):
+            _finish_game(db, game, "1-0")
+            repository.update(game)
+            db.commit()
+            return game
+
         board.push(ai_move)
         game.draw_offer_by = None
+
+        if game.initial_time_seconds is not None:
+            game.black_time_remaining += game.increment_seconds
+            game.last_move_at = now
 
         if board.is_checkmate():
             result = "1-0" if board.turn == chess.BLACK else "0-1"

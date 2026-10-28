@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import ChessPreview from "./Chess/preview/ChessPreview";
 import { API } from "./Chess/utils/api";
+import { getUserIdFromToken } from "./Chess/utils/game";
 import Header from "./Navbar/Header";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthProvider";
 
 interface LeaderBoard {
   username: string;
@@ -13,6 +15,8 @@ interface LeaderBoard {
 
 interface OngoingGame {
   id: number;
+  white_player_id: number;
+  black_player_id: number | null;
   white_player_name: string;
   black_player_name: string | null;
   opponent_type: string;
@@ -23,6 +27,8 @@ interface OngoingGame {
 
 const Home = () => {
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const currentUserId = token ? getUserIdFromToken(token) : null;
   const [leaderboard, SetLeaderboard] = useState<LeaderBoard[] | null>(null);
   const [ongoingGames, setOngoingGames] = useState<OngoingGame[]>([]);
   const [gamesError, setGamesError] = useState("");
@@ -179,6 +185,10 @@ const Home = () => {
                 </p>
               ) : (
                 ongoingGames.map((game) => {
+                  const canResume =
+                    currentUserId !== null &&
+                    (game.white_player_id === currentUserId ||
+                      game.black_player_id === currentUserId);
                   const blackName =
                     game.black_player_name ||
                     (game.opponent_type === "ai" ? "Computer" : "Black");
@@ -191,7 +201,19 @@ const Home = () => {
                     <button
                       key={game.id}
                       type="button"
-                      onClick={() => navigate(`/watch/${game.id}`)}
+                      onClick={() => {
+                        if (canResume) {
+                          const minutes =
+                            game.initial_time_seconds === null
+                              ? 5
+                              : game.initial_time_seconds / 60;
+                          navigate(
+                            `/chess/${minutes}/${game.increment_seconds}/${game.id}`,
+                          );
+                        } else {
+                          navigate(`/watch/${game.id}`);
+                        }
+                      }}
                       className="flex w-full items-center justify-between gap-3 rounded-sm bg-gray-50/5 p-3 text-left transition-colors hover:bg-gray-50/15"
                     >
                       <span className="min-w-0">
@@ -206,7 +228,7 @@ const Home = () => {
                         </span>
                       </span>
                       <span className="shrink-0 rounded-full bg-red-500/15 px-2 py-1 text-[10px] font-bold tracking-wider text-red-300">
-                        WATCH
+                        {canResume ? "RESUME" : "WATCH"}
                       </span>
                     </button>
                   );

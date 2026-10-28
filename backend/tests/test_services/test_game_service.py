@@ -504,6 +504,52 @@ def test_create_game_with_ten_minute_time_control(db):
     assert game.black_time_remaining == 600
 
 
+def test_create_timed_ai_game_starts_both_clocks(db):
+    user = create_user(db)
+
+    game = game_service.create_game(
+        db,
+        user.id,
+        initial_time_seconds=300,
+        increment_seconds=5,
+        opponent_type="ai",
+        ai_difficulty="easy",
+    )
+
+    assert game.initial_time_seconds == 300
+    assert game.increment_seconds == 5
+    assert game.white_time_remaining == 300
+    assert game.black_time_remaining == 300
+    assert game.last_move_at is not None
+
+
+def test_ai_move_updates_clock_and_applies_increment(db):
+    white = create_user(db)
+    game = game_service.create_game(
+        db,
+        white.id,
+        initial_time_seconds=300,
+        increment_seconds=5,
+        opponent_type="ai",
+        ai_difficulty="easy",
+    )
+    start = datetime(2026, 10, 1, 19, 0, 0, tzinfo=timezone.utc)
+    game.last_move_at = start
+    db.commit()
+
+    with patch("backend.services.game_service.datetime") as mock_datetime:
+        mock_datetime.now.return_value = start + timedelta(seconds=7)
+        game_service.make_move(db, game.id, white.id, "e2e4")
+
+        mock_datetime.now.return_value = start + timedelta(seconds=12)
+        result = game_service.make_ai_move(
+            db, game.id, chess.Move.from_uci("e7e5"))
+
+    assert result.white_time_remaining == 298
+    assert result.black_time_remaining == 300
+    assert result.last_move_at == start + timedelta(seconds=12)
+
+
 def test_join_game_starts_clock(db):
     white = create_user(db)
     black = create_user(db, username="player2", email="player2@example.com")

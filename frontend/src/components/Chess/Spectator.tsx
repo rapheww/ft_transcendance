@@ -12,8 +12,6 @@ export default function Spectator() {
   const navigate = useNavigate();
   const { token } = useAuth();
   const id = Number(gameId);
-  const [, setWhiteBonus] = useState(false);
-  const [, setBlackBonus] = useState(false);
   const [clockNow, setClockNow] = useState(0);
   const movesListRef = useRef<HTMLDivElement>(null);
 
@@ -202,8 +200,6 @@ export default function Spectator() {
               <div className="aspect-square w-full @container-size">
                 <Chessboard
                   setMoves={setMoves}
-                  setBBonus={setBlackBonus}
-                  setWBonus={setWhiteBonus}
                   setGameOver={setGameOver}
                   setResult={setResult}
                   gameId={id}
