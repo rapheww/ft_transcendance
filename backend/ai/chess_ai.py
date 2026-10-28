@@ -269,7 +269,7 @@ def choose_ai_move(board, difficulty, style="balanced"):
         depth = 2
         mistake_chance = 0.25
     elif difficulty == "hard":
-        depth = 2
+        depth = 3
         mistake_chance = 0.05
     else:
         raise InvalidDifficulty()

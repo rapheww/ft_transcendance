@@ -10,6 +10,9 @@ import Login from "./components/Account/login/Login";
 import Register from "./components/Account/login/Register";
 import Tournaments from "./components/Tournaments/Tournaments";
 import Spectator from "./components/Chess/Spectator";
+import RecommendationTest from "./components/Recommendations/RecommendationTest";
+import TournamentTest from "./components/Tournaments/TournamentTest";
+import NotificationTest from "./components/Notifications/NotificationTest";
 
 function App() {
 
@@ -28,6 +31,9 @@ function App() {
               <Route path="/profile" element={<Profil />} />
               <Route path="/mode" element={<Mode />} />
               <Route path="/matchmaking/:timer/:bonus" element={<Waiting />} />
+              <Route path="/test-recommendations" element={<RecommendationTest />} />
+              <Route path="/tournament-test" element={<TournamentTest />} />
+              <Route path="/notification-test" element={<NotificationTest />} />
             </Route>
         </Routes>
       </AuthProvider>
