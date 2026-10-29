@@ -100,18 +100,40 @@ const Home = () => {
               <div className="w-full flex justify-center m-8">
                 <h1 className="text-lg lg:text-xl">Leaderboard</h1>
               </div>
-              <div className="bg-black/20 backdrop-blur-xs w-[70%] max-h-50 md:max-h-75 overflow-y-auto overflow-x-hidden border-white/30 border flex flex-col items-center gap-2 p-2 ">
-                {leaderboard.map((l, i) => (
-                  <div
-                    key={i}
-                    className={`w-full h-10 md:h-15 flex flex-row justify-center items-center gap-1 ${i % 2 === 0 ? "bg-gray-50/5" : ""} p-2 rounded-sm`}
-                  >
-                    <p className="text-sm lg:text-lg">{i + 1 === 1 ? (<Crown size={20} color="yellow" />) : `#${i + 1}`}</p>
-                    <p className="text-sm lg:text-lg">{l.username}</p>
-                    <p className="text-sm lg:text-lg">elo: {l.elo}</p>
-                  </div>
-                ))}
-              </div>
+              {leaderboard.length > 0 ? (
+                <div
+                  className={`bg-black/20 backdrop-blur-xs w-[70%] max-h-50 md:max-h-75 overflow-y-auto overflow-x-hidden border-white/30 border flex flex-col items-center gap-2 p-2 `}
+                >
+                  {leaderboard.map((l, i) => (
+                    <div
+                      key={i}
+                      className={`w-full h-10 md:h-15 flex flex-row justify-center items-center gap-1 ${i % 2 === 0 ? "bg-gray-50/5" : ""} p-2 rounded-sm`}
+                    >
+                      <p className="text-sm lg:text-lg">
+                        {i + 1 === 1 ? (
+                          <Crown size={20} color="yellow" />
+                        ) : (
+                          `#${i + 1}`
+                        )}
+                      </p>
+                      <p className="text-sm lg:text-lg">{l.username}</p>
+                      <p className="text-sm lg:text-lg">elo: {l.elo}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  className={`bg-black/20 backdrop-blur-xs w-[70%] max-h-50 md:max-h-75 overflow-y-auto overflow-x-hidden border-white/30 border flex flex-col items-center gap-2 p-2 `}
+                >
+                    <div
+                      className={`w-full h-10 md:h-15 flex flex-row justify-center items-center gap-1 p-2 rounded-sm`}
+                    >
+                      <p className="text-sm lg:text-lg">
+                        No players found
+                      </p>
+                    </div>
+                </div>
+              )}
             </div>
           )}
 
