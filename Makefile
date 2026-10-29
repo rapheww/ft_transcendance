@@ -176,6 +176,7 @@ fclean: clean
 	@rm -rf $(VENV)
 	@rm -rf frontend/node_modules
 	@rm -rf frontend/bin
+	@rm -rf .pytest_cache
 	@echo "Full clean complete."
 
 
