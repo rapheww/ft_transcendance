@@ -74,22 +74,21 @@ def create_game(db: Session,
 
         status = "active" if opponent_type == "ai" else "waiting"
 
-        game = Game(white_player_id=user_id,
-                    black_player_id=None,
-                    opponent_type=opponent_type,
-                    ai_difficulty=ai_difficulty,
-                    status=status,
-                    result=None,
-                    current_fen=board.fen(),
-                    pgn=str(game_pgn),
-                    initial_time_seconds=initial_time_seconds,
-                    increment_seconds=increment_seconds,
-                    white_time_remaining=initial_time_seconds,
-                    black_time_remaining=initial_time_seconds,
-                    last_move_at=(
-                        datetime.now(timezone.utc)
-                        if opponent_type == "ai"
-                        and initial_time_seconds is not None else None))
+        game = Game(
+            white_player_id=user_id,
+            black_player_id=None,
+            opponent_type=opponent_type,
+            ai_difficulty=ai_difficulty,
+            status=status,
+            result=None,
+            current_fen=board.fen(),
+            pgn=str(game_pgn),
+            initial_time_seconds=initial_time_seconds,
+            increment_seconds=increment_seconds,
+            white_time_remaining=initial_time_seconds,
+            black_time_remaining=initial_time_seconds,
+            last_move_at=(datetime.now(timezone.utc) if opponent_type == "ai"
+                          and initial_time_seconds is not None else None))
 
         repository = GameRepository(db)
         repository.create(game)
@@ -141,6 +140,15 @@ def get_game(db: Session, game_id: int) -> Game:
         raise GameNotFound()
 
     return game
+
+
+def get_draw_claim_availability(game: Game) -> tuple[bool, bool]:
+    if game.status != "active":
+        return False, False
+
+    board = _board_from_pgn(game.pgn)
+    return (board.can_claim_threefold_repetition(),
+            board.can_claim_fifty_moves())
 
 
 def list_active_games(db: Session) -> list[Game]:

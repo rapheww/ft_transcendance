@@ -4,13 +4,12 @@ Each major module is worth 2 points, and each minor module is worth 1 point.
 
 Total points needed: 14 (19 with bonuses). 
 
-- Major: Use a framework for both the frontend and backend.
+- Major: Use a framework for both the frontend and backend. 
 - Minor: Use a frontend framework (React).
 - Minor: Use a backend framework (FastAPI).
 - Major: Implement real-time features using WebSockets or similar technology. (WebSockets)
-- Minor: Use an ORM for the database. (SQLAlchemy)
-- Major: Allow users to interact with other users.
 - Major: A public API to interact with the database with a secured API key, rate limiting, documentation, and at least 5 endpoints. (FastAPI)
+- Minor: Use an ORM for the database. (SQLAlchemy)
 - Major: Standard user management and authentication.
 - Minor: Game statistics and match history.
 - Major: Implement a complete web-based game where users can play against each other.
@@ -19,8 +18,11 @@ Total points needed: 14 (19 with bonuses).
 - Minor: Game customization options.
 - Major: Introduce an AI Opponent for games.
 - Major: Recommandation system using machine learning.
+- Minor: Implement spectator mode for games.
 
-Total with current implementation: 23
+Total with current implementation: 22
+
+- Major: Allow users to interact with other users.
 
 Potential additional modules:
 

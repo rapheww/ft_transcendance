@@ -23,9 +23,9 @@ class GameResponse(BaseModel):
     white_player_name: str = Field(
         validation_alias=AliasPath("white_player", "username"))
     black_player_id: int | None
-    black_player_name: str | None = Field(
-        default=None,
-        validation_alias=AliasPath("black_player", "username"))
+    black_player_name: str | None = Field(default=None,
+                                          validation_alias=AliasPath(
+                                              "black_player", "username"))
     opponent_type: str
     ai_difficulty: str | None
     status: str
@@ -45,15 +45,20 @@ class GameResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class GameDetailsResponse(GameResponse):
+    can_claim_threefold_repetition: bool
+    can_claim_fifty_move: bool
+
+
 class OngoingGameResponse(BaseModel):
     id: int
     white_player_id: int
     white_player_name: str = Field(
         validation_alias=AliasPath("white_player", "username"))
     black_player_id: int | None
-    black_player_name: str | None = Field(
-        default=None,
-        validation_alias=AliasPath("black_player", "username"))
+    black_player_name: str | None = Field(default=None,
+                                          validation_alias=AliasPath(
+                                              "black_player", "username"))
     opponent_type: str
     ai_difficulty: str | None
     initial_time_seconds: int | None

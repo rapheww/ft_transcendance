@@ -93,7 +93,60 @@ def test_get_game(client: TestClient):
     response = client.get(f"/api/games/{game['id']}")
 
     assert response.status_code == 200
-    assert response.json() == game
+    assert response.json() == {
+        **game, "can_claim_threefold_repetition": False,
+        "can_claim_fifty_move": False
+    }
+
+
+def test_get_game_reports_fifty_move_claim_availability(
+        client: TestClient, db):
+    alice_token = create_user(client, "alice", "alice@example.com")
+    bob_token = create_user(client, "bob", "bob@example.com")
+
+    create_response = client.post(
+        "/api/games/", headers={"Authorization": f"Bearer {alice_token}"})
+    game_id = create_response.json()["id"]
+    client.post(f"/api/games/{game_id}/join",
+                headers={"Authorization": f"Bearer {bob_token}"})
+
+    set_game_position(db, game_id, "7k/8/8/8/8/8/1N6/K7 w - - 99 50")
+
+    response = client.get(f"/api/games/{game_id}")
+
+    assert response.status_code == 200
+    assert response.json()["can_claim_threefold_repetition"] is False
+    assert response.json()["can_claim_fifty_move"] is True
+
+
+def test_get_game_reports_threefold_repetition_claim_availability(
+        client: TestClient):
+    alice_token = create_user(client, "alice", "alice@example.com")
+    bob_token = create_user(client, "bob", "bob@example.com")
+
+    create_response = client.post(
+        "/api/games/", headers={"Authorization": f"Bearer {alice_token}"})
+    game_id = create_response.json()["id"]
+    client.post(f"/api/games/{game_id}/join",
+                headers={"Authorization": f"Bearer {bob_token}"})
+
+    moves = ["g1f3", "g8f6", "f3g1", "f6g8"] * 2
+    for index, move in enumerate(moves):
+        token = alice_token if index % 2 == 0 else bob_token
+        move_response = client.post(
+            f"/api/games/{game_id}/move",
+            json={"move": move},
+            headers={
+                "Authorization":
+                f"Bearer {alice_token if index % 2 == 0 else bob_token}"
+            })
+        assert move_response.status_code == 200
+
+    response = client.get(f"/api/games/{game_id}")
+
+    assert response.status_code == 200
+    assert response.json()["can_claim_threefold_repetition"] is True
+    assert response.json()["can_claim_fifty_move"] is False
 
 
 def test_get_missing_game_returns_404(client: TestClient):
@@ -115,8 +168,7 @@ def test_list_ongoing_games_only_returns_active_games(client: TestClient):
             "increment_seconds": 5
         })
     waiting_response = client.post(
-        "/api/games/",
-        headers={"Authorization": f"Bearer {white_token}"})
+        "/api/games/", headers={"Authorization": f"Bearer {white_token}"})
     assert active_response.status_code == 201
     assert waiting_response.status_code == 201
 
@@ -128,13 +180,12 @@ def test_list_ongoing_games_only_returns_active_games(client: TestClient):
     response = client.get("/api/games/ongoing")
 
     assert response.status_code == 200
-    assert [game["id"] for game in response.json()] == [
-        active_response.json()["id"]
-    ]
-    assert response.json()[0]["white_player_id"] == active_response.json()[
-        "white_player_id"]
-    assert response.json()[0]["black_player_id"] == join_response.json()[
-        "black_player_id"]
+    assert [game["id"]
+            for game in response.json()] == [active_response.json()["id"]]
+    assert response.json()[0]["white_player_id"] == active_response.json(
+    )["white_player_id"]
+    assert response.json()[0]["black_player_id"] == join_response.json(
+    )["black_player_id"]
     assert response.json()[0]["white_player_name"] == "live_white"
     assert response.json()[0]["black_player_name"] == "live_black"
 
@@ -199,7 +250,7 @@ def test_make_move(client: TestClient):
 
     assert join_response.status_code == 200
     response = client.post(f"/api/games/{game_id}/move",
-                           json={"move": "e2e4"},   
+                           json={"move": "e2e4"},
                            headers={"Authorization": f"Bearer {alice_token}"})
 
     assert response.status_code == 200

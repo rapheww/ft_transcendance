@@ -16,6 +16,18 @@ def test_create_user_api(client):
     }
 
 
+def test_create_user_rejects_username_over_15_characters(client):
+    response = client.post("/api/users/",
+                           json={
+                               "username": "a" * 16,
+                               "email": "alice@example.com",
+                               "password": "password123"
+                           })
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "username"]
+
+
 def test_get_user_api(client):
     client.post("/api/users/",
                 json={

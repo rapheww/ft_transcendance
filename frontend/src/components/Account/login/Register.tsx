@@ -4,6 +4,47 @@ import { useAuth } from "../../AuthProvider";
 import Header from "../../Navbar/Header";
 import { API } from "../../Chess/utils/api";
 
+type ValidationIssue = {
+  loc?: unknown;
+  msg: string;
+};
+
+function isValidationIssue(value: unknown): value is ValidationIssue {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "msg" in value &&
+    typeof value.msg === "string"
+  );
+}
+
+function formatApiError(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+
+  if (Array.isArray(detail)) {
+    const issue = detail.find(isValidationIssue);
+    if (!issue) return "Request failed.";
+
+    const field = Array.isArray(issue.loc)
+      ? issue.loc[issue.loc.length - 1]
+      : undefined;
+    const label =
+      typeof field === "string"
+        ? { username: "Username", password: "Password", email: "Email" }[
+            field
+          ]
+        : undefined;
+
+    if (label && issue.msg.startsWith("String ")) {
+      return `${label} ${issue.msg.slice("String ".length)}`;
+    }
+
+    return label ? `${label}: ${issue.msg}` : issue.msg;
+  }
+
+  return "Request failed.";
+}
+
 const Register = () => {
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -46,8 +87,7 @@ const Register = () => {
       //MORE STATUS CODE TO HANDLE
       if (response.status != 201) {
         const infos = await response.json()
-        if(!infos) return;
-        throw infos.detail[0].msg
+        throw formatApiError(infos?.detail);
       }
 
       //Login time
@@ -60,8 +100,7 @@ const Register = () => {
 
       if (LogResponse.status != 200) {
         const infos = await LogResponse.json()
-        if(!infos) return;
-        throw infos.detail
+        throw formatApiError(infos?.detail);
       } else {
         const accessData = await LogResponse.json();
         login({
@@ -72,7 +111,7 @@ const Register = () => {
     } catch (error) {
       setLogging(false)
       setInvalid(true);
-      setErrorMessage(error as string)
+      setErrorMessage(error instanceof Error ? error.message : String(error))
       return;
     }
   }
@@ -117,6 +156,7 @@ const Register = () => {
               className={inputClassname}
               placeholder="Username"
               autoComplete="username"
+              maxLength={15}
               value={username}
               onChange={(event) => {
                 setUsername(event.target.value);
@@ -136,6 +176,7 @@ const Register = () => {
               className={inputClassname}
               placeholder="Password"
               autoComplete="current-password"
+              maxLength={128}
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value);

@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from backend.core.dependencies import get_current_user
 from backend.db.session import get_db
 from backend.models.user import User
-from backend.schemas.game import (
-    GameResponse, MoveRequest, GameCreate, OngoingGameResponse)
+from backend.schemas.game import (GameResponse, GameDetailsResponse,
+                                  MoveRequest, GameCreate, OngoingGameResponse)
 from backend.services import game_service
 from backend.websocket.connection_manager import manager
 from backend.exceptions.game import (
@@ -42,10 +42,13 @@ def create_game(game_create: GameCreate | None = None,
         raise HTTPException(status_code=422, detail=str(error))
 
 
-@router.get("/{game_id}", response_model=GameResponse)
+@router.get("/{game_id}", response_model=GameDetailsResponse)
 def get_game(game_id: int, db: Session = Depends(get_db)):
     try:
-        return game_service.get_game(db, game_id)
+        game = game_service.get_game(db, game_id)
+        (game.can_claim_threefold_repetition, game.can_claim_fifty_move) = (
+            game_service.get_draw_claim_availability(game))
+        return game
 
     except GameNotFound as error:
         raise HTTPException(status_code=404, detail=str(error))
@@ -91,32 +94,51 @@ async def make_move(
 
             await manager.broadcast(
                 game_id, {
-                    "type": "move",
-                    "player": "human",
-                    "user_id": current_user.id,
-                    "from": move_request.move[:2],
-                    "to": move_request.move[2:4],
-                    "uci": move_request.move,
-                    "san": san,
-                    "fen": game.current_fen,
-                    "white_time_remaining": game.white_time_remaining,
-                    "black_time_remaining": game.black_time_remaining,
-                    "increment_seconds": game.increment_seconds,
-                    "last_move_at": game.last_move_at.isoformat()
+                    "type":
+                    "move",
+                    "player":
+                    "human",
+                    "user_id":
+                    current_user.id,
+                    "from":
+                    move_request.move[:2],
+                    "to":
+                    move_request.move[2:4],
+                    "uci":
+                    move_request.move,
+                    "san":
+                    san,
+                    "fen":
+                    game.current_fen,
+                    "white_time_remaining":
+                    game.white_time_remaining,
+                    "black_time_remaining":
+                    game.black_time_remaining,
+                    "increment_seconds":
+                    game.increment_seconds,
+                    "last_move_at":
+                    game.last_move_at.isoformat()
                     if game.last_move_at else None
                 })
 
         await manager.broadcast(
             game_id, {
-                "type": "game_state",
-                "fen": game.current_fen,
-                "status": game.status,
-                "result": game.result,
-                "white_time_remaining": game.white_time_remaining,
-                "black_time_remaining": game.black_time_remaining,
-                "increment_seconds": game.increment_seconds,
-                "last_move_at": game.last_move_at.isoformat()
-                if game.last_move_at else None
+                "type":
+                "game_state",
+                "fen":
+                game.current_fen,
+                "status":
+                game.status,
+                "result":
+                game.result,
+                "white_time_remaining":
+                game.white_time_remaining,
+                "black_time_remaining":
+                game.black_time_remaining,
+                "increment_seconds":
+                game.increment_seconds,
+                "last_move_at":
+                game.last_move_at.isoformat() if game.last_move_at else None
             })
 
         if game.status == "finished":

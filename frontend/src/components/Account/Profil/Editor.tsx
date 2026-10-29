@@ -118,7 +118,7 @@ const Editor = ({ open, onClose, onSaved }: Props) => {
                 className="h-1/2 max-h-70 rounded-sm w-full sm:w-[80%] border-b border-white/30 p-2 pt-0 flex flex-col justify-center items-center gap-4 lg:gap-5 min-h-32 sm:min-h-40 lg:min-h-44"
               >
                 <h2 className="text-lg sm:text-xl lg:text-2xl">Edit Username</h2>
-                <input value={newUsername} onChange={(event) => setNewUsername(event.target.value)} className={inputClassname} placeholder="New username"></input>
+                <input value={newUsername} onChange={(event) => setNewUsername(event.target.value)} className={inputClassname} placeholder="New username" maxLength={15}></input>
               </div>
               <div
                 id="color-editor"

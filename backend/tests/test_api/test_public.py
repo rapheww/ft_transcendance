@@ -19,12 +19,13 @@ def api_headers(key: str = PUBLIC_API_KEY) -> dict:
 
 
 def create_user(client: TestClient, db, username: str, email: str) -> int:
-    client.post("/api/users/",
-                json={
-                    "username": username,
-                    "email": email,
-                    "password": "password123"
-                })
+    response = client.post("/api/users/",
+                           json={
+                               "username": username,
+                               "email": email,
+                               "password": "password123"
+                           })
+    assert response.status_code == 201, response.text
 
     user = db.query(User).filter(User.username == username).first()
     return user.id
@@ -209,7 +210,8 @@ def test_rate_limit_exceeded_returns_429(client: TestClient):
 
 def test_api_start_and_player_owner_protection(client, db):
     ids = [
-        create_user(client, db, f"p{i}", f"p{i}@example.com") for i in range(2)
+        create_user(client, db, f"player{i}", f"player{i}@example.com")
+        for i in range(2)
     ]
     tid = create_tournament(client, ids[0])
     client.put(f"/api/public/tournaments/{tid}/participants/{ids[1]}",

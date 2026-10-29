@@ -36,6 +36,21 @@ def test_username_accepts_valid_characters():
     assert user.email == "alice@example.com"
 
 
+def test_username_accepts_maximum_length():
+    user = UserCreate(username="a" * 15,
+                      email="alice@example.com",
+                      password="password123")
+
+    assert len(user.username) == 15
+
+
+def test_username_rejects_more_than_maximum_length():
+    with pytest.raises(ValidationError):
+        UserCreate(username="a" * 16,
+                   email="alice@example.com",
+                   password="password123")
+
+
 @pytest.mark.parametrize("username",
                          ["bad name", "user-name", "user.name", "user!"])
 def test_username_rejects_invalid_characters(username):
@@ -85,3 +100,8 @@ def test_update_normalizes_email():
 def test_update_rejects_invalid_username():
     with pytest.raises(ValidationError):
         UserUpdate(username="not allowed")
+
+
+def test_update_rejects_username_over_maximum_length():
+    with pytest.raises(ValidationError):
+        UserUpdate(username="a" * 16)
