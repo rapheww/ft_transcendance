@@ -103,24 +103,24 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
               </button>
               <h1 className="text-2xl font-extrabold">{colorResult}</h1>
               <div className="border w-full flex flex-row justify-center h-20 lg:h-30 items-center text-center">
-                <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5">
+                <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5 overflow-hidden">
                   <img
                     src={color === "white" ? profil.avatar : profilOps?.avatar ?? 'https://media.tenor.com/GQAsycjoZG8AAAAj/scuba-scuba-cat.gif'}
                     alt=""
                     className=" h-[80%] object-cover rounded-full"
                   />
-                  <p className="text-lg lg:text-xl">
+                  <p className="text-lg">
                     {color === "white" ? profil.username : opponentName}
                   </p>
                 </div>
                 <p className="w-1/3">{result}</p>
-                <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5">
+                <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5 overflow-hidden">
                   <img
                     src={color === "black" ? profil.avatar : profilOps?.avatar ?? 'https://media.tenor.com/GQAsycjoZG8AAAAj/scuba-scuba-cat.gif'}
                     alt=""
                     className=" h-[80%] object-cover rounded-full"
                   />
-                  <p className="text-lg lg:text-xl">
+                  <p className="text-lg">
                     {color === "black" ? profil.username : opponentName}
                   </p>
                 </div>

@@ -64,12 +64,8 @@ install-backend:
 
 install-frontend:
 	@echo "Installing frontend dependencies..."
-	cd frontend && npm install
-	mkdir bin && cd bin
-	@echo "go to bin folder"
-	curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
-	chmod +x cloudflared
-
+	cd frontend && rm -rf bin && mkdir bin && npm install
+	@cd frontend/bin && echo "go to bin folder" && curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared && chmod +x cloudflared
 
 # ---------------------------------------------------------------------------
 # Database
