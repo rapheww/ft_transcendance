@@ -10,7 +10,6 @@ Total points needed: 14 (19 with bonuses).
 - Major: Implement real-time features using WebSockets or similar technology. (WebSockets)
 - Major: A public API to interact with the database with a secured API key, rate limiting, documentation, and at least 5 endpoints. (FastAPI)
 - Minor: Use an ORM for the database. (SQLAlchemy)
-- Major: Standard user management and authentication.
 - Minor: Game statistics and match history.
 - Major: Implement a complete web-based game where users can play against each other.
 - Major: Remote players — Enable two players on separate computers to play the same game in real-time.
@@ -20,14 +19,7 @@ Total points needed: 14 (19 with bonuses).
 - Major: Recommandation system using machine learning.
 - Minor: Implement spectator mode for games.
 
-Total with current implementation: 22
+Total with current implementation: 20
 
-- Major: Allow users to interact with other users.
-
-Potential additional modules:
-
-- Minor: Advanced chat features (enhances the basic chat from "User interaction" module).
-- Major: An organization system.
-- Minor: Data export and import functionality.
-
-Total points of bonus modules: 4
+- Major: Allow users to interact with other users. (NEED FRIENDS)
+- Major: Standard user management and authentication. (NEED FRIENDS)
