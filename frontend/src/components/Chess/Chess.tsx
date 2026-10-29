@@ -8,6 +8,7 @@ import ProfilePreview from "./preview/ProfilePreview";
 import { useAuth } from "../AuthProvider";
 import { useGame } from "./utils/useGame";
 import type { Moves } from "./utils/game";
+import { getStats } from "./utils/utils";
 
 
 export default function Chess() {
@@ -23,10 +24,11 @@ export default function Chess() {
   }>();
 
   const navigate = useNavigate()
-  const { user, token } = useAuth();
+  const { user, token, profil } = useAuth();
 
+  
   const id = Number(gameId);
-
+  
   const {
     game,
     fen,
@@ -53,8 +55,10 @@ export default function Chess() {
     sendResign,
     chat,
   } = useGame(id, token);
+  
+  const opponentElo = getStats(opponentName).elo
+  const playerElo = getStats(profil.username).elo
 
-  console.log('opponent', opponentName)
   const movePairs = useMemo(() => {
     // Afficher les coups blancs et noirs côte à côte dans la liste des coups.
     const pairs: (Moves | null)[][] = [];
@@ -146,7 +150,7 @@ export default function Chess() {
                 }}
                 className="min-w-0 overflow-hidden whitespace-nowrap text-sm sm:text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer flex items-center gap-2"
               >
-                <>{opponentName}</>
+                <>{opponentName} ({opponentElo})</>
               </p>
 
               {/* Afficher l'état de la connexion, y compris pour les outils d'assistance. */}
@@ -228,7 +232,7 @@ export default function Chess() {
                 }}
                 className="min-w-0 truncate text-sm sm:text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer"
               >
-                {playerName || user || "You"} ({playerColor})
+                {playerName || user || "You"} ({playerElo})
               </p>
 
               <div

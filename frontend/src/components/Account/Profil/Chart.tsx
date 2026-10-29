@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
 import { Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
-import { useAuth } from "../../AuthProvider";
-import { API } from "../../Chess/utils/api";
+import { getStats } from "../../Chess/utils/utils";
 
-type StatsProfil = {
+export type StatsProfil = {
   elo: number;
   games_played: number;
   wins: number;
@@ -19,7 +17,7 @@ type StatsProfil = {
   ];
 };
 
-const emptyStats: StatsProfil = {
+export const emptyStats: StatsProfil = {
   elo: 0,
   games_played: 0,
   wins: 0,
@@ -40,27 +38,7 @@ interface ChartProps {
 }
 
 export default function Chart({ username }: ChartProps) {
-  const [stats, setStats] = useState<StatsProfil>(emptyStats);
-  const { token } = useAuth();
-
-  useEffect(() => {
-    if (!username || username === 'unknown') return;
-    (async () => {
-      try {
-        const response = await fetch(
-          `${API}/stats/player/${username}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        if (!response.ok) return;
-        const infos = await response.json();
-        setStats(infos);
-      } catch (err) {
-        console.error(err);
-      }
-    })();
-  }, [username]);
+  const stats = getStats(username);
 
   const chartData = stats.elo_history.map((s) => {
     const date = new Date(s.date)
