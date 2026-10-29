@@ -79,3 +79,4 @@ Testing/
 #front
 node_modules/
 dist/
+bin/

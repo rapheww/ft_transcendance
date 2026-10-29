@@ -1,3 +1,8 @@
+import { useEffect, useState } from "react";
+import { useAuth } from "../../AuthProvider";
+import { API } from "./api";
+import { emptyStats, type StatsProfil } from "../../Account/Profil/Chart";
+
 export const horizontalAxis: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
 export const verticalAxis: string[] = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
@@ -56,4 +61,29 @@ export function resetPiece(piece: HTMLElement) {
   piece.style.width = "";
   piece.style.height = "";
   piece.style.zIndex = "";
+}
+
+export function getStats(username: string, refresh?: boolean){
+  const [stats, setStats] = useState<StatsProfil>(emptyStats);
+    const { token } = useAuth();
+  
+    useEffect(() => {
+      if (!username || username === 'unknown') return;
+      (async () => {
+        try {
+          const response = await fetch(
+            `${API}/stats/player/${username}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          if (!response.ok) return;
+          const infos = await response.json();
+          setStats(infos);
+        } catch (err) {
+          console.error(err);
+        }
+      })();
+    }, [username, refresh]);
+  return stats
 }

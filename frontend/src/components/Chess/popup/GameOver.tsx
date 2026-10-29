@@ -1,8 +1,10 @@
 import confetti from "canvas-confetti";
-import { X } from "lucide-react";
+import { ArrowBigDown, ArrowBigUp, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth, type ProfilType } from "../../AuthProvider";
 import { API } from "../utils/api";
+import { getStats } from "../utils/utils";
+import type { StatsProfil } from "../../Account/Profil/Chart";
 
 interface Props {
   onClose: () => void;
@@ -12,8 +14,28 @@ interface Props {
   opponentName: string;
 }
 
+function getElo(playerElo: StatsProfil) {
+  if (!playerElo) return { elo: 0, diff: 0 };
+  const hist = playerElo.elo_history;
+  const newElo = playerElo.elo;
+  if (hist.length === 1) {
+    const diff = -(1000 - newElo);
+    return { elo: newElo, diff: diff };
+  } else if (hist.length > 1) {
+    const eloBefore = hist[hist.length - 2].elo;
+    const diff = -(eloBefore - newElo);
+    return { elo: newElo, diff: diff };
+  } else {
+    return { elo: newElo, diff: 0 };
+  }
+}
+
 const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
   const [profilOps, setProfil] = useState<ProfilType | null>();
+  const colorResult: string = result === "0-1" ? "Black Wins" : "White Wins";
+  const { profil } = useAuth();
+  const playerElo = getStats(profil.username, open);
+  const elo: { elo: number; diff: number } = getElo(playerElo);
   useEffect(() => {
     if (!open) return;
     if (
@@ -62,9 +84,7 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
     if (!open || !opponentName) return;
     (async () => {
       try {
-        const response = await fetch(
-          `${API}/users/${opponentName}`,
-        );
+        const response = await fetch(`${API}/users/${opponentName}`);
         if (!response.ok) return;
         const infos = await response.json();
         setProfil(infos);
@@ -74,12 +94,10 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
     })();
   }, [open, opponentName]);
 
-  const colorResult: string = result === "0-1" ? "Black Wins" : "White Wins";
-  const { profil } = useAuth();
   return (
     <div
       className={`
-            absolute inset-0 z-40
+            absolute inset-0 z-40 p-2
             flex justify-center items-center
             transition-opacity duration-500 ease-out
             ${open ? "opacity-100" : "opacity-0 pointer-events-none"}
@@ -94,38 +112,55 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
       >
         <div className="w-full flex justify-center items-center">
           <div className="flex flex-col text-white w-full">
-            <div className="bg-black/90 backdrop-blur-xs border border-white/50 shadow-xl md:shadow-2xl shadow-black max-h-[90vh] flex justify-center items-center flex-col rounded-lg p-5 gap-2">
+            <div className="bg-black/90 backdrop-blur-xs border border-white/50 shadow-xl md:shadow-2xl shadow-black max-h-[90vh] overflow-y-auto flex justify-center items-center flex-col rounded-lg p-3 sm:p-5 gap-2">
               <button
                 onClick={onClose}
                 className="cursor-pointer place-self-end"
               >
                 <X size={30} />
               </button>
-              <h1 className="text-2xl font-extrabold">{colorResult}</h1>
-              <div className="border w-full flex flex-row justify-center h-20 lg:h-30 items-center text-center">
-                <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5 overflow-hidden">
+              <h1 className="text-xl sm:text-2xl font-extrabold">{colorResult}</h1>
+              <div className="w-full flex flex-row justify-center py-2 items-center text-center">
+                <div className="w-1/3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 overflow-hidden">
                   <img
-                    src={color === "white" ? profil.avatar : profilOps?.avatar ?? 'https://media.tenor.com/GQAsycjoZG8AAAAj/scuba-scuba-cat.gif'}
+                    src={
+                      color === "white"
+                        ? profil.avatar
+                        : (profilOps?.avatar ??
+                          "https://media.tenor.com/GQAsycjoZG8AAAAj/scuba-scuba-cat.gif")
+                    }
                     alt=""
-                    className=" h-[80%] object-cover rounded-full"
+                    className="size-10 sm:size-14 md:size-20 shrink-0 object-cover rounded-full"
                   />
-                  <p className="text-lg">
+                  <p className="text-sm sm:text-lg max-w-full truncate">
                     {color === "white" ? profil.username : opponentName}
                   </p>
                 </div>
                 <p className="w-1/3">{result}</p>
-                <div className="w-1/3 h-full flex items-center justify-center gap-3 lg:gap-5 overflow-hidden">
+                <div className="w-1/3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 overflow-hidden">
                   <img
-                    src={color === "black" ? profil.avatar : profilOps?.avatar ?? 'https://media.tenor.com/GQAsycjoZG8AAAAj/scuba-scuba-cat.gif'}
+                    src={
+                      color === "black"
+                        ? profil.avatar
+                        : (profilOps?.avatar ??
+                          "https://media.tenor.com/GQAsycjoZG8AAAAj/scuba-scuba-cat.gif")
+                    }
                     alt=""
-                    className=" h-[80%] object-cover rounded-full"
+                    className="size-10 sm:size-14 md:size-20 shrink-0 object-cover rounded-full"
                   />
-                  <p className="text-lg">
+                  <p className="text-sm sm:text-lg max-w-full truncate">
                     {color === "black" ? profil.username : opponentName}
                   </p>
                 </div>
               </div>
-              <p className="mt-2 text-sm">elo +1000</p>
+              <p className="text-sm sm:text-lg flex flex-row items-center gap-1 mt-2">
+                {`Elo: ${elo.elo} (${elo.diff > 0 ? `+${elo.diff}` : elo.diff})`}
+                {elo.diff > 0 ? (
+                  <ArrowBigUp size={20} color={"#227501"} />
+                ) : (
+                  <ArrowBigDown size={20} color={"#8f0110"} />
+                )}
+              </p>
             </div>
           </div>
         </div>
