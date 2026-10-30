@@ -46,7 +46,13 @@ def _count_moves(pgn: str) -> int:
 def _opponent_username(db: Session, game: Game, user_id: int) -> str:
     opponent_id = (game.black_player_id if game.white_player_id == user_id else
                    game.white_player_id)
-    return user_service.get_user_by_id(db, opponent_id).username
+    
+    opponent = user_service.get_user_by_id(db, opponent_id)
+
+    if opponent is None:
+        return "IA"
+
+    return opponent.username
 
 
 def get_match_history(db: Session, user_id: int) -> list[MatchHistoryEntry]:

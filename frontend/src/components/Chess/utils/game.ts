@@ -23,6 +23,8 @@ export interface GameInfo {
   black_time_remaining?: number | null;
   increment_seconds?: number;
   last_move_at?: string | null;
+  can_claim_threefold_repetition: boolean,
+  can_claim_fifty_move: boolean
 }
 
 export interface GameSocketMessage {
@@ -44,6 +46,8 @@ export interface GameSocketMessage {
   last_move_at?: string | null;
   spectator_count?: number;
   count?: number;
+  can_claim_threefold_repetition: boolean,
+  can_claim_fifty_move: boolean
 }
 
 export interface ChatMessage {
@@ -72,6 +76,8 @@ export interface SocketGameState {
   black_time_remaining?: number | null;
   increment_seconds?: number;
   last_move_at?: string | null;
+  can_claim_threefold_repetition: boolean,
+  can_claim_fifty_move: boolean
 }
 
 export function getMoveHistory(pgn: string): Moves[] {

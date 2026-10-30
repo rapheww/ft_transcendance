@@ -12,6 +12,7 @@ interface Props {
   result: string;
   color: string;
   opponentName: string;
+  opponentType?: string;
 }
 
 function getElo(playerElo: StatsProfil) {
@@ -30,9 +31,9 @@ function getElo(playerElo: StatsProfil) {
   }
 }
 
-const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
+const GameOver = ({ open, onClose, result, color, opponentName, opponentType }: Props) => {
   const [profilOps, setProfil] = useState<ProfilType | null>();
-  const colorResult: string = result === "0-1" ? "Black Wins" : "White Wins";
+  const colorResult: string = result === "0-1" ? "Black Wins" : result === "1-0" ? "White Wins" : "Draw";
   const { profil } = useAuth();
   const playerElo = getStats(profil.username, open);
   const elo: { elo: number; diff: number } = getElo(playerElo);
@@ -153,7 +154,8 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
                   </p>
                 </div>
               </div>
-              <p className="text-sm sm:text-lg flex flex-row items-center gap-1 mt-2">
+              {opponentType !== "ai" && (
+                <p className="text-sm sm:text-lg flex flex-row items-center gap-1 mt-2">
                 {`Elo: ${elo.elo} (${elo.diff > 0 ? `+${elo.diff}` : elo.diff})`}
                 {elo.diff > 0 ? (
                   <ArrowBigUp size={20} color={"#227501"} />
@@ -161,6 +163,7 @@ const GameOver = ({ open, onClose, result, color, opponentName }: Props) => {
                   <ArrowBigDown size={20} color={"#8f0110"} />
                 )}
               </p>
+              )}
             </div>
           </div>
         </div>
