@@ -115,7 +115,7 @@ export default function Mode() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-5xl">
+        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-5xl mb-10">
           <div className="flex-1 rounded-md bg-black/20 backdrop-blur-xs border border-white/20 p-6 flex flex-col items-center gap-4">
             <h2 className="text-xl font-semibold">Play against a human</h2>
 
