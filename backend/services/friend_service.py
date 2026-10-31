@@ -3,10 +3,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.exceptions.friend import (FriendConflict,
-                                      FriendRequestNotFound,
-                                      FriendshipNotFound,
-                                      InvalidFriendRequest,
-                                      SelfFriendRequest)
+                                       FriendRequestNotFound,
+                                       FriendshipNotFound,
+                                       InvalidFriendRequest,
+                                       SelfFriendRequest)
 from backend.exceptions.user import UserNotFound
 from backend.models.friend_request import FriendRequest
 from backend.models.friendship import Friendship
@@ -46,11 +46,11 @@ def send_friend_request(db: Session, sender_id: int,
                         recipient_id: int) -> tuple[User, str]:
     try:
         if sender_id == recipient_id:
-            raise SelfFriendRequest("You cannot send a friend request to yourself")
+            raise SelfFriendRequest()
 
         recipient = user_repository.get_by_id(db, recipient_id)
         if recipient is None:
-            raise UserNotFound("User not found")
+            raise UserNotFound()
 
         repository = FriendRepository(db)
         if repository.get_friendship(sender_id, recipient_id) is not None:
@@ -86,8 +86,7 @@ def send_friend_request(db: Session, sender_id: int,
 
     except IntegrityError as error:
         db.rollback()
-        raise FriendConflict("Friend request conflicts with existing state"
-                             ) from error
+        raise FriendConflict() from error
     except Exception:
         db.rollback()
         raise
@@ -97,20 +96,20 @@ def _respond_to_request(db: Session, recipient_id: int, requester_id: int,
                          *, accept: bool) -> User:
     try:
         if recipient_id == requester_id:
-            raise SelfFriendRequest("You cannot respond to your own friend request")
+            raise SelfFriendRequest(
+                "You cannot respond to your own friend request")
 
         requester = user_repository.get_by_id(db, requester_id)
         if requester is None:
-            raise UserNotFound("User not found")
+            raise UserNotFound()
 
         repository = FriendRepository(db)
         request = repository.get_friend_request_for_update(
             recipient_id, requester_id)
         if request is None or request.status != "pending":
-            raise FriendRequestNotFound("Incoming friend request not found")
+            raise FriendRequestNotFound()
         if request.requested_by_id != requester_id:
-            raise InvalidFriendRequest(
-                "You can only respond to an incoming friend request")
+            raise InvalidFriendRequest()
 
         if accept:
             low_id, high_id = _ordered_pair(recipient_id, requester_id)
@@ -126,8 +125,7 @@ def _respond_to_request(db: Session, recipient_id: int, requester_id: int,
 
     except IntegrityError as error:
         db.rollback()
-        raise FriendConflict("Friend request conflicts with existing state"
-                             ) from error
+        raise FriendConflict() from error
     except Exception:
         db.rollback()
         raise
@@ -151,7 +149,7 @@ def remove_friend(db: Session, user_id: int, friend_id: int) -> None:
         repository = FriendRepository(db)
         friendship = repository.get_friendship(user_id, friend_id)
         if friendship is None:
-            raise FriendshipNotFound("Friendship not found")
+            raise FriendshipNotFound()
 
         repository.delete_friendship(friendship)
         db.commit()
