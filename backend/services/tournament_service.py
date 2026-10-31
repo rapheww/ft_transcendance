@@ -283,6 +283,7 @@ def _advance_if_ready(db: Session, tournament: Tournament) -> None:
                                     slot=slot)))
     for index, match in enumerate(following):
         match.player1_id, match.player2_id = winners[2 * index:2 * index + 2]
+    db.flush()  # FIX: save the next round's players before it starts (avoids a frozen tournament)
     last_finish = max(
         _utc(db.get(Game, match.game_id).finished_at) for match in matches
         if match.game_id is not None)

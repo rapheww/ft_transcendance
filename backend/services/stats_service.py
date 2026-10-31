@@ -94,8 +94,8 @@ def get_player_profile(db: Session, username: str) -> PlayerProfile:
 
 def get_leaderboard(db: Session) -> list[LeaderboardEntry]:
     entries = []
-
-    for user in db.query(User).all():
+    
+    for user in db.query(User).filter(User.is_bot.is_(False)).all():
         stats = get_player_stats(db, user.id)
         entries.append(
             LeaderboardEntry(username=user.username,

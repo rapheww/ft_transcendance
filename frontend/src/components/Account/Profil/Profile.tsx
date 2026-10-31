@@ -2,9 +2,10 @@ import Header from "../../Navbar/Header";
 import Editor from "./Editor";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth, type ProfilType } from "../../AuthProvider";
-import { UserRoundPen } from "lucide-react";
+import { History as HistoryIcon, UserRoundPen } from "lucide-react";
 import Chart from "./Chart";
 import { API } from "../../Chess/utils/api";
+import { RecommendationCard } from "../../Recommendations/RecommendationTest";
 
 interface MatchHistory {
   opponent: string;
@@ -19,6 +20,7 @@ const Profil = () => {
   const [history, setHistory] = useState<MatchHistory[] | null>(null);
 
   const { token } = useAuth();
+  const hasHistory = !!history && history.length > 0;
 
   async function showHistory() {
     try {
@@ -119,20 +121,21 @@ const Profil = () => {
               </div>
             </div>
           </div>
-          <div className="w-full flex flex-col lg:flex-row justify-center items-center lg:h-100">
+          <div className={`w-full flex flex-col lg:flex-row justify-center items-center lg:items-stretch ${hasHistory ? "lg:h-100" : ""}`}>
             <div className="w-full lg:w-1/2 lg:h-full p-4">
               <div className="w-full h-full lg:h-full bg-white/3 flex justify-center items-center rounded-md p-2 sm:p-4 lg:p-5">
                 <Chart username={profil ? profil.username : ""} />
               </div>
             </div>
             <div className="w-full lg:w-1/2 lg:h-full p-4">
-              <div className="w-full h-80 lg:h-full bg-white/3 flex flex-col justify-center items-center rounded-md ">
-                <div className="p-2 border-b w-full text-center font-bold">
+              <div className={`w-full ${hasHistory ? "h-80 lg:h-full" : ""} bg-white/3 flex flex-col rounded-md`}>
+                <div className="flex items-center gap-2 p-2 px-4 border-b w-full font-bold">
+                  <HistoryIcon size={16} />
                   <h1>HISTORY</h1>
                 </div>
-                {history ? (
-                  <div className="w-full min-h-0 flex-1 flex-col justify-center items-center overflow-scroll scroll-smooth">
-                    {history.map((match, i) => (
+                {hasHistory ? (
+                  <div className="w-full min-h-0 flex-1 flex-col justify-center items-center overflow-y-auto scroll-smooth">
+                    {history!.map((match, i) => (
                       <div
                         key={i}
                         className={`w-full flex items-center justify-center`}
@@ -151,10 +154,13 @@ const Profil = () => {
                     ))}
                   </div>
                 ) : (
-                  <p>No match found ...</p>
+                  <p className="p-4 text-center opacity-60">No match found ...</p>
                 )}
               </div>
             </div>
+          </div>
+          <div className="w-full p-4 pt-0">
+            <RecommendationCard />
           </div>
         </div>
 
