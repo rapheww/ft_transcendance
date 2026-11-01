@@ -199,13 +199,16 @@ build: check-npm
 # ---------------------------------------------------------------------------
 
 clean: check-podman
+	@echo "Stopping background processes..."
+	@pkill -f "[s]imulate_bot_games" 2>/dev/null || true
+	@pkill -f "[u]vicorn backend.app.main" 2>/dev/null || true
 	@echo "Stopping PostgreSQL..."
 	@podman stop $(DB_CONTAINER) 2>/dev/null || true
 	@echo "Removing build artifacts..."
 	@rm -rf frontend/dist
 	@find . -type d -name "__pycache__" -prune -exec rm -rf {} +
 	@rm -rf .pytest_cache
-	@rm bot_simulation.log
+	@rm -f bot_simulation.log
 	@echo "Clean complete."
 
 fclean: clean
