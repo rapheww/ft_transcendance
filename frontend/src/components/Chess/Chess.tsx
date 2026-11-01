@@ -56,6 +56,10 @@ export default function Chess() {
     sendDraw,
   } = useGame(id, token);
 
+  const opponentIsBot =
+    playerColor === "white"
+      ? game?.black_player_is_bot ?? false
+      : game?.white_player_is_bot ?? false;
   const opponentElo = getStats(opponentName).elo;
   const playerElo = getStats(profil.username).elo;
 
@@ -224,6 +228,7 @@ export default function Chess() {
                 sendSocketMove={sendSocketMove}
                 opponentName={opponentName}
                 opponentType={game.opponent_type}
+                opponentIsBot={opponentIsBot}
               />
             </div>
 
@@ -383,7 +388,9 @@ export default function Chess() {
                 <div className="h-12 shrink-0 w-full flex flex-row justify-center items-center gap-3 border-t border-white/30">
                   <button
                     type="button"
-                    onClick={() => navigate("/")}
+                    onClick={() =>
+                      navigate(game.is_tournament ? "/tournaments" : "/")
+                    }
                     className="flex justify-center items-center w-20 h-8 border-2 border-white/20 bg-white/10 rounded-sm hover:bg-red-600/40 hover:scale-110 duration-300"
                   >
                     <p className="mr-2 text-lg">Back</p>

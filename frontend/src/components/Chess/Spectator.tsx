@@ -211,6 +211,8 @@ export default function Spectator() {
                   sendSocketMove={() => false}
                   readOnly
                   opponentName={""}
+                  opponentType={game.opponent_type}
+                  opponentIsBot={false}
                 />
               </div>
               <div className="flex min-h-12 items-center justify-between rounded-md bg-black/20 backdrop-blur-xs px-4">

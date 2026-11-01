@@ -13,6 +13,7 @@ interface Props {
   color: string;
   opponentName: string;
   opponentType?: string;
+  opponentIsBot: boolean;
 }
 
 function getElo(playerElo: StatsProfil) {
@@ -31,7 +32,7 @@ function getElo(playerElo: StatsProfil) {
   }
 }
 
-const GameOver = ({ open, onClose, result, color, opponentName, opponentType }: Props) => {
+const GameOver = ({ open, onClose, result, color, opponentName, opponentType, opponentIsBot }: Props) => {
   const [profilOps, setProfil] = useState<ProfilType | null>();
   const colorResult: string = result === "0-1" ? "Black Wins" : result === "1-0" ? "White Wins" : "Draw";
   const { profil } = useAuth();
@@ -154,7 +155,7 @@ const GameOver = ({ open, onClose, result, color, opponentName, opponentType }: 
                   </p>
                 </div>
               </div>
-              {opponentType !== "ai" && (
+              {opponentType !== "ai" && !opponentIsBot && (
                 <p className="text-sm sm:text-lg flex flex-row items-center gap-1 mt-2">
                 {`Elo: ${elo.elo} (${elo.diff > 0 ? `+${elo.diff}` : elo.diff})`}
                 {elo.diff > 0 ? (

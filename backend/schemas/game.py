@@ -22,12 +22,18 @@ class GameResponse(BaseModel):
     white_player_id: int
     white_player_name: str = Field(
         validation_alias=AliasPath("white_player", "username"))
+    white_player_is_bot: bool = Field(
+        default=False, validation_alias=AliasPath("white_player", "is_bot"))
     black_player_id: int | None
     black_player_name: str | None = Field(default=None,
                                           validation_alias=AliasPath(
                                               "black_player", "username"))
+    black_player_is_bot: bool = Field(
+        default=False,
+        validation_alias=AliasPath("black_player", "is_bot"))
     opponent_type: str
     ai_difficulty: str | None
+    is_tournament: bool = False
     status: str
     result: str | None
     current_fen: str

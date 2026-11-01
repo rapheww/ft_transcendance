@@ -9,6 +9,7 @@ from backend.exceptions.tournament import (InvalidParticipantCount, NotTournamen
                                            TournamentAlreadyStarted)
 from backend.models.game import Game
 from backend.models.user import User
+from backend.schemas.game import GameResponse
 from backend.services import game_service, tournament_bots, tournament_service
 
 
@@ -128,6 +129,35 @@ def test_bot_plays_its_moves_in_a_game_against_a_human(engine, db):
     assert board.turn == (chess.WHITE if game.white_player_id == me.id else chess.BLACK)
     sent = [m for gid, m in messages if gid == game.id]
     assert [m["type"] for m in sent][:2] == ["move", "game_state"]
+
+
+def test_tournament_game_against_bot_does_not_change_elo(db):
+    me = human(db, "rated-player", 1200)
+    for i in range(3):
+        bot(db, f"rating-bot-{i}", 1000)
+    tournament = tournament_service.create_tournament(db, me.id)
+    tournament_bots.fill_with_bots(db, tournament.id, me.id)
+    view = start_round_one(db, tournament.id, me.id)
+    game = db.get(Game, view.my_game_id)
+    response = GameResponse.model_validate(game_service.get_game(db, game.id))
+    assert response.is_tournament
+    assert response.white_player_is_bot == db.get(
+        User, game.white_player_id).is_bot
+    assert response.black_player_is_bot == db.get(
+        User, game.black_player_id).is_bot
+    opponent_id = (game.black_player_id if game.white_player_id == me.id else
+                   game.white_player_id)
+    opponent = db.get(User, opponent_id)
+    assert opponent.is_bot
+
+    game_service.resign(db, game.id, me.id)
+
+    db.refresh(me)
+    db.refresh(opponent)
+    db.refresh(game)
+    assert (me.elo, opponent.elo) == (1200, 1000)
+    assert game.white_elo_after is None
+    assert game.black_elo_after is None
 
 
 def test_bot_vs_bot_finishes_and_the_tournament_moves_on(engine, db, monkeypatch):

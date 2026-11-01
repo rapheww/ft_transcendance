@@ -10,10 +10,13 @@ export interface GameInfo {
   id: number;
   white_player_id: number | null;
   white_player_name?: string;
+  white_player_is_bot?: boolean;
   black_player_id: number | null;
   black_player_name?: string | null;
+  black_player_is_bot?: boolean;
   opponent_type?: string;
   ai_difficulty?: string | null;
+  is_tournament?: boolean;
   status: string;
   current_fen: string;
   fen?: string;

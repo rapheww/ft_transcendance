@@ -39,6 +39,7 @@ export interface ChessboardProps {
   readOnly?: boolean;
   opponentName: string;
   opponentType: string | undefined;
+  opponentIsBot: boolean;
 }
 
 export default function Chessboard({
@@ -54,7 +55,8 @@ export default function Chessboard({
   result,
   readOnly = false,
   opponentName,
-  opponentType
+  opponentType,
+  opponentIsBot,
 }: ChessboardProps) {
   const chessRef = useRef(new Chess(fenInit));
   const checkedKing: string | null = chessRef.current.isCheck()
@@ -694,6 +696,7 @@ export default function Chessboard({
           color={playerColor}
           opponentName={opponentName}
           opponentType={opponentType}
+          opponentIsBot={opponentIsBot}
         />
       )}
       {!readOnly && (
