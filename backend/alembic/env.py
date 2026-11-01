@@ -10,6 +10,9 @@ from backend.models.chat_message import ChatMessage
 from backend.models.tournament import Tournament, TournamentParticipant, TournamentMatch
 from backend.models.matchmaking import MatchmakingQueue
 from backend.models.notification import Notification
+from backend.models.friendship import Friendship
+from backend.models.friend_request import FriendRequest
+from backend.models.private_chat import PrivateConversation, PrivateMessage
 
 load_dotenv()
 config = context.config
