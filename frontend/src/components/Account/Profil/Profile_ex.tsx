@@ -76,7 +76,7 @@ const Profil = () => {
           py-6"
       >
         <div
-          className={`w-[92%] md:w-[85%] xl:w-[75%] bg-black/20 backdrop-blur-xs rounded-md border border-white/50`}
+          className={`w-[92%] md:w-[85%] xl:w-[75%] bg-black/20 backdrop-blur-xs rounded-md border border-white/15`}
         >
           <div id="profil-banner" className="sm:h-60 lg:h-64 w-full p-4">
             <div className="w-full h-full bg-white/3 rounded-md flex flex-row items-center justify-center">
@@ -107,7 +107,9 @@ const Profil = () => {
                   />
                 </div>
                 <div className="w-full sm:w-1/3 sm:h-full flex justify-center items-center px-2">
-                  <p className="text-center wrap-break-word">{profil?.username}</p>
+                  <p className="text-center wrap-break-word">
+                    {profil?.username}
+                  </p>
                 </div>
                 <div className="w-full sm:w-1/3 sm:h-full flex justify-center items-center px-2">
                   <p className="text-center break-all">{profil?.email}</p>
@@ -121,7 +123,9 @@ const Profil = () => {
               </div>
             </div>
           </div>
-          <div className={`w-full flex flex-col lg:flex-row justify-center items-center lg:items-stretch ${hasHistory ? "lg:h-100" : ""}`}>
+          <div
+            className={`w-full flex flex-col lg:flex-row justify-center items-center lg:items-stretch ${hasHistory ? "lg:h-100" : ""}`}
+          >
             <div className="w-full lg:w-1/2 lg:h-full p-4">
               <div className="w-full h-full lg:h-full bg-white/3 flex justify-center items-center rounded-md p-2 sm:p-4 lg:p-5">
                 <Chart username={profil ? profil.username : ""} />
@@ -129,7 +133,9 @@ const Profil = () => {
             </div>
             <div className="w-full lg:w-1/2 lg:h-full p-4">
               {/* Fixed height only when there are matches; empty history stays small */}
-              <div className={`w-full ${hasHistory ? "h-80 lg:h-full" : ""} bg-white/3 flex flex-col rounded-md`}>
+              <div
+                className={`w-full ${hasHistory ? "h-80 lg:h-full" : ""} bg-white/3 flex flex-col rounded-md`}
+              >
                 {/* Title on the left, same style as SUGGESTED OPPONENTS */}
                 <div className="flex items-center gap-2 p-2 px-4 border-b w-full font-bold">
                   <HistoryIcon size={16} />
@@ -156,7 +162,9 @@ const Profil = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="p-4 text-center opacity-60">No match found ...</p>
+                  <p className="p-4 text-center opacity-60">
+                    No match found ...
+                  </p>
                 )}
               </div>
             </div>

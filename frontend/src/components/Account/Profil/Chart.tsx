@@ -103,7 +103,7 @@ export default function Chart({ username }: ChartProps) {
   } else {
     return (
       <div className="w-full h-full flex justify-center items-center">
-        <p>{`Current elo : ${stats.elo} --> play games to get more stats`}</p>
+        <p>{`Current elo : ${stats.elo}`}</p>
       </div>
     );
   }

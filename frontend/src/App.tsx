@@ -13,6 +13,7 @@ import Spectator from "./components/Chess/Spectator";
 import RecommendationTest from "./components/Recommendations/RecommendationTest";
 import TournamentTest from "./components/Tournaments/TournamentTest";
 import FriendsList from "./components/Friends/FriendsList";
+import FriendProfil from "./components/Friends/FriendProfil";
 
 function App() {
 
@@ -34,6 +35,7 @@ function App() {
               <Route path="/test-recommendations" element={<RecommendationTest />} />
               <Route path="/tournament-test" element={<TournamentTest />} />
               <Route path="/friendsList" element={<FriendsList/>} />
+              <Route path="/friend-profil/:friendName/:friendId" element={<FriendProfil/>} />
             </Route>
         </Routes>
       </AuthProvider>
