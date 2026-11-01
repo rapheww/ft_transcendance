@@ -17,6 +17,15 @@ export interface TournamentMatch {
     status: TournamentMatchStatus;
 }
 
+// ADDED: a bot registered in a tournament (GET /api/tournaments/{id}/bots)
+export interface BotInfo {
+    id: number;
+    username: string;
+    ai_level: string | null;
+    style: string | null;
+    elo: number;
+}
+
 export interface Tournament {
     id: number;
     status: string;

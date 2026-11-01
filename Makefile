@@ -21,6 +21,8 @@ setup:
 	$(MAKE) install
 	$(MAKE) db
 	$(MAKE) migrate
+	$(MAKE) seed-bots
+	$(MAKE) simulate-bots > bot_simulation.log 2>&1 &
 	$(MAKE) dev
 
 # ---------------------------------------------------------------------------
@@ -180,4 +182,4 @@ fclean: clean
 	@echo "Full clean complete."
 
 
-.PHONY: help setup install install-backend install-frontend db db-stop db-status migrate seed-bots backend frontend dev test lint build clean fclean
+.PHONY: help setup install install-backend install-frontend db db-stop db-status migrate seed-bots simulate-bots prepare-bots backend frontend dev test lint build clean fclean

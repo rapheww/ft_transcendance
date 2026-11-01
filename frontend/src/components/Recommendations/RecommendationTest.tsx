@@ -1,75 +1,164 @@
 import { useState, useEffect } from "react";
-import type { RecommendationResponse } from "./recommendation";
-import { getRecommendations } from "./recommendationApi";
+import { useNavigate } from "react-router-dom";
+import { Bot, Sparkles } from "lucide-react";
+import type { OpponentRecommendation, RecommendationResponse } from "./recommendation";
+import { botLevel, getRecommendations, startBotGame, toMatchPercent } from "./recommendationApi";
 import { useAuth } from "../AuthProvider";
+import Header from "../Navbar/Header";
 
-export default function RecommendationTest() {
+type Tab = "bots" | "humans";
+
+function OpponentRow({ player, onPlay, busy }: {
+    player: OpponentRecommendation;
+    onPlay: (p: OpponentRecommendation) => void;
+    busy: boolean;
+}) {
+    const match = toMatchPercent(player.similarity_score);
+    return (
+        <li className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/5 transition">
+            <div className="w-9 h-9 shrink-0 rounded-full bg-white/10 border border-white/20 flex items-center justify-center uppercase">
+                {player.is_bot ? <Bot size={18} /> : player.username.charAt(0)}
+            </div>
+
+            <div className="flex-1 min-w-0">
+                <p className="truncate">
+                    {player.username}
+                    {player.is_bot && <span className="ml-2 text-xs opacity-50">{botLevel(player)}</span>}
+                </p>
+                {match !== null && (
+                    <div className="flex items-center gap-2 mt-1">
+                        <div className="h-1 w-24 sm:w-32 rounded-full bg-white/10 overflow-hidden">
+                            <div className="h-full rounded-full bg-white/70" style={{ width: `${match}%` }} />
+                        </div>
+                        <span className="text-xs opacity-60">{match}%</span>
+                    </div>
+                )}
+            </div>
+
+            <span className="px-2 py-0.5 rounded-full border border-white/20 text-xs tabular-nums whitespace-nowrap">
+                {player.elo} Elo
+            </span>
+
+            {player.is_bot && (
+                <button
+                    onClick={() => onPlay(player)}
+                    disabled={busy}
+                    className="px-3 py-1 text-sm rounded-md border border-white/30 hover:bg-white hover:text-gray-700 transition duration-350 cursor-pointer disabled:opacity-40"
+                >
+                    Play
+                </button>
+            )}
+        </li>
+    );
+}
+
+// The card itself. Later, the profile page only needs: <RecommendationCard />
+export function RecommendationCard({ topN = 5 }: { topN?: number }) {
     const { token } = useAuth();
+    const navigate = useNavigate();
 
-    const [recommendations, setRecommendations] = 
-        useState<RecommendationResponse>({
-        humans: [],
-        bots: [],
-    });
-
+    const [recommendations, setRecommendations] = useState<RecommendationResponse>({ humans: [], bots: [] });
+    const [tab, setTab] = useState<Tab>("bots");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
         async function loadRecommendations() {
             if (!token) {
-                setRecommendations({ humans: [], bots: [] });
-                setError(null);
                 setLoading(false);
                 return;
             }
             try {
                 setLoading(true);
                 setError(null);
-                const data = await getRecommendations(token);
-                if (!cancelled)
-                    setRecommendations(data);
-            } catch(err) {
-                if (!cancelled) {
-                    setError(err instanceof Error ? err.message : "Unknown error");
-                }
+                const data = await getRecommendations(token, topN);
+                if (!cancelled) setRecommendations(data);
+            } catch {
+                if (!cancelled) setError("Could not load recommendations.");
             } finally {
-                if (!cancelled) {
-                    setLoading(false);
-                }
+                if (!cancelled) setLoading(false);
             }
         }
         loadRecommendations();
         return () => {
             cancelled = true;
         };
-    }, [token]);
+    }, [token, topN]);
 
-     return (
-        <div>
-            <h2>RecommendationOpponents</h2>
-            {loading && <p>Loading recommendations...</p>}
-            {error && <p>error: {error}</p>}
-            {!token && <p>Please log in to see recommendations.</p>}
-            {token && !loading && !error && (
-                <div>
-                    <h3>Humans: {recommendations.humans.length}</h3>
-                    {recommendations.humans.map((player) => (
-                        <div key={player.user_id}>
-                            <p>{player.username}</p>
-                            <p>Elo: {player.elo}</p>
-                        </div>
-                    ))}
-                    <h3>Bots: {recommendations.bots.length}</h3>
-                    {recommendations.bots.map((player) => (
-                        <div key={player.user_id}>
-                            <p>{player.username}</p>
-                            <p>Elo: {player.elo}</p>
-                        </div>
+    async function playBot(bot: OpponentRecommendation) {
+        if (!token || busy) return;
+        setBusy(true);
+        try {
+            const gameId = await startBotGame(token, bot);
+            navigate(`/chess/5/0/${gameId}`);
+        } catch {
+            setError("Could not start the game.");
+            setBusy(false);
+        }
+    }
+
+    const list = recommendations[tab];
+
+    return (
+        <div className="w-full h-full bg-white/3 rounded-md flex flex-col">
+            <div className="flex items-center justify-between gap-2 p-2 px-4 border-b">
+                <h1 className="font-bold flex items-center gap-2 whitespace-nowrap">
+                    <Sparkles size={16} />
+                    {/* Desktop: "SUGGESTED OPPONENTS" / mobile: "OPPONENTS" */}
+                    <span>
+                        <span className="hidden sm:inline">SUGGESTED </span>OPPONENTS
+                    </span>
+                </h1>
+                <div className="flex text-sm rounded-md border border-white/30 overflow-hidden whitespace-nowrap">
+                    {(["bots", "humans"] as Tab[]).map((t) => (
+                        <button
+                            key={t}
+                            onClick={() => setTab(t)}
+                            className={`px-3 py-1 cursor-pointer transition ${tab === t ? "bg-white/15" : "hover:bg-white/5 opacity-60"}`}
+                        >
+                            {t === "bots" ? "Bots" : "Players"} ({recommendations[t].length})
+                        </button>
                     ))}
                 </div>
-            )}
+            </div>
+
+            <div className="p-2 flex-1">
+                {loading ? (
+                    <div className="flex justify-center p-6">
+                        <span className="loading loading-dots loading-md" />
+                    </div>
+                ) : error ? (
+                    <p className="p-4 text-center text-red-400">{error}</p>
+                ) : list.length === 0 ? (
+                    <p className="p-4 text-center opacity-60">No one near your level yet ...</p>
+                ) : (
+                    <ul className="flex flex-col gap-1">
+                        {list.map((p) => (
+                            <OpponentRow key={p.user_id} player={p} onPlay={playBot} busy={busy} />
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            <p className="px-4 pb-3 text-xs opacity-40 text-center">
+                Based on your Elo and play style · updated after every game
+            </p>
+        </div>
+    );
+}
+
+// Test page at /test-recommendations, same frame as the profile page.
+export default function RecommendationTest() {
+    return (
+        <div>
+            <Header />
+            <div className="w-full min-h-[calc(100vh-56px)] flex justify-center items-center py-6">
+                <div className="w-[92%] md:w-[85%] xl:w-[75%] bg-black/20 backdrop-blur-xs rounded-md border border-white/50 p-4">
+                    <RecommendationCard topN={5} />
+                </div>
+            </div>
         </div>
     );
 }
