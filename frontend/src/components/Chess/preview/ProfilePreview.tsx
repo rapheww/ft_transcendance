@@ -16,9 +16,7 @@ const ProfilePreview = ({ onClose, open, username }: Props) => {
     if (!open || !username) return;
     (async () => {
       try {
-        const response = await fetch(
-          `${API}/users/${username}`,
-        );
+        const response = await fetch(`${API}/users/${username}`);
         if (!response.ok) return;
         const infos = await response.json();
         setProfil(infos);
@@ -54,7 +52,7 @@ const ProfilePreview = ({ onClose, open, username }: Props) => {
           justify-center
           items-center"
         >
-          <div className="w-[75%] bg-black/70 backdrop-blur-sm rounded-md border border-white/50 overflow-hidden">
+          <div className="w-[75%] bg-black/70 backdrop-blur-sm rounded-md border border-white/15 overflow-hidden">
             <div id="profil-banner" className="h-50 w-full p-4">
               <button
                 onClick={() => {

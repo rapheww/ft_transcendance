@@ -10,7 +10,7 @@ const Login = () => {
   const [invalid, setInvalid] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [logging, setLogging] = useState<boolean>(false);
-  const inputClassname = `input outline-0 border bg-white/3 border-white/50 focus:border-white/50 focus-within:border-white/50 w-full lg:h-12 lg:text-lg 2xl:text-base`;
+  const inputClassname = `input outline-0 border bg-white/3 border-white/15 focus:border-white/15 focus-within:border-white/15 w-full lg:h-12 lg:text-lg 2xl:text-base`;
 
   const { login } = useAuth();
   //login handling
@@ -61,7 +61,7 @@ const Login = () => {
             flex-col
             justify-center
             border-2
-            ${invalid ? "border-red-500/60" : "border-white/50"}
+            ${invalid ? "border-red-500/60" : "border-white/15"}
             bg-black/20 backdrop-blur-xs
             rounded-md
             p-6
@@ -112,7 +112,10 @@ const Login = () => {
               id="log-btn"
               className="relative inline-flex items-center justify-center mt-3 px-6 py-3 lg:px-8 lg:py-3 lg:text-lg overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group"
             >
-              <svg className={`mr-3 size-5 animate-spin ${logging ? 'flex' : 'hidden'}`} viewBox="0 0 100 100">
+              <svg
+                className={`mr-3 size-5 animate-spin ${logging ? "flex" : "hidden"}`}
+                viewBox="0 0 100 100"
+              >
                 <circle
                   cx="50"
                   cy="50"

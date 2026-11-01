@@ -7,7 +7,7 @@ import Chart from "./Chart";
 import { API } from "../../Chess/utils/api";
 import { RecommendationCard } from "../../Recommendations/RecommendationTest";
 
-interface MatchHistory {
+export interface MatchHistory {
   opponent: string;
   outcome: string;
   moves_played: number;
@@ -77,7 +77,7 @@ const Profil = () => {
           py-6"
       >
         <div
-          className={`w-[92%] md:w-[85%] xl:w-[75%] bg-black/20 backdrop-blur-xs rounded-md border border-white/50`}
+          className={`w-[92%] md:w-[85%] xl:w-[75%] bg-black/20 backdrop-blur-xs rounded-md border border-white/15`}
         >
           <div id="profil-banner" className="sm:h-60 lg:h-64 w-full p-4">
             <div className="w-full h-full bg-white/3 rounded-md flex flex-row items-center justify-center">

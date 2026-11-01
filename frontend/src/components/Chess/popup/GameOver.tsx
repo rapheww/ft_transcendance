@@ -34,7 +34,8 @@ function getElo(playerElo: StatsProfil) {
 
 const GameOver = ({ open, onClose, result, color, opponentName, opponentType, opponentIsBot }: Props) => {
   const [profilOps, setProfil] = useState<ProfilType | null>();
-  const colorResult: string = result === "0-1" ? "Black Wins" : result === "1-0" ? "White Wins" : "Draw";
+  const colorResult: string =
+    result === "0-1" ? "Black Wins" : result === "1-0" ? "White Wins" : "Draw";
   const { profil } = useAuth();
   const playerElo = getStats(profil.username, open);
   const elo: { elo: number; diff: number } = getElo(playerElo);
@@ -114,14 +115,16 @@ const GameOver = ({ open, onClose, result, color, opponentName, opponentType, op
       >
         <div className="w-full flex justify-center items-center">
           <div className="flex flex-col text-white w-full">
-            <div className="bg-black/90 backdrop-blur-xs border border-white/50 shadow-xl md:shadow-2xl shadow-black max-h-[90vh] overflow-y-auto flex justify-center items-center flex-col rounded-lg p-3 sm:p-5 gap-2">
+            <div className="bg-black/90 backdrop-blur-xs border border-white/15 shadow-xl md:shadow-2xl shadow-black max-h-[90vh] overflow-y-auto flex justify-center items-center flex-col rounded-lg p-3 sm:p-5 gap-2">
               <button
                 onClick={onClose}
                 className="cursor-pointer place-self-end"
               >
                 <X size={30} />
               </button>
-              <h1 className="text-xl sm:text-2xl font-extrabold">{colorResult}</h1>
+              <h1 className="text-xl sm:text-2xl font-extrabold">
+                {colorResult}
+              </h1>
               <div className="w-full flex flex-row justify-center py-2 items-center text-center">
                 <div className="w-1/3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 overflow-hidden">
                   <img
@@ -157,13 +160,13 @@ const GameOver = ({ open, onClose, result, color, opponentName, opponentType, op
               </div>
               {opponentType !== "ai" && !opponentIsBot && (
                 <p className="text-sm sm:text-lg flex flex-row items-center gap-1 mt-2">
-                {`Elo: ${elo.elo} (${elo.diff > 0 ? `+${elo.diff}` : elo.diff})`}
-                {elo.diff > 0 ? (
-                  <ArrowBigUp size={20} color={"#227501"} />
-                ) : (
-                  <ArrowBigDown size={20} color={"#8f0110"} />
-                )}
-              </p>
+                  {`Elo: ${elo.elo} (${elo.diff > 0 ? `+${elo.diff}` : elo.diff})`}
+                  {elo.diff > 0 ? (
+                    <ArrowBigUp size={20} color={"#227501"} />
+                  ) : (
+                    <ArrowBigDown size={20} color={"#8f0110"} />
+                  )}
+                </p>
               )}
             </div>
           </div>

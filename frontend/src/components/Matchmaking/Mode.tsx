@@ -26,7 +26,7 @@ export default function Mode() {
   const navigate = useNavigate();
   const { token } = useAuth();
 
-  const [selectedMode, setSelectedMode] = useState("5+0");
+  const [selectedMode, setSelectedMode] = useState("10+0");
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
     "easy",
   );
@@ -150,7 +150,7 @@ export default function Mode() {
               onChange={(event) =>
                 setDifficulty(event.target.value as "easy" | "medium" | "hard")
               }
-              className="select w-full outline-0 bg-white/3 focus:border-white/50 focus-within:border-white/50"
+              className="select w-full outline-0 bg-white/3 focus:border-white/15 focus-within:border-white/15"
             >
               {difficulties.map((level) => (
                 <option key={level} value={level}>
