@@ -8,6 +8,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { API } from "./Chess/utils/api";
 
+const HEARTBEAT_INTERVAL_MS = 30_000;
+
 type LoginType = {
   username: string;
   token: string;
@@ -146,6 +148,47 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     checker();
   }, [token, logout]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    let heartbeatInFlight = false;
+    const sendHeartbeat = async () => {
+      if (heartbeatInFlight) return;
+      heartbeatInFlight = true;
+      try {
+        const response = await fetch(`${API}/users/me/heartbeat`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          throw new Error(`Presence heartbeat failed (${response.status})`);
+        }
+      } catch (error) {
+        console.error("Could not update presence:", error);
+      } finally {
+        heartbeatInFlight = false;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void sendHeartbeat();
+      }
+    };
+
+    void sendHeartbeat();
+    const intervalId = window.setInterval(
+      () => void sendHeartbeat(),
+      HEARTBEAT_INTERVAL_MS,
+    );
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [token]);
 
   useEffect(() => {
     return () => {
