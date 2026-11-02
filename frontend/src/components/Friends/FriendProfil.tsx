@@ -102,7 +102,7 @@ const FriendProfil = () => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
-  }, [live]);
+  }, [messages.length]);
 
   return (
     <div>
@@ -171,7 +171,7 @@ const FriendProfil = () => {
                 </div>
 
                 <div className="w-full min-h-0 flex-1 overflow-y-auto scroll-smooth" ref={chatRef}>
-                  {chat &&
+                  {messages &&
                     messages.map((c) => (
                       <div
                         key={c.id}
@@ -183,7 +183,7 @@ const FriendProfil = () => {
                         <p className="min-w-0 wrap-break-word">{c.message}</p>
                       </div>
                     ))}
-                  {(!chat || chat.length === 0) && (
+                  {(!messages || messages.length === 0) && (
                     <div className="w-full h-full p-3 flex justify-center items-center">
                       "No chat"
                     </div>

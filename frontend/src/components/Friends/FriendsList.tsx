@@ -216,6 +216,7 @@ const FriendsList = () => {
       getFriendsList();
       ShowIncomingRequest();
       ShowOutgoingRequest();
+      setAddResponse(null);
     }, 3000);
 
     return () => clearInterval(interval);
@@ -313,27 +314,31 @@ const FriendsList = () => {
                     className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4 ${i % 2 === 0 ? "" : "bg-white/3"}`}
                     key={i}
                   >
-                    <p className="w-12 md:w-16 shrink-0 text-xs md:text-sm">
-                      online
-                    </p>
-                    <img
-                      src={s.avatar}
-                      className="object-cover rounded-full w-10 h-10 md:w-12 md:h-12 shrink-0"
-                    />
-                    <p className="flex-1 min-w-0 truncate text-sm md:text-base lg:text-lg">
-                      {s.username}
-                    </p>
-                    {addResponse && (
-                      <p className={`text-sm italic ${addResponse.message === "Request sent" ? 'text-lime-600/80' : 'text-red-700/80'}`}>{  s.id === addResponse.id && !alreadyFriend? addResponse.message : ''}</p>
-                    )}
-                    <button
-                      className={`shrink-0 hover:cursor-pointer hover:bg-lime-500/15 rounded-md p-1 ${alreadyFriend && 'hidden'}`}
-                      onClick={() => {
-                        sendRequest(s.id);
-                      }}
+                    <div className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4 ${alreadyFriend && 'hover:cursor-pointer hover:bg-white/5'}`}
+                      onClick={() =>{alreadyFriend && navigate(`/friend-profil/${s.username}/${s.id}`)}}
                     >
-                      <UserRoundPlus />
-                    </button>
+                      <p className="w-12 md:w-16 shrink-0 text-xs md:text-sm">
+                        online
+                      </p>
+                      <img
+                        src={s.avatar}
+                        className="object-cover rounded-full w-10 h-10 md:w-12 md:h-12 shrink-0"
+                      />
+                      <p className="flex-1 min-w-0 truncate text-sm md:text-base lg:text-lg">
+                        {s.username}
+                      </p>
+                      {addResponse && (
+                        <p className={`text-sm italic ${addResponse.message === "Request sent" ? 'text-lime-600/80' : 'text-red-700/80'}`}>{  s.id === addResponse.id && !alreadyFriend? addResponse.message : ''}</p>
+                      )}
+                      <button
+                        className={`shrink-0 hover:cursor-pointer hover:bg-lime-500/15 rounded-md p-1 ${alreadyFriend && 'hidden'}`}
+                        onClick={() => {
+                          sendRequest(s.id);
+                        }}
+                      >
+                        <UserRoundPlus />
+                      </button>
+                    </div>
                   </div>
 )})}
             </div>

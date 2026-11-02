@@ -55,6 +55,8 @@ export default function Chess() {
     chat,
     drawOffer,
     sendDraw,
+    unread,
+    setUnread
   } = useGame(id, token);
 
   const opponentIsBot =
@@ -87,6 +89,8 @@ export default function Chess() {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
+    if(!showChat && chat.length > 0)
+      setUnread(true);
   }, [chat]);
 
   useEffect(() => {
@@ -282,13 +286,15 @@ export default function Chess() {
                 <p>movements</p>
               </div>
               <div
-                className={`flex justify-center items-center uppercase w-1/2 h-full ${showChat ? "bg-white/15" : "hover:bg-white/15"} rounded-tr-md cursor-pointer`}
+                className={`flex justify-center items-center uppercase w-1/2 h-full ${showChat ? "bg-white/15" : "hover:bg-white/15"} rounded-tr-md cursor-pointer gap-2`}
                 onClick={() => {
                   setShowMoves(false);
                   setShowChat(true);
+                  setUnread(false);
                 }}
               >
                 <p>CHAT</p>
+                <p className={`${unread && !showChat && 'border-4 rounded-full'}`}></p>
               </div>
             </div>
 
