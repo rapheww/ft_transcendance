@@ -34,8 +34,11 @@ export function useGame(
   const [opponentConnected, setOpponentConnected] = useState(false);
   const [chat, setChat] = useState<ChatMessage[]>([]);
   const [spectatorCount, setSpectatorCount] = useState(0);
-  const opponentId = useRef<number | null>(null);
+  const [drawOffer, setDrawOffer] = useState<"none" | "sent" | "received">(
+    "none",
+  );
 
+  const opponentId = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const socketFenRef = useRef<string>("");
   const socketSnapshotReceivedRef = useRef(false);
@@ -162,6 +165,11 @@ export function useGame(
                 increment_seconds:
                   socketState.increment_seconds ?? data.increment_seconds,
                 last_move_at: socketState.last_move_at ?? data.last_move_at,
+                can_claim_fifty_move:
+                  socketState.can_claim_fifty_move ?? data.can_claim_fifty_move,
+                can_claim_threefold_repetition:
+                  socketState.can_claim_threefold_repetition ??
+                  data.can_claim_threefold_repetition,
               }
             : data,
         );
@@ -266,7 +274,6 @@ export function useGame(
 
     function handleMessage(event: MessageEvent<string>) {
       let data: GameSocketMessage;
-
       try {
         data = JSON.parse(event.data) as GameSocketMessage;
       } catch {
@@ -286,6 +293,8 @@ export function useGame(
           black_time_remaining: data.black_time_remaining,
           increment_seconds: data.increment_seconds,
           last_move_at: data.last_move_at,
+          can_claim_fifty_move: data.can_claim_fifty_move,
+          can_claim_threefold_repetition: data.can_claim_threefold_repetition,
         };
         if (data.fen) {
           socketFenRef.current = data.fen;
@@ -343,6 +352,11 @@ export function useGame(
                   increment_seconds:
                     data.increment_seconds ?? current.increment_seconds,
                   last_move_at: data.last_move_at ?? current.last_move_at,
+                  can_claim_fifty_move:
+                    data.can_claim_fifty_move ?? current.can_claim_fifty_move,
+                  can_claim_threefold_repetition:
+                    data.can_claim_threefold_repetition ??
+                    current.can_claim_threefold_repetition,
                 }
               : current,
           );
@@ -387,6 +401,12 @@ export function useGame(
           increment_seconds:
             data.increment_seconds ?? previousSocketState?.increment_seconds,
           last_move_at: data.last_move_at ?? previousSocketState?.last_move_at,
+          can_claim_fifty_move:
+            data.can_claim_fifty_move ??
+            previousSocketState?.can_claim_fifty_move,
+          can_claim_threefold_repetition:
+            data.can_claim_threefold_repetition ??
+            previousSocketState?.can_claim_threefold_repetition,
         };
         if (data.fen) {
           socketFenRef.current = data.fen;
@@ -409,6 +429,11 @@ export function useGame(
                   increment_seconds:
                     data.increment_seconds ?? current.increment_seconds,
                   last_move_at: data.last_move_at ?? current.last_move_at,
+                  can_claim_fifty_move:
+                    data.can_claim_fifty_move ?? current.can_claim_fifty_move,
+                  can_claim_threefold_repetition:
+                    data.can_claim_threefold_repetition ??
+                    current.can_claim_threefold_repetition,
                 }
               : current,
           );
@@ -431,6 +456,7 @@ export function useGame(
       if (data.type === "move") {
         // Le coup reçu contient son écriture pour l'afficher et la position du plateau après ce coup.
         // Le serveur l'a déjà vérifié et accepté.
+        setDrawOffer("none");
         if (data.fen) {
           socketFenRef.current = data.fen;
         }
@@ -445,13 +471,25 @@ export function useGame(
                 increment_seconds:
                   data.increment_seconds ?? current.increment_seconds,
                 last_move_at: data.last_move_at ?? current.last_move_at,
+                can_claim_fifty_move:
+                  data.can_claim_fifty_move ?? current.can_claim_fifty_move,
+                can_claim_threefold_repetition:
+                  data.can_claim_threefold_repetition ??
+                  current.can_claim_threefold_repetition,
               }
             : current,
         );
         receiveMove(data);
         return;
       }
-
+      if (data.type === "draw_offered") {
+        setDrawOffer(data.user_id === userId ? "sent" : "received");
+        return;
+      }
+      if (data.type === "draw_declined") {
+        setDrawOffer("none");
+        return;
+      }
       if (data.type === "spectator_count") {
         if (typeof data.count === "number" && Number.isInteger(data.count)) {
           setSpectatorCount(data.count);
@@ -460,13 +498,10 @@ export function useGame(
       }
 
       if (data.type === "player_joined") {
-        console.log("Opponent ID:", opponentId.current);
-        console.log("Joined user ID:", data.user_id);
         if (
           typeof data.user_id === "number" &&
           data.user_id === opponentId.current
         ) {
-          console.log("joined");
           setOpponentConnected(true);
         }
         return;
@@ -489,19 +524,28 @@ export function useGame(
 
       if (data.type === "game_over") {
         // La partie est terminée : ne pas essayer de se reconnecter et arrêter les deux chronomètres.
+        setDrawOffer("none");
         terminal = true;
         gameOverRef.current = true;
         socketGameStateRef.current = {
           fen: socketFenRef.current,
           status: "finished",
           result: data.result,
+          can_claim_fifty_move: false,
+          can_claim_threefold_repetition: false,
         };
         setSocketStatus("finished");
         setGameOver(true);
         setResult(data.result ?? "0-0");
         setGame((current) =>
           current
-            ? { ...current, status: "finished", result: data.result ?? null }
+            ? {
+                ...current,
+                status: "finished",
+                result: data.result ?? null,
+                can_claim_fifty_move: false,
+                can_claim_threefold_repetition: false,
+              }
             : current,
         );
       }
@@ -705,6 +749,13 @@ export function useGame(
     return true;
   }
 
+  function sendDraw(type: "draw_offer" | "draw_accept" | "draw_decline") {
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+    socket.send(JSON.stringify({ type }));
+    return true;
+  }
+
   async function sendResign() {
     // Enregistrer l'abandon auprès du serveur et mettre l'écran à jour après sa confirmation.
     if (!token || !game || playerColor === "") return;
@@ -761,5 +812,7 @@ export function useGame(
     bTurn,
     chat,
     spectatorCount,
+    drawOffer,
+    sendDraw
   };
 }

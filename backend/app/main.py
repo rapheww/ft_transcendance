@@ -2,8 +2,10 @@ from fastapi import FastAPI
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
-from backend.api import auth, users, games, stats, tournaments, public
+from backend.api import (auth, users, games, stats, tournaments, public,
+                         friends, private_chat)
 from backend.websocket import routes as websocket
+from backend.websocket import private_chat_routes
 from backend.core.public_api_security import limiter
 from backend.api import matchmaking, recommendations
 from backend.api import tournament_bots  # ADDED: optional tournament bots
@@ -39,5 +41,8 @@ app.include_router(tournaments.router, prefix="/api/tournaments")
 app.include_router(tournament_bots.router, prefix="/api/tournaments")
 app.include_router(public.router, prefix="/api/public")
 app.include_router(websocket.router, prefix="/ws")
+app.include_router(private_chat_routes.router, prefix="/ws")
 app.include_router(matchmaking.router, prefix="/api/matchmaking")
 app.include_router(recommendations.router, prefix="/api/recommendations")
+app.include_router(friends.router, prefix="/api/friends")
+app.include_router(private_chat.router, prefix="/api/private-chat")

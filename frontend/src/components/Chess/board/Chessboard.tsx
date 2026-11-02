@@ -38,6 +38,8 @@ export interface ChessboardProps {
   setResult: React.Dispatch<React.SetStateAction<string>>;
   readOnly?: boolean;
   opponentName: string;
+  opponentType: string | undefined;
+  opponentIsBot: boolean;
 }
 
 export default function Chessboard({
@@ -52,7 +54,9 @@ export default function Chessboard({
   gameOver,
   result,
   readOnly = false,
-  opponentName
+  opponentName,
+  opponentType,
+  opponentIsBot,
 }: ChessboardProps) {
   const chessRef = useRef(new Chess(fenInit));
   const checkedKing: string | null = chessRef.current.isCheck()
@@ -99,19 +103,54 @@ export default function Chessboard({
 
   //useEffect pour charger le fen quand un mouv est clique
   useEffect(() => {
-    if (!fenInit) return;
+  if (!fenInit) return;
 
-    const key = (f: string) => f.split(" ").slice(0, 2).join(" "); // position + trait
-    if (key(fenInit) !== key(chessRef.current.fen())) {
-      const played = chessRef.current
-        .moves({ verbose: true })
-        .find((m) => key(m.after) === key(fenInit));
-      if (played) lastMove.current = { from: played.from, to: played.to };
+  const key = (f: string) => f.split(" ").slice(0, 2).join(" ");
+
+  if (key(fenInit) !== key(chessRef.current.fen())) {
+    const played = chessRef.current
+      .moves({ verbose: true })
+      .find((m) => key(m.after) === key(fenInit));
+
+    if (played) {
+      lastMove.current = { from: played.from, to: played.to };
+
+      //setBGcolor adapter
+      const from = squareToPos(played.from);
+      const to = squareToPos(played.to);
+
+      const origin = getTileElement(from.x, from.y);
+      const dest = getTileElement(to.x, to.y);
+
+      if (origin && dest) {
+        const getOriginalColor = (tile: HTMLElement) =>
+          tile.dataset.dark === "true"
+            ? profil.board_dark_color || "var(--dark-tile)"
+            : profil.board_light_color || "var(--light-tile)";
+
+        tileColor.forEach((m) => {
+          if (m.tile !== origin && m.tile !== dest) {
+            m.tile.style.backgroundColor = m.bg;
+          }
+        });
+
+        origin.style.backgroundColor =
+          origin.dataset.dark === "true" ? "#738a38" : "#97b54a";
+
+        dest.style.backgroundColor =
+          dest.dataset.dark === "true" ? "#738a38" : "#97b54a";
+
+        setTileColor([
+          { tile: origin, bg: getOriginalColor(origin) },
+          { tile: dest, bg: getOriginalColor(dest) },
+        ]);
+      }
     }
+  }
 
-    chessRef.current.load(fenInit);
-    setFen(fenInit);
-  }, [fenInit]);
+  chessRef.current.load(fenInit);
+  setFen(fenInit);
+}, [fenInit]);
 
   //gameOver
   gameOverScreen(gameId, token, setResult, setOpen, gameOver, !readOnly);
@@ -217,33 +256,38 @@ export default function Chessboard({
     target: { x: number; y: number } | undefined,
     x: number,
     y: number,
-    active: HTMLElement | null,
   ) {
-    lastMove.current = target ? { from: `${oldPos}`, to: `${newPos}` } : null;
-    if (x !== gridX || y !== gridY) {
-      const originTile = tileColor.find(
-        (m) => m.tile === (active!.parentNode as HTMLElement),
-      );
-      const dest = getTileElement(x, y) as HTMLElement;
-      const destExisting = tileColor.find((m) => m.tile === dest);
-      const destColor = destExisting ? destExisting.bg : getColor(dest);
+    lastMove.current = target ? { from: oldPos, to: newPos } : null;
 
-      tileColor.forEach((m) => {
-        if (m.tile !== originTile?.tile && m.tile !== dest) {
-          m.tile.style.backgroundColor = m.bg;
-        }
-      });
+    const origin = getTileElement(gridX, gridY);
+    const dest = getTileElement(x, y);
 
-      if (originTile && destColor) {
-        if (originTile && destColor) {
-          originTile.tile.style.backgroundColor =
-            originTile.tile.dataset.dark === "true" ? "#738a38" : "#97b54a";
-          dest.style.backgroundColor =
-            dest.dataset.dark === "true" ? "#738a38" : "#97b54a";
-          setTileColor([originTile, { bg: destColor, tile: dest }]);
-        }
+    if (!origin || !dest || origin === dest) return;
+
+    const getOriginalColor = (tile: HTMLElement) =>
+      tile.dataset.dark === "true"
+        ? profil.board_dark_color || "var(--dark-tile)"
+        : profil.board_light_color || "var(--light-tile)";
+
+    const originBg = getOriginalColor(origin);
+    const destBg = getOriginalColor(dest);
+
+    tileColor.forEach((m) => {
+      if (m.tile !== origin && m.tile !== dest) {
+        m.tile.style.backgroundColor = m.bg;
       }
-    }
+    });
+
+    origin.style.backgroundColor =
+      origin.dataset.dark === "true" ? "#738a38" : "#97b54a";
+
+    dest.style.backgroundColor =
+      dest.dataset.dark === "true" ? "#738a38" : "#97b54a";
+
+    setTileColor([
+      { tile: origin, bg: originBg },
+      { tile: dest, bg: destBg },
+    ]);
   }
 
   function setStyle(element: HTMLElement, e: React.MouseEvent) {
@@ -439,7 +483,7 @@ export default function Chessboard({
       return;
     }
 
-    setBgColor(params.target, params.x, params.y, params.chessboard);
+    setBgColor(params.target, params.x, params.y);
     afterMove(played);
   }
 
@@ -528,7 +572,7 @@ export default function Chessboard({
         return;
       }
 
-      setBgColor(target, x, y, chessboard);
+      setBgColor(target, x, y);
       resetPiece(active);
       removeDot();
       setActivePiece(null);
@@ -556,7 +600,7 @@ export default function Chessboard({
             number={i + j + 2}
             gameOver={gameOver}
             inCheck={square === checkedKing}
-            tile={{x:i, y:j}}
+            tile={{ x: i, y: j }}
             playerColor={playerColor}
           />,
         );
@@ -577,7 +621,7 @@ export default function Chessboard({
             number={i + j + 2}
             gameOver={gameOver}
             inCheck={square === checkedKing}
-            tile={{x:i, y:j}}
+            tile={{ x: i, y: j }}
             playerColor={playerColor}
           />,
         );
@@ -651,6 +695,8 @@ export default function Chessboard({
           result={result}
           color={playerColor}
           opponentName={opponentName}
+          opponentType={opponentType}
+          opponentIsBot={opponentIsBot}
         />
       )}
       {!readOnly && (

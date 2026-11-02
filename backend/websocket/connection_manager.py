@@ -7,7 +7,6 @@ class ConnectionManager:
         # {game_id: {user_id: websocket}}
         self.connections = {}
         self.spectators = {}
-
     async def connect(self, game_id: int, user_id: int, websocket: WebSocket):
         await websocket.accept()
         if game_id not in self.connections:
@@ -83,7 +82,7 @@ class ConnectionManager:
                 self.disconnect(game_id, user_id, websocket)
 
     def valid_event(self, event: str) -> bool:
-        return isinstance(event, str) and event in {"move", "chat"}
+        return isinstance(event, str) and event in {"move", "chat", "draw_offer", "draw_accept", "draw_decline"}
 
     def is_connected(self, game_id: int, user_id: int) -> bool:
         return game_id in self.connections and user_id in self.connections[

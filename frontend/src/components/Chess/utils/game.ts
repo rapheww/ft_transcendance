@@ -10,10 +10,13 @@ export interface GameInfo {
   id: number;
   white_player_id: number | null;
   white_player_name?: string;
+  white_player_is_bot?: boolean;
   black_player_id: number | null;
   black_player_name?: string | null;
+  black_player_is_bot?: boolean;
   opponent_type?: string;
   ai_difficulty?: string | null;
+  is_tournament?: boolean;
   status: string;
   current_fen: string;
   fen?: string;
@@ -23,6 +26,8 @@ export interface GameInfo {
   black_time_remaining?: number | null;
   increment_seconds?: number;
   last_move_at?: string | null;
+  can_claim_threefold_repetition: boolean,
+  can_claim_fifty_move: boolean
 }
 
 export interface GameSocketMessage {
@@ -44,6 +49,8 @@ export interface GameSocketMessage {
   last_move_at?: string | null;
   spectator_count?: number;
   count?: number;
+  can_claim_threefold_repetition: boolean,
+  can_claim_fifty_move: boolean
 }
 
 export interface ChatMessage {
@@ -72,6 +79,8 @@ export interface SocketGameState {
   black_time_remaining?: number | null;
   increment_seconds?: number;
   last_move_at?: string | null;
+  can_claim_threefold_repetition: boolean,
+  can_claim_fifty_move: boolean
 }
 
 export function getMoveHistory(pgn: string): Moves[] {

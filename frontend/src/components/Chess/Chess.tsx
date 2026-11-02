@@ -1,7 +1,7 @@
 import Header from "../Navbar/Header";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Chessboard from "./board/Chessboard";
-import { EqualNot, Flag, Undo2 } from "lucide-react";
+import { Check, Flag, Undo2, X } from "lucide-react";
 import Timer from "./Timer";
 import { useNavigate, useParams } from "react-router-dom";
 import ProfilePreview from "./preview/ProfilePreview";
@@ -9,7 +9,6 @@ import { useAuth } from "../AuthProvider";
 import { useGame } from "./utils/useGame";
 import type { Moves } from "./utils/game";
 import { getStats } from "./utils/utils";
-
 
 export default function Chess() {
   const [showMoves, setShowMoves] = useState<boolean>(true);
@@ -23,12 +22,11 @@ export default function Chess() {
     gameId: string;
   }>();
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const { user, token, profil } = useAuth();
 
-  
   const id = Number(gameId);
-  
+
   const {
     game,
     fen,
@@ -54,10 +52,16 @@ export default function Chess() {
     sendChat,
     sendResign,
     chat,
+    drawOffer,
+    sendDraw,
   } = useGame(id, token);
-  
-  const opponentElo = getStats(opponentName).elo
-  const playerElo = getStats(profil.username).elo
+
+  const opponentIsBot =
+    playerColor === "white"
+      ? game?.black_player_is_bot ?? false
+      : game?.white_player_is_bot ?? false;
+  const opponentElo = getStats(opponentName).elo;
+  const playerElo = getStats(profil.username).elo;
 
   const movePairs = useMemo(() => {
     // Afficher les coups blancs et noirs côte à côte dans la liste des coups.
@@ -150,7 +154,9 @@ export default function Chess() {
                 }}
                 className="min-w-0 overflow-hidden whitespace-nowrap text-sm sm:text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer flex items-center gap-2"
               >
-                <>{opponentName} ({opponentElo})</>
+                <>
+                  {opponentName} ({opponentElo})
+                </>
               </p>
 
               {/* Afficher l'état de la connexion, y compris pour les outils d'assistance. */}
@@ -221,6 +227,8 @@ export default function Chess() {
                 canPlay={canPlay}
                 sendSocketMove={sendSocketMove}
                 opponentName={opponentName}
+                opponentType={game.opponent_type}
+                opponentIsBot={opponentIsBot}
               />
             </div>
 
@@ -327,15 +335,25 @@ export default function Chess() {
                   </div>
                 ))}
               </div>
-
-              {!gameOver && (
+              {drawOffer === "received" && (
+                <div className="flex items-center justify-center gap-2 py-1 text-sm">
+                  <span>Draw offered</span>
+                </div>
+              )}
+              {drawOffer === "sent" && (
+                <div className="flex items-center justify-center gap-2 py-1 text-sm">
+                  <span className="text-lg">Draw sent</span>
+                </div>
+              )}
+              {!gameOver && drawOffer === "none" ? (
                 <div className="h-12 shrink-0 w-full flex flex-row justify-center items-center gap-3 border-t border-white/30">
                   <button
                     type="button"
-                    onClick={sendResign}
-                    className="flex justify-center items-center w-12 h-8 border-2 border-white/20 rounded-sm hover:bg-red-600/40 hover:scale-110 duration-300"
+                    disabled={drawOffer !== "none" || !canPlay}
+                    onClick={() => sendDraw("draw_offer")}
+                    className={`flex justify-center items-center w-12 h-8 border-2 ${game.can_claim_fifty_move || game.can_claim_threefold_repetition ? "bg-[#945003] hover:scale-110 duration-300" : "brightness-40"} border-white/20 rounded-sm`}
                   >
-                    <EqualNot />
+                    <p>1/2</p>
                   </button>
 
                   <button
@@ -346,16 +364,37 @@ export default function Chess() {
                     <Flag />
                   </button>
                 </div>
+              ) : !gameOver && drawOffer === "received" && (
+                <div className="h-12 shrink-0 w-full flex flex-row justify-center items-center gap-3 border-t border-white/30">
+                  <p className="text-xs md:text-sm">Accept</p>
+                  <button
+                    type="button"
+                    onClick={() => sendDraw("draw_accept")}
+                    className="flex justify-center items-center w-12 h-8 border-2 border-white/20 rounded-sm bg-green-600/40 hover:scale-110 duration-300"
+                  >
+                    <Check />
+                  </button>
+                  <p className="text-xs md:text-sm">Decline</p>
+                  <button
+                    type="button"
+                    onClick={() => sendDraw("draw_decline")}
+                    className={`flex justify-center items-center w-12 h-8 border-2 bg-red-600/40 hover:scale-110 duration-300 border-white/20 rounded-sm`}
+                  >
+                    <X />
+                  </button>
+                </div>
               )}
               {gameOver && (
                 <div className="h-12 shrink-0 w-full flex flex-row justify-center items-center gap-3 border-t border-white/30">
                   <button
                     type="button"
-                    onClick={() => navigate("/")}
+                    onClick={() =>
+                      navigate(game.is_tournament ? "/tournaments" : "/")
+                    }
                     className="flex justify-center items-center w-20 h-8 border-2 border-white/20 bg-white/10 rounded-sm hover:bg-red-600/40 hover:scale-110 duration-300"
                   >
                     <p className="mr-2 text-lg">Back</p>
-                    <Undo2 size={20}/>
+                    <Undo2 size={20} />
                   </button>
                 </div>
               )}

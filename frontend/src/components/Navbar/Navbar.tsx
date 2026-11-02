@@ -13,6 +13,7 @@ const NavLinks = () => {
           <>
             <NavLink to="/tournaments" className="hover:bg-white/10 p-2 rounded-sm">Tournaments</NavLink>
             <NavLink to="/profile" className="hover:bg-white/10 p-2 rounded-sm">Profile</NavLink>
+            <NavLink to="/friendsList" className="hover:bg-white/10 p-2 rounded-sm">Friends</NavLink>
             <NavLink onClick={logout} to="/" className="hover:bg-white/10 p-2 rounded-sm">Logout</NavLink>
           </>
         ) : (
@@ -30,8 +31,8 @@ const Navbar = () => {
   };
   return (
     <>
-      <nav className="flex justify-end w-1/3">
-        <div className="hidden w-full justify-end gap-30 md:flex lg:mr-15 md:mr-10 sm:mr-5">
+      <nav className="flex justify-end w-1/4">
+        <div className="hidden w-full justify-end gap-5 md:gap-20 md:flex">
           <NavLinks />
         </div>
         <div className="md:hidden">

@@ -8,10 +8,35 @@ from backend.core.security import decode_access_token
 from backend.websocket.connection_manager import manager
 from backend.services import game_service
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
-from backend.exceptions.game import GameNotFound, GameNotActive, NotAPlayer, NotYourTurn, IllegalMove, NotAIGame, InvalidDifficulty
+from backend.exceptions.game import (
+    GameNotFound,
+    GameNotActive,
+    NotAPlayer,
+    NotYourTurn,
+    IllegalMove,
+    NotAIGame,
+    InvalidDifficulty,
+    DrawOfferAlreadyExists,
+    NoDrawOffer,
+    CannotAcceptOwnDrawOffer
+)
 from backend.websocket.ai_turn import start_ai_turn
 from backend.models.chat_message import ChatMessage
 from backend.models.user import User
+import io
+import chess.pgn
+
+def claim_flags(game) -> dict:
+    if game.status != "active":
+        return {"can_claim_threefold_repetition": False,
+                "can_claim_fifty_move": False}
+    pgn_game = chess.pgn.read_game(io.StringIO(game.pgn or ""))
+    # end().board() rejoue les coups depuis la racine : le move_stack est conservé
+    board = pgn_game.end().board() if pgn_game else chess.Board()
+    return {
+        "can_claim_threefold_repetition": board.can_claim_threefold_repetition(),
+        "can_claim_fifty_move": board.can_claim_fifty_moves(),
+    }
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -115,7 +140,10 @@ async def game_websocket(websocket: WebSocket,
             "last_move_at":
             game.last_move_at.isoformat() if game.last_move_at else None,
             "spectator_count":
-            manager.spectator_count(game_id)
+            manager.spectator_count(game_id),
+            **claim_flags(game),
+            "draw_offer_by":
+            game.draw_offer_by,
         })
 
         if is_player:
@@ -235,6 +263,7 @@ async def game_websocket(websocket: WebSocket,
                         fen = game.current_fen
                         status = game.status
                         result = game.result
+                        flags = claim_flags(game)
 
                     # on timeout, make_move ends the game without playing the move:
                     # the turn did not change, so there is no move to announce
@@ -263,7 +292,8 @@ async def game_websocket(websocket: WebSocket,
                                 game.increment_seconds,
                                 "last_move_at":
                                 game.last_move_at.isoformat()
-                                if game.last_move_at else None
+                                if game.last_move_at else None,
+                                **flags
                             })
 
                     await manager.broadcast(game_id, {
@@ -276,6 +306,7 @@ async def game_websocket(websocket: WebSocket,
                         "increment_seconds": game.increment_seconds,
                         "last_move_at": game.last_move_at.isoformat()
                         if game.last_move_at else None,
+                        **flags
                     })
                     if status == "finished":
                         await manager.broadcast(game_id, {
@@ -331,8 +362,50 @@ async def game_websocket(websocket: WebSocket,
                             "message": chat_message.message
                         }
                     await manager.broadcast(game_id, persisted_message)
+                                # ====== DRAW OFFER ======
+                elif event_type == "draw_offer":
+                    with SessionLocal() as draw_db:
+                        game_service.offer_draw(draw_db, game_id, user_id)
+
+                    await manager.broadcast(game_id, {
+                        "type": "draw_offered",
+                        "user_id": user_id
+                    })
+
+                # ====== DRAW ACCEPT ======
+                elif event_type == "draw_accept":
+                    with SessionLocal() as draw_db:
+                        drawn_game = game_service.accept_draw(
+                            draw_db, game_id, user_id
+                        )
+                        draw_result = drawn_game.result
+                        draw_fen = drawn_game.current_fen
+
+                    await manager.broadcast(game_id, {
+                        "type": "game_state",
+                        "fen": draw_fen,
+                        "status": "finished",
+                        "result": draw_result,
+                        "can_claim_threefold_repetition": False,
+                        "can_claim_fifty_move": False,
+                    })
+
+                    await manager.broadcast(game_id, {
+                        "type": "game_over",
+                        "result": draw_result,
+                    })
+
+                # ====== DRAW DECLINE ======
+                elif event_type == "draw_decline":
+                    with SessionLocal() as draw_db:
+                        game_service.decline_draw(draw_db, game_id, user_id)
+
+                    await manager.broadcast(game_id, {
+                        "type": "draw_declined"
+                    })             
             except (GameNotActive, NotAPlayer, NotYourTurn, IllegalMove,
-                    NotAIGame, InvalidDifficulty) as error:
+                    NotAIGame, InvalidDifficulty, DrawOfferAlreadyExists,
+                    NoDrawOffer, CannotAcceptOwnDrawOffer) as error:
                 await websocket.send_json({
                     "type": "error",
                     "message": str(error)

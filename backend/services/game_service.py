@@ -5,6 +5,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from backend.models.game import Game
+from backend.models.tournament import TournamentMatch
+from backend.models.user import User
 from backend.repositories.game_repository import GameRepository
 from backend.services import elo_service, user_service
 from backend.exceptions.game import (
@@ -25,7 +27,15 @@ def _board_from_pgn(pgn: str) -> chess.Board:
 
 
 def _finish_game(db: Session, game: Game, result: str) -> None:
-    if game.opponent_type != "ai":
+    tournament_match = db.query(TournamentMatch.id).filter(
+        TournamentMatch.game_id == game.id).first()
+    has_tournament_bot = False
+    if tournament_match:
+        has_tournament_bot = db.query(User.id).filter(
+            User.id.in_((game.white_player_id, game.black_player_id)),
+            User.is_bot.is_(True)).first() is not None
+
+    if game.opponent_type != "ai" and not has_tournament_bot:
         game.white_elo_after, game.black_elo_after = elo_service.update_ratings(
             db, game.white_player_id, game.black_player_id, result)
     game.status = "finished"
@@ -139,6 +149,8 @@ def get_game(db: Session, game_id: int) -> Game:
     if game is None:
         raise GameNotFound()
 
+    game.is_tournament = db.query(TournamentMatch.id).filter(
+        TournamentMatch.game_id == game_id).first() is not None
     return game
 
 

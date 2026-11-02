@@ -1,0 +1,420 @@
+import { useEffect, useState } from "react";
+import Header from "../Navbar/Header";
+import { Check, Search, UserRoundPlus, X } from "lucide-react";
+import { API } from "../Chess/utils/api";
+import { useAuth } from "../AuthProvider";
+import { useNavigate } from "react-router-dom";
+
+type Friends = {
+  id: number;
+  username: string;
+  avatar: string;
+};
+
+type Request = {
+  id: 0;
+  username: string;
+  avatar: string;
+  requested_at: string;
+  status: string;
+};
+
+const FriendsList = () => {
+  const [friendsList, setFriendsList] = useState<Friends[] | null>(null);
+  const [playerSearch, setPlayerSearch] = useState<string>("");
+  const [received, setReceived] = useState<boolean>(true);
+  const [send, setSend] = useState<boolean>(false);
+  const [incomingRequest, setIncomingRequest] = useState<Request[] | null>(
+    null,
+  );
+  const [outgoingRequest, setOutgoingRequest] = useState<Request[] | null>(
+    null,
+  );
+  const [searchList, setSearchList] = useState<Friends[] | null>(null);
+  const [addResponse, setAddResponse] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const inputClassname = ` ml-2 outline-0 focus:border-white/15 focus-within:border-white/15 h-full w-full lg:text-lg 2xl:text-base`;
+
+  const { token } = useAuth();
+
+  async function searchUser(username: string) {
+    if (!username) {
+      setSearchList(null);
+      return;
+    }
+    try {
+      const response = await fetch(`${API}/friends/search?query=${username}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        setSearchList(null);
+        return;
+      }
+      const infos = await response.json();
+      if (infos) {
+        console.log(infos);
+        setSearchList(infos);
+      }
+    } catch {
+      console.log("error");
+    }
+  }
+
+  async function getFriendsList() {
+    try {
+      const response = await fetch(`${API}/friends/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        setFriendsList(null);
+        return;
+      }
+      const infos = await response.json();
+      if (infos) {
+        setFriendsList(infos);
+      }
+    } catch {
+      console.log("error");
+    }
+  }
+
+  async function sendRequest(id: number) {
+    try {
+      const response = await fetch(`${API}/friends/requests/${id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        const infos = await response.json();
+        if (!infos) return;
+        throw infos.detail;
+        return;
+      }
+      setAddResponse("Request sent")
+    } catch(error) {
+      setAddResponse(error as string)
+    }
+  }
+
+  async function ShowIncomingRequest() {
+    try {
+      const response = await fetch(`${API}/friends/requests/incoming`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        setIncomingRequest(null);
+        console.log("failed");
+        return;
+      }
+      const infos = await response.json();
+      if (!infos) {
+        setIncomingRequest(null);
+        return;
+      }
+      setIncomingRequest(infos);
+    } catch {
+      console.log("error");
+    }
+  }
+
+  async function ShowOutgoingRequest() {
+    try {
+      const response = await fetch(`${API}/friends/requests/outgoing`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        setOutgoingRequest(null);
+        console.log("failed");
+        return;
+      }
+      const infos = await response.json();
+      if (!infos) {
+        setOutgoingRequest(null);
+        return;
+      }
+      setOutgoingRequest(infos);
+    } catch {
+      console.log("error");
+    }
+  }
+
+  async function RemoveFriend(id: number) {
+    try {
+      const response = await fetch(`${API}/friends/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        console.log("failed");
+        return;
+      }
+      getFriendsList();
+    } catch {
+      console.log("error");
+    }
+  }
+
+  async function AcceptRequest(id: number) {
+    try {
+      const response = await fetch(`${API}/friends/requests/${id}/accept`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        console.log("failed");
+        return;
+      }
+      ShowIncomingRequest();
+      ShowOutgoingRequest();
+      getFriendsList();
+    } catch {
+      console.log("error");
+    }
+  }
+
+  async function RefuseRequest(id: number) {
+    try {
+      const response = await fetch(`${API}/friends/requests/${id}/reject`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        console.log("failed");
+        return;
+      }
+      ShowIncomingRequest();
+      ShowOutgoingRequest();
+      getFriendsList();
+    } catch {
+      console.log("error");
+    }
+  }
+
+  useEffect(() => {
+    if (!token) return;
+
+    getFriendsList();
+    ShowIncomingRequest();
+    ShowOutgoingRequest();
+    const interval = setInterval(() => {
+      getFriendsList();
+      ShowIncomingRequest();
+      ShowOutgoingRequest();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [token]);
+
+  return (
+    <div>
+      <Header />
+      <div
+        className="
+          w-full
+          min-h-[calc(100vh-56px)]
+          flex
+          flex-col
+          items-center
+          py-6
+          gap-5"
+      >
+        <div
+          className={`w-[60%] md:w-[40%] xl:w-[40%] bg-black/20 backdrop-blur-xs rounded-md border border-white/15 mt-10 h-10 flex flex-row items-center`}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+            }}
+            className="w-[70%] md:w-[80%] lg:w-[95%] h-full rounded-md"
+          >
+            <input
+              type="text"
+              placeholder="Search player"
+              className={inputClassname}
+              value={playerSearch}
+              onChange={(e) => {
+                setPlayerSearch(e.target.value);
+                searchUser(e.target.value);
+              }}
+            />
+          </form>
+          <button className="w-[30%] md:w-[20%] lg:w-[5%] h-full flex justify-end items-center pr-2 rounded-md brightness-50">
+            <Search />
+          </button>
+        </div>
+        <div className="w-full flex flex-1 flex-row justify-center items-start gap-5">
+          <div className="w-[50%] md:w-[60%] xl:w-[40%] flex flex-col gap-2">
+            <h2 className="text-xl md:text-2xl font-semibold">
+              {playerSearch ? "Search result" : "Friends"}
+            </h2>
+            <div className="w-full bg-black/20 backdrop-blur-xs rounded-md border border-white/15">
+              {(!friendsList || friendsList.length === 0) && !searchList && (
+                <p className="h-20 w-full flex items-center justify-center text-sm md:text-xl">
+                  No friends
+                </p>
+              )}
+              {!searchList &&
+                friendsList &&
+                friendsList.map((friend, i) => (
+                  <div
+                    className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4 ${i % 2 === 0 ? "" : "bg-white/3"} hover:bg-white/5 hover:cursor-pointer`}
+                    key={i}
+                  >
+                    <div className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4 ${i % 2 === 0 ? "" : "bg-white/3"}`}
+                    onClick={() => navigate(`/friend-profil/${friend.username}/${friend.id}`)}
+                    >
+                      <p className="w-12 md:w-16 shrink-0 text-xs md:text-sm">
+                      online
+                    </p>
+                    <img
+                      src={friend.avatar}
+                      className="object-cover rounded-full w-10 h-10 md:w-12 md:h-12 shrink-0"
+                    />
+                    <p className="flex-1 min-w-0 truncate text-sm md:text-base lg:text-lg">
+                      {friend.username}
+                    </p>
+                    </div>
+                    <button
+                      className="shrink-0 hover:cursor-pointer hover:bg-red-500/25 rounded-md p-1"
+                      onClick={() => {
+                        RemoveFriend(friend.id);
+                      }}
+                    >
+                      <X />
+                    </button>
+                  </div>
+                ))}
+              {searchList &&
+                searchList.map((s, i) => (
+                  <div
+                    className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4 ${i % 2 === 0 ? "" : "bg-white/3"}`}
+                    key={i}
+                  >
+                    <p className="w-12 md:w-16 shrink-0 text-xs md:text-sm">
+                      online
+                    </p>
+                    <img
+                      src={s.avatar}
+                      className="object-cover rounded-full w-10 h-10 md:w-12 md:h-12 shrink-0"
+                    />
+                    <p className="flex-1 min-w-0 truncate text-sm md:text-base lg:text-lg">
+                      {s.username}
+                    </p>
+                    {addResponse && (
+                      <p className={`text-sm italic ${addResponse === "Request sent" ? 'text-lime-600/80' : 'text-red-700/80'}`}>{addResponse}</p>
+                    )}
+                    <button
+                      className="shrink-0 hover:cursor-pointer hover:bg-lime-500/15 rounded-md p-1"
+                      onClick={() => {
+                        sendRequest(s.id);
+                      }}
+                    >
+                      <UserRoundPlus />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          <div className="w-[30%] md:w-[25%] flex flex-col gap-2">
+            <h2 className="text-xl md:text-2xl font-semibold">Requests</h2>
+            <div className="w-full bg-black/20 backdrop-blur-xs rounded-md border border-white/15">
+              <div className="flex flex-row w-full border-b border-white/20 justify-center">
+                <div
+                  className={`flex w-[50%] justify-center p-2 ${received ? "bg-white/5" : "hover:bg-white/5"}`}
+                  onClick={() => {
+                    setReceived(!received);
+                    setSend(!send);
+                  }}
+                >
+                  RECEIVED
+                </div>
+                <div
+                  className={`flex w-[50%] justify-center p-2 ${send ? "bg-white/5" : "hover:bg-white/5"}`}
+                  onClick={() => {
+                    setReceived(!received);
+                    setSend(!send);
+                  }}
+                >
+                  SENT
+                </div>
+              </div>
+              {received &&
+                incomingRequest &&
+                incomingRequest.map((incoming, i) => (
+                  <div
+                    className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-3 ${i % 2 === 0 ? "" : "bg-white/3"}`}
+                    key={i}
+                  >
+                    <div className="flex-1 min-w-0 flex flex-row gap-2 items-center">
+                      <p className="text-sm md:text-base">
+                        {incoming.username}
+                      </p>
+                      <p className=" truncate text-xs text-gray-200/60">
+                        {incoming.status}
+                      </p>
+                    </div>
+                    <div className="flex flex-row gap-1 md:gap-2 shrink-0">
+                      <button
+                        className="p-1 border border-white/35 rounded-md bg-lime-500/50 hover:brightness-130 duration-300 hover:cursor-pointer"
+                        onClick={() => AcceptRequest(incoming.id)}
+                      >
+                        <Check className="w-4 h-4 md:w-5 md:h-5" />
+                      </button>
+                      <button
+                        className="p-1 border border-white/35 rounded-md bg-red-600/50 hover:brightness-130 duration-300 hover:cursor-pointer"
+                        onClick={() => RefuseRequest(incoming.id)}
+                      >
+                        <X className="w-4 h-4 md:w-5 md:h-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              {received &&
+                (!incomingRequest || incomingRequest.length === 0) && (
+                  <p className="p-2 lg:p-4 w-full flex items-center justify-center text-sm md:text-base h-full">
+                    No requests received
+                  </p>
+                )}
+
+              {send &&
+                outgoingRequest &&
+                outgoingRequest.map((outgoing, i) => (
+                  <div
+                    className={`w-full flex flex-row h-full p-2 lg:p-4 gap-2 md:gap-3 ${i % 2 === 0 ? "" : "bg-white/3"}`}
+                    key={i}
+                  >
+                    <p className="text-gray-200/60">{outgoing.status}</p>
+                    <p>{outgoing.username}</p>
+                  </div>
+                ))}
+              {send && (!outgoingRequest || outgoingRequest.length === 0) && (
+                <p className="p-2 lg:p-4 w-full flex items-center justify-center text-sm md:text-base h-full">
+                  No requests sent
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FriendsList;

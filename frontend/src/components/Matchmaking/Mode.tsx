@@ -26,7 +26,7 @@ export default function Mode() {
   const navigate = useNavigate();
   const { token } = useAuth();
 
-  const [selectedMode, setSelectedMode] = useState("5+0");
+  const [selectedMode, setSelectedMode] = useState("10+0");
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
     "easy",
   );
@@ -115,7 +115,7 @@ export default function Mode() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-5xl">
+        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-5xl mb-10">
           <div className="flex-1 rounded-md bg-black/20 backdrop-blur-xs border border-white/20 p-6 flex flex-col items-center gap-4">
             <h2 className="text-xl font-semibold">Play against a human</h2>
 
@@ -150,7 +150,7 @@ export default function Mode() {
               onChange={(event) =>
                 setDifficulty(event.target.value as "easy" | "medium" | "hard")
               }
-              className="select w-full outline-0 bg-white/3 focus:border-white/50 focus-within:border-white/50"
+              className="select w-full outline-0 bg-white/3 focus:border-white/15 focus-within:border-white/15"
             >
               {difficulties.map((level) => (
                 <option key={level} value={level}>
