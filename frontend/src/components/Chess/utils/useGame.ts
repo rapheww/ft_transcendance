@@ -37,6 +37,7 @@ export function useGame(
   const [drawOffer, setDrawOffer] = useState<"none" | "sent" | "received">(
     "none",
   );
+  const [unread, setUnread] = useState<boolean>(false);
 
   const opponentId = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -813,6 +814,8 @@ export function useGame(
     chat,
     spectatorCount,
     drawOffer,
-    sendDraw
+    sendDraw,
+    unread,
+    setUnread
   };
 }
