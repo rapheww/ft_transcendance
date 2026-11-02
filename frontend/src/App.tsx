@@ -12,12 +12,17 @@ import Tournaments from "./components/Tournaments/Tournaments";
 import Spectator from "./components/Chess/Spectator";
 import RecommendationTest from "./components/Recommendations/RecommendationTest";
 import TournamentTest from "./components/Tournaments/TournamentTest";
+import FriendsList from "./components/Friends/FriendsList";
+import FriendProfil from "./components/Friends/FriendProfil";
+import { ToastProvider } from "./components/Toast/ToastProvider"; // ADDED: toast notifications
 
 function App() {
 
   return (
     <BrowserRouter>
       <AuthProvider>
+        {/* ADDED: toast notifications on every page */}
+        <ToastProvider>
         <Routes>
             <Route path="/" element={<Home />}/>
             <Route path="/login" element={<Login />} />
@@ -32,8 +37,11 @@ function App() {
               <Route path="/matchmaking/:timer/:bonus" element={<Waiting />} />
               <Route path="/test-recommendations" element={<RecommendationTest />} />
               <Route path="/tournament-test" element={<TournamentTest />} />
+              <Route path="/friendsList" element={<FriendsList/>} />
+              <Route path="/friend-profil/:friendName/:friendId" element={<FriendProfil/>} />
             </Route>
         </Routes>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   )

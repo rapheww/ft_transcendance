@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "../../AuthProvider";
 import Header from "../../Navbar/Header";
 import { API } from "../../Chess/utils/api";
+import { useToast } from "../../Toast/toastContext"; // ADDED: toast notifications
 
 type ValidationIssue = {
   loc?: unknown;
@@ -55,6 +56,7 @@ const Register = () => {
   const [logging, setLogging] = useState<boolean>(false);
   const inputClassname = `input outline-0 border bg-white/3 border-white-50 focus:border-white-50 focus-within:border-white/50 w-full lg:h-12 lg:text-lg 2xl:text-base`;
   const { login } = useAuth();
+  const toast = useToast(); // ADDED: toast notifications
 
   //register handling
   async function handleRegister(event : any) {
@@ -103,6 +105,7 @@ const Register = () => {
         throw formatApiError(infos?.detail);
       } else {
         const accessData = await LogResponse.json();
+        toast.success(`Account successfully created. Welcome, ${username}!`); // ADDED: toast notifications
         login({
           username: username,
           token: accessData.access_token,
