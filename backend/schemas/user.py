@@ -1,8 +1,14 @@
 import re
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator
+
 
 HEX_COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 USERNAME_PATTERN = r"^[A-Za-z0-9_]+$"
+
+
+class HeartbeatResponse(BaseModel):
+    last_seen_at: datetime
 
 
 class UserCreate(BaseModel):

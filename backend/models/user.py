@@ -1,4 +1,5 @@
-from sqlalchemy import Integer, String, Boolean, Index, func
+from datetime import datetime
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.db.base import Base
 from backend.services.elo_service import INITIAL_ELO
@@ -50,6 +51,8 @@ class User(Base):
     preferred_time_control: Mapped[str | None] = mapped_column(String(20),
                                                                nullable=True)
 
+    last_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True)
 
 
 Index("uq_users_email_lower", func.lower(User.email), unique=True)

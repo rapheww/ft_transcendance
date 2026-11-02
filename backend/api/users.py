@@ -4,8 +4,9 @@ from backend.core.dependencies import get_current_user
 from backend.db.session import get_db
 from backend.exceptions.user import UserAlreadyExists, UserNotFound
 from backend.models.user import User
-from backend.schemas.user import UserCreate, UserResponse, UserUpdate
-from backend.services import user_service
+from backend.schemas.user import (HeartbeatResponse, UserCreate,
+                                  UserResponse, UserUpdate)
+from backend.services import presence_service, user_service
 
 router = APIRouter()
 
@@ -13,6 +14,13 @@ router = APIRouter()
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/me/heartbeat", response_model=HeartbeatResponse)
+def heartbeat(current_user: User = Depends(get_current_user),
+              db: Session = Depends(get_db)):
+    last_seen_at = presence_service.record_heartbeat(db, current_user)
+    return HeartbeatResponse(last_seen_at=last_seen_at)
 
 
 @router.patch("/me", response_model=UserResponse)

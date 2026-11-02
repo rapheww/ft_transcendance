@@ -1,4 +1,7 @@
 from fastapi.testclient import TestClient
+from datetime import datetime, timedelta, timezone
+
+from backend.models.user import User
 
 
 def create_user(client: TestClient, username: str) -> dict[str, str]:
@@ -122,3 +125,31 @@ def test_friend_request_errors_and_authentication(client: TestClient):
                        headers=alice).status_code == 404
     assert client.post("/api/friends/requests/2/accept",
                        headers=alice).status_code == 404
+
+
+def test_friend_list_reports_presence_from_recent_heartbeat(client: TestClient,
+                                                            db):
+    alice = create_user(client, "alice_presence")
+    bob = create_user(client, "bob_presence")
+
+    bob_id = client.get("/api/friends/search?query=bob_presence",
+                        headers=alice).json()[0]["id"]
+    alice_id = client.get("/api/friends/search?query=alice_presence",
+                          headers=bob).json()[0]["id"]
+    client.post(f"/api/friends/requests/{bob_id}", headers=alice)
+    client.post(f"/api/friends/requests/{alice_id}/accept", headers=bob)
+
+    friends = client.get("/api/friends/", headers=alice).json()
+    assert friends[0]["online"] is False
+
+    heartbeat = client.post("/api/users/me/heartbeat", headers=bob)
+    assert heartbeat.status_code == 200
+    friends = client.get("/api/friends/", headers=alice).json()
+    assert friends[0]["online"] is True
+
+    bob_user = db.get(User, bob_id)
+    bob_user.last_seen_at = datetime.now(timezone.utc) - timedelta(minutes=2)
+    db.commit()
+
+    friends = client.get("/api/friends/", headers=alice).json()
+    assert friends[0]["online"] is False
