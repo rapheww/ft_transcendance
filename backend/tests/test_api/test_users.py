@@ -1,3 +1,6 @@
+from datetime import datetime, timezone
+
+
 def test_create_user_api(client):
     response = client.post("/api/users/",
                            json={
@@ -14,6 +17,37 @@ def test_create_user_api(client):
         "board_light_color": "#E3DDC5",
         "board_dark_color": "#2C5563"
     }
+
+
+def test_heartbeat_updates_last_seen_at(client):
+    client.post("/api/users/",
+                json={
+                    "username": "heartbeat_user",
+                    "email": "heartbeat@example.com",
+                    "password": "password123"
+                })
+    login_response = client.post(
+        "/api/auth/login",
+        json={
+            "username": "heartbeat_user",
+            "password": "password123"
+        })
+    token = login_response.json()["access_token"]
+
+    response = client.post(
+        "/api/users/me/heartbeat",
+        headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    last_seen_at = datetime.fromisoformat(response.json()["last_seen_at"])
+    assert last_seen_at.tzinfo is not None
+    assert last_seen_at <= datetime.now(timezone.utc)
+
+
+def test_heartbeat_requires_authentication(client):
+    response = client.post("/api/users/me/heartbeat")
+
+    assert response.status_code == 401
 
 
 def test_create_user_rejects_username_over_15_characters(client):

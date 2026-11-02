@@ -13,8 +13,10 @@ from backend.models.friend_request import FriendRequest
 from backend.models.user import User
 from backend.schemas.friend import (FriendRequestResponse,
                                     FriendRequestResult,
+                                    FriendPresenceResponse,
                                     FriendUserResponse)
 from backend.services import friend_service
+from backend.services.presence_service import is_online
 
 router = APIRouter()
 
@@ -105,10 +107,18 @@ def reject_friend_request(user_id: int,
         raise _http_error(error) from error
 
 
-@router.get("/", response_model=list[FriendUserResponse])
+@router.get("/", response_model=list[FriendPresenceResponse])
 def list_friends(current_user: User = Depends(get_current_user),
                  db: Session = Depends(get_db)):
-    return friend_service.list_friends(db, current_user.id)
+    return [
+        FriendPresenceResponse(
+            id=friend.id,
+            username=friend.username,
+            avatar=friend.avatar,
+            online=is_online(friend.last_seen_at),
+        )
+        for friend in friend_service.list_friends(db, current_user.id)
+    ]
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

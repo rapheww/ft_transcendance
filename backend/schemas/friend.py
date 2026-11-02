@@ -11,6 +11,10 @@ class FriendUserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class FriendPresenceResponse(FriendUserResponse):
+    online: bool
+
+
 class FriendRequestResponse(FriendUserResponse):
     requested_at: datetime
     status: Literal["pending"] = "pending"
