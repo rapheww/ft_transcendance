@@ -38,7 +38,7 @@ export default function Tile({
     <div
       className={` relative h-full w-full`}
       data-dark={isDark}
-      style={{ backgroundColor: color }}
+      style={{ backgroundColor: inCheck ? '#ba454b' : color }}
     >
       {displayCol && (
         <p
@@ -59,10 +59,7 @@ export default function Tile({
       {image && (
         <div
           style={{
-            backgroundImage: `url("${image}")`,
-            boxShadow: inCheck
-              ? "inset 0 0 30px 8px rgba(204,60,60,0.95), inset 0 0 0 1px #CC3C3C"
-              : undefined,
+            backgroundImage: `url("${image}")`
           }}
           className={`chess-piece w-full h-full bg-no-repeat bg-center bg-size-[85%_85%] ${gameOver ? "" : "hover:cursor-pointer active:cursor-grabbing"}`}
         ></div>

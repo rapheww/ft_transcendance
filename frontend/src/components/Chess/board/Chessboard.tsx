@@ -691,7 +691,7 @@ export default function Chessboard({
     >
       {board}
       {allsvg}
-      {!readOnly && setOpen && (
+      {!readOnly && (
         <GameOver
           open={open ?? false}
           onClose={() => setOpen(false)}
