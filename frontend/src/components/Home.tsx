@@ -125,13 +125,11 @@ const Home = () => {
                 <div
                   className={`bg-black/20 backdrop-blur-xs w-[70%] max-h-50 md:max-h-75 overflow-y-auto overflow-x-hidden border-white/30 border flex flex-col items-center gap-2 p-2 `}
                 >
-                    <div
-                      className={`w-full h-10 md:h-15 flex flex-row justify-center items-center gap-1 p-2 rounded-sm`}
-                    >
-                      <p className="text-sm lg:text-lg">
-                        No players found
-                      </p>
-                    </div>
+                  <div
+                    className={`w-full h-10 md:h-15 flex flex-row justify-center items-center gap-1 p-2 rounded-sm`}
+                  >
+                    <p className="text-sm lg:text-lg">No players found</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -144,40 +142,16 @@ const Home = () => {
             <div className="flex flex-col items-center m-6 sm:m-9 gap-4 w-full max-w-75">
               <button
                 onClick={() => navigate("/mode")}
-                className="
-                relative z-0
-                w-full h-13.5
-                border-0 outline-none
-                text-black
-                bg-taupe-300
-                cursor-pointer
-                rounded-[10px]
-                before:content-['']
-                before:absolute
-                before:-top-0.5 before:-left-0.5
-                before:-z-10
-                before:w-[calc(100%+4px)]
-                before:h-[calc(100%+4px)]
-                before:rounded-[10px]
-                before:bg-[linear-gradient(45deg,#ff0000,#ff7300,#fffb00,#48ff00,#00ffd5,#002bff,#7a00ff,#ff00c8,#ff0000)]
-                before:bg-size-[400%_400%]
-                before:blur-[10px]
-                before:opacity-0
-                before:transition-opacity
-                before:duration-300
-                hover:before:opacity-100
-                before:animate-[glowing_20s_linear_infinite]
-                after:content-['']
-                after:absolute
-                after:inset-0
-                after:-z-10
-                after:w-full
-                after:h-full
-                after:rounded-[10px]
-                after:bg-taupe-300
-              "
+                className="w-full h-13.5 relative inline-flex items-center justify-center px-4 text-md font-bold text-white hover:text-black overflow-hidden rounded-md shadow-2xl group shrink-0"
               >
-                Play
+                <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>
+                <span className="absolute top-0 left-0 w-full bg-linear-to-b from-white to-transparent opacity-5 h-1/3"></span>
+                <span className="absolute bottom-0 left-0 w-full h-1/3 bg-linear-to-t from-white to-transparent opacity-5"></span>
+                <span className="absolute bottom-0 left-0 w-4 h-full bg-linear-to-r from-white to-transparent opacity-5"></span>
+                <span className="absolute bottom-0 right-0 w-4 h-full bg-linear-to-l from-white to-transparent opacity-5"></span>
+                <span className="absolute inset-0 w-full h-full border border-white rounded-md opacity-10"></span>
+                <span className="absolute w-0 h-0 transition-all duration-350 ease-out bg-white rounded-full group-hover:w-56 group-hover:h-56 opacity-5"></span>
+                <span className="relative">Play</span>
               </button>
             </div>
           </div>

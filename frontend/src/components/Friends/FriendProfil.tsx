@@ -207,7 +207,6 @@ const FriendProfil = () => {
                   />
                   <button
                     type="submit"
-                    id="log-btn"
                     className="relative inline-flex items-center justify-center h-9 px-4 text-sm font-bold text-white hover:text-gray-700 overflow-hidden rounded-md shadow-2xl group shrink-0"
                   >
                     <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>

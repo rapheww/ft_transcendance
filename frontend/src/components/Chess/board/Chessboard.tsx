@@ -103,54 +103,54 @@ export default function Chessboard({
 
   //useEffect pour charger le fen quand un mouv est clique
   useEffect(() => {
-  if (!fenInit) return;
+    if (!fenInit) return;
 
-  const key = (f: string) => f.split(" ").slice(0, 2).join(" ");
+    const key = (f: string) => f.split(" ").slice(0, 2).join(" ");
 
-  if (key(fenInit) !== key(chessRef.current.fen())) {
-    const played = chessRef.current
-      .moves({ verbose: true })
-      .find((m) => key(m.after) === key(fenInit));
+    if (key(fenInit) !== key(chessRef.current.fen())) {
+      const played = chessRef.current
+        .moves({ verbose: true })
+        .find((m) => key(m.after) === key(fenInit));
 
-    if (played) {
-      lastMove.current = { from: played.from, to: played.to };
+      if (played) {
+        lastMove.current = { from: played.from, to: played.to };
 
-      //setBGcolor adapter
-      const from = squareToPos(played.from);
-      const to = squareToPos(played.to);
+        //setBGcolor adapter
+        const from = squareToPos(played.from);
+        const to = squareToPos(played.to);
 
-      const origin = getTileElement(from.x, from.y);
-      const dest = getTileElement(to.x, to.y);
+        const origin = getTileElement(from.x, from.y);
+        const dest = getTileElement(to.x, to.y);
 
-      if (origin && dest) {
-        const getOriginalColor = (tile: HTMLElement) =>
-          tile.dataset.dark === "true"
-            ? profil.board_dark_color || "var(--dark-tile)"
-            : profil.board_light_color || "var(--light-tile)";
+        if (origin && dest) {
+          const getOriginalColor = (tile: HTMLElement) =>
+            tile.dataset.dark === "true"
+              ? profil.board_dark_color || "var(--dark-tile)"
+              : profil.board_light_color || "var(--light-tile)";
 
-        tileColor.forEach((m) => {
-          if (m.tile !== origin && m.tile !== dest) {
-            m.tile.style.backgroundColor = m.bg;
-          }
-        });
+          tileColor.forEach((m) => {
+            if (m.tile !== origin && m.tile !== dest) {
+              m.tile.style.backgroundColor = m.bg;
+            }
+          });
 
-        origin.style.backgroundColor =
-          origin.dataset.dark === "true" ? "#738a38" : "#97b54a";
+          origin.style.backgroundColor =
+            origin.dataset.dark === "true" ? "#738a38" : "#97b54a";
 
-        dest.style.backgroundColor =
-          dest.dataset.dark === "true" ? "#738a38" : "#97b54a";
+          dest.style.backgroundColor =
+            dest.dataset.dark === "true" ? "#738a38" : "#97b54a";
 
-        setTileColor([
-          { tile: origin, bg: getOriginalColor(origin) },
-          { tile: dest, bg: getOriginalColor(dest) },
-        ]);
+          setTileColor([
+            { tile: origin, bg: getOriginalColor(origin) },
+            { tile: dest, bg: getOriginalColor(dest) },
+          ]);
+        }
       }
     }
-  }
 
-  chessRef.current.load(fenInit);
-  setFen(fenInit);
-}, [fenInit]);
+    chessRef.current.load(fenInit);
+    setFen(fenInit);
+  }, [fenInit]);
 
   //gameOver
   gameOverScreen(gameId, token, setResult, setOpen, gameOver, !readOnly);
@@ -238,7 +238,7 @@ export default function Chessboard({
     }
   }
 
-  function getCoords(e: React.MouseEvent) {
+  function getCoords(e: React.PointerEvent) {
     const rect = document.getElementById("chessboard")!.getBoundingClientRect();
     const tileSize = rect.width / 8;
     const col = Math.floor((e.clientX - rect.left) / tileSize);
@@ -290,7 +290,7 @@ export default function Chessboard({
     ]);
   }
 
-  function setStyle(element: HTMLElement, e: React.MouseEvent) {
+  function setStyle(element: HTMLElement, e: React.PointerEvent) {
     const { tileSize } = getCoords(e);
     const parentRect = (
       element.parentNode as HTMLElement
@@ -312,7 +312,7 @@ export default function Chessboard({
     setCircles([]);
   }
 
-  function showCircle(e: React.MouseEvent) {
+  function showCircle(e: React.PointerEvent) {
     if (lastPick) {
       resetPiece(lastPick.piece);
       const back = lastPick.piece.parentNode as HTMLElement;
@@ -340,7 +340,7 @@ export default function Chessboard({
     });
   }
 
-  function grabPiece(e: React.MouseEvent) {
+  function grabPiece(e: React.PointerEvent) {
     if (gameOver || !canPlay) return;
 
     //enlever les cercles
@@ -415,7 +415,7 @@ export default function Chessboard({
     possibleMoves(possible);
   }
 
-  function movePiece(e: React.MouseEvent) {
+  function movePiece(e: React.PointerEvent) {
     if (from != null && draw) {
       const { x, y } = getCoords(e);
       if (x != from.x || y != from.y) {
@@ -488,7 +488,7 @@ export default function Chessboard({
   }
 
   async function dropPiece(
-    e: React.MouseEvent | null,
+    e: React.PointerEvent | null,
     target?: { x: number; y: number },
     piece?: HTMLElement,
   ) {
@@ -673,15 +673,16 @@ export default function Chessboard({
   });
   return (
     <div
-      onMouseMove={readOnly ? undefined : (e) => movePiece(e)}
-      onMouseDown={readOnly ? undefined : (e) => grabPiece(e)}
-      onMouseUp={readOnly ? undefined : (e) => dropPiece(e)}
-      onMouseLeave={readOnly ? undefined : cancelMove}
+      onPointerDown={readOnly ? undefined : (e) => grabPiece(e)}
+      onPointerMove={readOnly ? undefined : (e) => movePiece(e)}
+      onPointerUp={readOnly ? undefined : (e) => dropPiece(e)}
+      onPointerCancel={readOnly ? undefined : cancelMove}
       onContextMenu={(e) => e.preventDefault()}
       id="chessboard"
       data-flipped={playerColor === "black"}
       className={`relative bg-black grid grid-cols-8 grid-rows-8 w-[min(100cqw,100cqh)] h-[min(100cqw,100cqh)] aspect-square select-none rounded-xl overflow-hidden border-2 border-black shadow-[0_0_30px_#000000] ${readOnly ? "pointer-events-none cursor-default" : ""}`}
       style={{
+        touchAction: "none",
         gridTemplateColumns: "repeat(8, 1fr)",
         gridTemplateRows: "repeat(8, 1fr)",
       }}

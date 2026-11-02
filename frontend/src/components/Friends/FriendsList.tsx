@@ -31,7 +31,7 @@ const FriendsList = () => {
     null,
   );
   const [searchList, setSearchList] = useState<Friends[] | null>(null);
-  const [addResponse, setAddResponse] = useState<string | null>(null);
+  const [addResponse, setAddResponse] = useState<{message: string, id: number} | null>(null);
   const navigate = useNavigate();
   const inputClassname = ` ml-2 outline-0 focus:border-white/15 focus-within:border-white/15 h-full w-full lg:text-lg 2xl:text-base`;
 
@@ -96,9 +96,9 @@ const FriendsList = () => {
         throw infos.detail;
         return;
       }
-      setAddResponse("Request sent")
+      setAddResponse({message:"Request sent", id: id})
     } catch(error) {
-      setAddResponse(error as string)
+      setAddResponse({message: error as string, id: id})
     }
   }
 
@@ -317,7 +317,7 @@ const FriendsList = () => {
                       {s.username}
                     </p>
                     {addResponse && (
-                      <p className={`text-sm italic ${addResponse === "Request sent" ? 'text-lime-600/80' : 'text-red-700/80'}`}>{addResponse}</p>
+                      <p className={`text-sm italic ${addResponse.message === "Request sent" ? 'text-lime-600/80' : 'text-red-700/80'}`}>{  s.id === addResponse.id ? addResponse.message : ''}</p>
                     )}
                     <button
                       className="shrink-0 hover:cursor-pointer hover:bg-lime-500/15 rounded-md p-1"
