@@ -9,7 +9,7 @@ type Friends = {
   id: number;
   username: string;
   avatar: string;
-  online?: boolean;
+  online: boolean;
 };
 
 type Request = {
@@ -323,9 +323,14 @@ const FriendsList = () => {
                     <div className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4 ${alreadyFriend && 'hover:cursor-pointer hover:bg-white/5'}`}
                       onClick={() =>{alreadyFriend && navigate(`/friend-profil/${s.username}/${s.id}`)}}
                     >
-                      <p className="w-12 md:w-16 shrink-0 text-xs md:text-sm">
-                        online
-                      </p>
+                      <span className="w-12 md:w-16 shrink-0 flex justify-center">
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${s.online ? "bg-green-500" : "bg-gray-500"}`}
+                          role="img"
+                          aria-label={s.online ? "Online" : "Offline"}
+                          title={s.online ? "Online" : "Offline"}
+                        />
+                      </span>
                       <img
                         src={s.avatar}
                         className="object-cover rounded-full w-10 h-10 md:w-12 md:h-12 shrink-0"

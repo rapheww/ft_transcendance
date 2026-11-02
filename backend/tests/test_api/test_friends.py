@@ -34,6 +34,7 @@ def test_friend_request_lifecycle(client: TestClient):
     assert search_response.status_code == 200
     bob_id = search_response.json()[0]["id"]
     assert search_response.json()[0]["username"] == "bob"
+    assert search_response.json()[0]["online"] is False
 
     send_response = client.post(f"/api/friends/requests/{bob_id}",
                                 headers=alice)
@@ -59,6 +60,12 @@ def test_friend_request_lifecycle(client: TestClient):
         "username"] == "bob"
     assert client.get("/api/friends/requests/incoming",
                       headers=bob).json() == []
+
+    assert client.post("/api/users/me/heartbeat",
+                       headers=bob).status_code == 200
+    search_response = client.get("/api/friends/search?query=bob",
+                                 headers=alice)
+    assert search_response.json()[0]["online"] is True
 
     remove_response = client.delete(f"/api/friends/{bob_id}", headers=alice)
     assert remove_response.status_code == 204

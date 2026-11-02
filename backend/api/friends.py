@@ -46,11 +46,19 @@ def _request_responses(
     ]
 
 
-@router.get("/search", response_model=list[FriendUserResponse])
+@router.get("/search", response_model=list[FriendPresenceResponse])
 def search_users(query: str = Query(min_length=2, max_length=50),
                  current_user: User = Depends(get_current_user),
                  db: Session = Depends(get_db)):
-    return friend_service.search_users(db, current_user.id, query)
+    return [
+        FriendPresenceResponse(
+            id=user.id,
+            username=user.username,
+            avatar=user.avatar,
+            online=is_online(user.last_seen_at),
+        )
+        for user in friend_service.search_users(db, current_user.id, query)
+    ]
 
 
 @router.post("/requests/{user_id}", response_model=FriendRequestResult)
