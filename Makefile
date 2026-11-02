@@ -22,7 +22,6 @@ setup: check-podman check-npm
 	$(MAKE) db
 	$(MAKE) migrate
 	$(MAKE) seed-bots
-	$(MAKE) simulate-bots > bot_simulation.log 2>&1 &
 	$(MAKE) dev
 
 # ---------------------------------------------------------------------------
@@ -157,7 +156,7 @@ prepare-bots: seed-bots simulate-bots
 # ---------------------------------------------------------------------------
 
 backend:
-	$(VENV_PYTHON) -m uvicorn backend.app.main:app --reload
+	$(VENV_PYTHON) -m uvicorn backend.app.main:app --reload --reload-dir backend
 
 frontend: check-npm
 	cd frontend && npm run dev

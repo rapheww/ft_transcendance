@@ -1,3 +1,5 @@
+import numpy as np
+
 from sqlalchemy.orm import Session
 
 from sklearn.preprocessing import StandardScaler
@@ -50,42 +52,23 @@ def filter_by_elo(candidates: list, target_elo: int, max_difference: int=300):
         if abs(player["elo"] - target_elo) <= max_difference
     ]
 
-def calculate_similarities(players: list[dict]):
-    features = [
-        [player[column] for column in FEATURE_COLUMNS]
-        for player in players
-    ]
+def recommend_opponents(all_players: list, candidates: list, target: dict, top_n: int = 5):
+    def to_row(p):
+        return [p[c] for c in FEATURE_COLUMNS]
 
-    # Standardization
-    scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(features)
+    scaler = StandardScaler().fit([to_row(p) for p in all_players])
 
-    return cosine_similarity(scaled_features)
+    target_vec = scaler.transform([to_row(target)])
+    cand_matrix = scaler.transform([to_row(p) for p in candidates])
 
-def rank_opponents(players: list, similarities: list, user_id: int, top_n: int=5):
-    current_index = next(
-        i for i, player in enumerate(players)
-        if player["user_id"] == user_id
-    )
+    sims = np.clip(cosine_similarity(target_vec, cand_matrix)[0], -1.0, 1.0)
 
     ranked = sorted(
-        [
-            {
-                **player,
-                "similarity_score": float(similarities[current_index][i])
-            }
-            for i, player in enumerate(players)
-            if player["user_id"] != user_id
-        ],
-        key=lambda player: player["similarity_score"],
-        reverse=True
+        ({**p, "similarity_score": float(s)} for p, s in zip(candidates, sims)),
+        key=lambda p: p["similarity_score"],
+        reverse=True,
     )
-
     return ranked[:top_n]
-
-def recommend_opponents(players: list, user_id: int=1, top_n: int=5):
-    similarities = calculate_similarities(players)
-    return rank_opponents(players, similarities, user_id, top_n)
 
 def recommend_with_rules(db: Session, user_id: int, top_n:int=5):
     players = get_player_profiles(db)
@@ -120,14 +103,8 @@ def recommend_with_rules(db: Session, user_id: int, top_n:int=5):
             for player in ranked_bots
         ]
     else:
-        ranked_humans = (
-            recommend_opponents(human_group, user_id, top_n)
-            if humans else []
-        )
-        ranked_bots = (
-            recommend_opponents(bot_group, user_id, top_n)
-            if bots else []
-        )
+        ranked_humans = recommend_opponents(players, humans, target, top_n) if humans else []
+        ranked_bots = recommend_opponents(players, bots, target, top_n) if bots else []
     return {
         "humans": ranked_humans[:top_n],
         "bots": ranked_bots[:top_n]

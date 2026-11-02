@@ -16,6 +16,7 @@ export default function Chess() {
   const [open, setOpen] = useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+
   const movesListRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const { gameId } = useParams<{
@@ -155,7 +156,7 @@ export default function Chess() {
                 className="min-w-0 overflow-hidden whitespace-nowrap text-sm sm:text-lg font-semibold hover:text-gray-300 rounded-sm p-1 cursor-pointer flex items-center gap-2"
               >
                 <>
-                  {opponentName} ({opponentElo})
+                  {opponentName} {(game.opponent_type != "ai" || opponentIsBot) && `(${opponentElo})`}
                 </>
               </p>
 

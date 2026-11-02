@@ -221,6 +221,10 @@ const FriendsList = () => {
     return () => clearInterval(interval);
   }, [token]);
 
+  function isFriend(id: number){
+    return friendsList?.some((friend) => friend.id === id) ?? false;
+  }
+
   return (
     <div>
       <Header />
@@ -250,6 +254,7 @@ const FriendsList = () => {
               value={playerSearch}
               onChange={(e) => {
                 setPlayerSearch(e.target.value);
+                setAddResponse(null);
                 searchUser(e.target.value);
               }}
             />
@@ -301,7 +306,9 @@ const FriendsList = () => {
                   </div>
                 ))}
               {searchList &&
-                searchList.map((s, i) => (
+                searchList.map((s, i) => {
+                  const alreadyFriend = isFriend(s.id)
+                  return (
                   <div
                     className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4 ${i % 2 === 0 ? "" : "bg-white/3"}`}
                     key={i}
@@ -317,10 +324,10 @@ const FriendsList = () => {
                       {s.username}
                     </p>
                     {addResponse && (
-                      <p className={`text-sm italic ${addResponse.message === "Request sent" ? 'text-lime-600/80' : 'text-red-700/80'}`}>{  s.id === addResponse.id ? addResponse.message : ''}</p>
+                      <p className={`text-sm italic ${addResponse.message === "Request sent" ? 'text-lime-600/80' : 'text-red-700/80'}`}>{  s.id === addResponse.id && !alreadyFriend? addResponse.message : ''}</p>
                     )}
                     <button
-                      className="shrink-0 hover:cursor-pointer hover:bg-lime-500/15 rounded-md p-1"
+                      className={`shrink-0 hover:cursor-pointer hover:bg-lime-500/15 rounded-md p-1 ${alreadyFriend && 'hidden'}`}
                       onClick={() => {
                         sendRequest(s.id);
                       }}
@@ -328,7 +335,7 @@ const FriendsList = () => {
                       <UserRoundPlus />
                     </button>
                   </div>
-                ))}
+)})}
             </div>
           </div>
 

@@ -56,7 +56,7 @@ export default function Chessboard({
   readOnly = false,
   opponentName,
   opponentType,
-  opponentIsBot,
+  opponentIsBot
 }: ChessboardProps) {
   const chessRef = useRef(new Chess(fenInit));
   const checkedKing: string | null = chessRef.current.isCheck()
@@ -75,13 +75,13 @@ export default function Chessboard({
   const [tileColor, setTileColor] = useState<Movements[]>([]);
   const [lastPick, setLastPick] = useState<LastPick | null>(null);
   const [moveTile, setMoveTile] = useState<HTMLElement[]>([]);
+  const [open, setOpen] = useState<boolean>(false);
   const [circles, setCircles] = useState<
     { svg: SVGSVGElement; tile: Square }[]
   >([]);
   const [arrows, setArrows] = useState<
     { fromx: number; fromy: number; tox: number | null; toy: number | null }[]
   >([]);
-  const [open, setOpen] = useState<boolean>(false);
   const [promoOpen, setPromoOpen] = useState<boolean>(false);
   const [pendingPromo, setPendinPromo] = useState<{
     from: Square;
@@ -153,7 +153,8 @@ export default function Chessboard({
   }, [fenInit]);
 
   //gameOver
-  gameOverScreen(gameId, token, setResult, setOpen, gameOver, !readOnly);
+  if(setOpen)
+    gameOverScreen(gameId, token, setResult, setOpen, gameOver, !readOnly);
 
   function removeDot() {
     for (let i = 0; i < moveTile.length; i++) {
@@ -234,7 +235,8 @@ export default function Chessboard({
 
     if (chessRef.current.isGameOver()) {
       setGameOver(true);
-      setOpen(true);
+      if(setOpen)
+        setOpen(true);
     }
   }
 
@@ -689,9 +691,9 @@ export default function Chessboard({
     >
       {board}
       {allsvg}
-      {!readOnly && (
+      {!readOnly && setOpen && (
         <GameOver
-          open={open}
+          open={open ?? false}
           onClose={() => setOpen(false)}
           result={result}
           color={playerColor}

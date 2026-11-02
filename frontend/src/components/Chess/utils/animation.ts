@@ -18,7 +18,7 @@ export function moveAnimation(
     if (!tf || !tt) return;
 
     const piece = tt.querySelector<HTMLElement>(".chess-piece");
-    if(!piece) return;
+    if (!piece) return;
 
     //setting the piece on top of the board to make the animation visible with white pieces
     piece.style.position = "relative";
@@ -38,21 +38,31 @@ export function moveAnimation(
     anim.onfinish = () => {
       piece.style.zIndex = "";
       piece.style.position = "";
-    }
+    };
   }, [fen]);
 }
 
-export function gameOverScreen(gameId: number, token: string, setResult: React.Dispatch<React.SetStateAction<string>>, setOpen: React.Dispatch<React.SetStateAction<boolean>>, gameOver: boolean, enabled = true) {
+export function gameOverScreen(
+  gameId: number,
+  token: string,
+  setResult: React.Dispatch<React.SetStateAction<string>>,
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>,
+  gameOver: boolean,
+  enabled = true,
+) {
   useEffect(() => {
     if (!gameOver || !enabled) return;
 
     async function receiveResult() {
       try {
         const game = await getResult(token, gameId);
-        if(!game) return;
+        if (!game) return;
+        console.log(game);
         if (game.status === "finished") {
           setResult(game.result);
           setOpen(true);
+        } else {
+          setTimeout(receiveResult, 100);
         }
       } catch {
         return;

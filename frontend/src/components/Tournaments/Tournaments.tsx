@@ -259,10 +259,6 @@ export default function Tournaments() {
             })}
           </ul>
         )}
-        <p className="px-4 pb-3 text-xs opacity-40 text-center">
-          Knockout · {GAME_MINUTES} min games · the organizer starts it, with
-          humans only or with AI bots
-        </p>
       </Card>
     );
   }
