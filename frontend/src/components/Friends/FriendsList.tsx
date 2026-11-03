@@ -283,7 +283,7 @@ const FriendsList = () => {
                     className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4 ${i % 2 === 0 ? "" : "bg-white/3"} hover:bg-white/5 hover:cursor-pointer`}
                     key={i}
                   >
-                    <div className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4 ${i % 2 === 0 ? "" : "bg-white/3"}`}
+                    <div className={`w-full flex flex-row items-center h-full p-2 lg:p-4 gap-2 md:gap-4`}
                     onClick={() => navigate(`/friend-profil/${friend.username}/${friend.id}`)}
                     >
                       <span className="w-12 md:w-16 shrink-0 flex justify-center">
