@@ -14,6 +14,7 @@ import RecommendationTest from "./components/Recommendations/RecommendationTest"
 import TournamentTest from "./components/Tournaments/TournamentTest";
 import FriendsList from "./components/Friends/FriendsList";
 import FriendProfil from "./components/Friends/FriendProfil";
+import LegalPage from "./components/Legal/LegalPage";
 
 function App() {
 
@@ -22,6 +23,14 @@ function App() {
       <AuthProvider>
         <Routes>
             <Route path="/" element={<Home />}/>
+            <Route
+              path="/privacy-policy"
+              element={<LegalPage page="privacy" />}
+            />
+            <Route
+              path="/terms-of-service"
+              element={<LegalPage page="terms" />}
+            />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/watch/:gameId" element={<Spectator />} />

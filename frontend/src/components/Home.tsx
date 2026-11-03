@@ -3,7 +3,7 @@ import ChessPreview from "./Chess/preview/ChessPreview";
 import { API } from "./Chess/utils/api";
 import { getUserIdFromToken } from "./Chess/utils/game";
 import Header from "./Navbar/Header";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { Crown } from "lucide-react";
 
@@ -234,6 +234,22 @@ const Home = () => {
           </div>
         </div>
       </div>
+      <footer className="w-full px-6 py-3 text-xs text-white/50">
+        <nav aria-label="Legal information" className="flex gap-4">
+          <Link
+            className="transition-colors hover:text-white/80"
+            to="/privacy-policy"
+          >
+            Privacy Policy
+          </Link>
+          <Link
+            className="transition-colors hover:text-white/80"
+            to="/terms-of-service"
+          >
+            Terms of Service
+          </Link>
+        </nav>
+      </footer>
     </div>
   );
 };
