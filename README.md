@@ -245,3 +245,24 @@ Player profiles, match history, statistics, and leaderboard values are assembled
 
 Total score: **25**
 
+### Justification for each module
+
+- **Frameworks for the frontend and backend:** Frameworks gave the team a clear structure for building the application without creating every foundation from scratch. Shared conventions made features easier to divide, integrate, and maintain.
+- **Frontend framework (React):** React builds an interactive chess experience from reusable parts, including the board, match controls, profiles, and tournaments. Its component model keeps the interface responsive as game state changes.
+- **Backend framework (FastAPI):** FastAPI provides typed HTTP endpoints and WebSocket routes in Python. Request validation and generated API documentation helped the team develop and connect backend features consistently.
+- **Real-time features:** Live play should feel responsive without requiring players to refresh or repeatedly check for updates. WebSockets carry game events between the server and clients, keeping match information current.
+- **Interaction between users:** A chess platform should support more than isolated games, letting players connect and communicate. Social and messaging features complement matchmaking, making it easier to find and engage opponents.
+- **Secured public API:** The API exposes selected data and tournament actions to external consumers in a documented, controlled way. API-key authentication and rate limiting protect access and provide a practical integration surface.
+- **Database ORM:** SQLAlchemy lets the team work with records as Python models instead of writing routine SQL. This simplifies querying and updating related data, while keeping persistence code consistent across backend features.
+- **User management and authentication:** Accounts preserve each player's identity, preferences, and results across sessions. Registration, login, signed access tokens, and securely hashed passwords support personalization and protect player actions.
+- **Statistics and match history:** Players need to review past games and understand their progress. Match records and derived statistics provide context, while profile and leaderboard views make results useful beyond each game.
+- **AI opponent:** An AI provides an opponent when another person is unavailable, letting players start a game immediately. The backend uses chess-aware logic to generate legal responses and manage each match.
+- **Machine-learning recommendation system:** Recommendations help players discover opponents without relying only on manual searches. Game-related information is used to suggest potential matches, adding a data-driven way to connect players.
+- **Complete web-based multiplayer game:** The goal was a playable chess experience in the browser, not just account pages. The board, move handling, clocks, results, and saved state work together as a complete match.
+- **Remote players:** Supporting players on separate computers makes online chess possible beyond a shared screen. Backend coordination and real-time updates let each browser follow the same authoritative match state.
+- **Tournament system:** Tournaments let players compete through organized matches, similar to established chess platforms. Registration, participants, rounds, brackets, and results are managed in the application.
+- **Game customization:** Clock settings and board appearance let players adapt the experience to their preferences and match type. These options add familiar controls without complicating the interface.
+- **Spectator mode:** Chess is interesting to follow as well as play. Spectator access lets users watch a live match and receive updates without participating as either player.
+
+## Indivual contributions
+
