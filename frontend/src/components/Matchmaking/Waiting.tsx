@@ -137,11 +137,6 @@ export default function Waiting() {
         } else {
           if (response.status !== 409)
             throw new Error("Could not join matchmaking");
-          else {
-            const infos = await response.json();
-            if (!infos) return;
-            throw infos.detail;
-          }
         }
 
         await poll();

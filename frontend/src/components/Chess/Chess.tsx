@@ -357,7 +357,7 @@ export default function Chess() {
                   <button
                     type="button"
                     disabled={drawOffer !== "none" || !canPlay}
-                    onClick={() => sendDraw("draw_offer")}
+                    onClick={() => (game.can_claim_fifty_move || game.can_claim_threefold_repetition) ??sendDraw("draw_offer")}
                     className={`flex justify-center items-center w-12 h-8 border-2 ${game.can_claim_fifty_move || game.can_claim_threefold_repetition ? "bg-[#945003] hover:scale-110 duration-300" : "brightness-40"} border-white/20 rounded-sm`}
                   >
                     <p>1/2</p>

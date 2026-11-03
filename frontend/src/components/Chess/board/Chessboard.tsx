@@ -56,7 +56,7 @@ export default function Chessboard({
   readOnly = false,
   opponentName,
   opponentType,
-  opponentIsBot
+  opponentIsBot,
 }: ChessboardProps) {
   const chessRef = useRef(new Chess(fenInit));
   const checkedKing: string | null = chessRef.current.isCheck()
@@ -153,7 +153,7 @@ export default function Chessboard({
   }, [fenInit]);
 
   //gameOver
-  if(setOpen)
+  if (setOpen)
     gameOverScreen(gameId, token, setResult, setOpen, gameOver, !readOnly);
 
   function removeDot() {
@@ -235,8 +235,7 @@ export default function Chessboard({
 
     if (chessRef.current.isGameOver()) {
       setGameOver(true);
-      if(setOpen)
-        setOpen(true);
+      if (setOpen) setOpen(true);
     }
   }
 
@@ -530,6 +529,10 @@ export default function Chessboard({
 
         //promo
         if (piece?.type === "p" && (newPos[1] === "8" || newPos[1] === "1")) {
+          const legalPromo = chessRef.current
+            .moves({ square: oldPos as Square, verbose: true })
+            .some((m) => m.to === newPos && m.promotion);
+          if (!legalPromo) throw "invalid";
           setPendinPromo({
             from: oldPos as Square,
             to: newPos as Square,
