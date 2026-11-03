@@ -209,6 +209,22 @@ The schema is managed with SQLAlchemy models and Alembic migrations.
 
 Player profiles, match history, statistics, and leaderboard values are assembled from user and game records; they are not stored in separate statistics tables.
 
+## Features
+
+The features below are implemented in the application. Team member attributions follow the module list and individual contributions described in this README.
+
+- **Accounts and profiles — chitoupa, rchaumei, lchambos:** Players can register and log in to access an account-backed experience. Their profile brings together player information, board-color preferences, rating, and past games, so identity and progress persist between visits.
+- **Browser-based chess — chitoupa, vgodoy, rchaumei, lchambos:** Players can play full chess matches through an interactive board. The interface handles move input and displays the current position and clocks, while the backend validates moves and stores the authoritative game state and result.
+- **Matchmaking and online play — chitoupa, rchaumei, lchambos:** Players can choose a clock setting and enter matchmaking to find an opponent. Once a game starts, WebSocket updates synchronize moves and game events between players on separate computers, so neither player needs to refresh to follow the match.
+- **AI opponents — chitoupa:** Players can start a match against a computer-controlled opponent instead of waiting for another player. The backend uses chess-aware logic to select legal responses and advance the game.
+- **Game customization — rchaumei, lchambos:** Players can select a match clock, including an increment, before playing and choose light and dark board colors in their profile. These settings let players tailor both the pace and appearance of a match.
+- **Spectator mode — lchambos:** A spectator can open an ongoing game separately from the player view and follow its moves and state as they happen. Spectators can watch without taking part in the match.
+- **Tournaments — chitoupa, vgodoy:** Players can create or join organized competitions and follow their progress. The application manages participants, rounds, bracket matches, and outcomes, including the transition from registration to tournament play.
+- **Match history, statistics, and leaderboard — vgodoy, rchaumei:** Completed games are available from player profiles, and game results are used to show statistics and ratings over time. The leaderboard provides a shared ranking so players can compare results with others.
+- **Opponent recommendations — chitoupa:** The recommendation system uses game-related player data to suggest potential opponents. This gives players another way to discover who to play, alongside matchmaking and the friends features.
+- **Friends and messaging — chitoupa, rchaumei, lchambos:** Players can find other users, send and respond to friend requests, and view their friends. Private conversations support persistent messages and live updates; players can also exchange chat messages during a game.
+- **Secured public API — vgodoy:** External clients can use documented endpoints for selected tournament operations and leaderboard data. Requests require an API key and are rate limited, providing controlled access to these features outside the web interface.
+
 ## Modules
 
 | Type  | Module name                                                                                                                | Points | Implemented/Used by          |
