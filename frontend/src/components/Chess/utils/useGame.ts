@@ -657,9 +657,10 @@ export function useGame(
       };
     }
 
-    connect();
+    const startTimer = setTimeout(connect, 0);
 
     return () => {
+      clearTimeout(startTimer);
       // Retirer les gestionnaires avant de fermer la connexion pour que son arrêt ne déclenche
       // ni mise à jour de l'affichage ni nouvel essai de connexion.
       stopped = true;

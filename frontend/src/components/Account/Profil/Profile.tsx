@@ -40,7 +40,6 @@ const Profil = () => {
         };
       });
       setHistory(tmp);
-      console.log(tmp);
     } catch {}
   }
 

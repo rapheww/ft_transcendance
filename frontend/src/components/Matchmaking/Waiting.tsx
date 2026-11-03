@@ -5,7 +5,20 @@ import { useAuth } from "../AuthProvider";
 import "/src/index.css";
 import { API } from "../Chess/utils/api";
 
-export const allTime = ['1+0', '1+1', '2+0', '2+1', '3+0', '3+2', '5+0', '5+3', '10+0', '10+5', '15+0', '15+10']
+export const allTime = [
+  "1+0",
+  "1+1",
+  "2+0",
+  "2+1",
+  "3+0",
+  "3+2",
+  "5+0",
+  "5+3",
+  "10+0",
+  "10+5",
+  "15+0",
+  "15+10",
+];
 
 type MatchResponse = {
   status: "waiting" | "matched";
@@ -25,13 +38,12 @@ export default function Waiting() {
   const matched = useRef(false);
   const leaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const time: string = timer + "+" + bonus
+  const time: string = timer + "+" + bonus;
   let i = 0;
   let chrono = 5;
   let increment = 5;
-  for (; i < allTime.length; i++)
-    if(allTime[i] === time) break;
-  if(allTime[i]){
+  for (; i < allTime.length; i++) if (allTime[i] === time) break;
+  if (allTime[i]) {
     chrono = Number(timer);
     increment = Number(bonus);
   }
@@ -122,8 +134,14 @@ export default function Waiting() {
             }
             return;
           }
-        } else if (response.status !== 409) {
-          throw new Error("Could not join matchmaking");
+        } else {
+          if (response.status !== 409)
+            throw new Error("Could not join matchmaking");
+          else {
+            const infos = await response.json();
+            if (!infos) return;
+            throw infos.detail;
+          }
         }
 
         await poll();

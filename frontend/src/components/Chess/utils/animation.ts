@@ -57,7 +57,6 @@ export function gameOverScreen(
       try {
         const game = await getResult(token, gameId);
         if (!game) return;
-        console.log(game);
         if (game.status === "finished") {
           setResult(game.result);
           setOpen(true);

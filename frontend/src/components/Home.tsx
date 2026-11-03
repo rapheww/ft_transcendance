@@ -92,7 +92,7 @@ const Home = () => {
       <Header />
       <div className="flex flex-col justify-center items-center flex-1 w-full px-4">
         <h1 className="text-4xl sm:text-6xl md:text-7xl m-6 sm:m-10 uppercase flex flex-row">
-          42<p className={`text-sky-400`}>Chess</p>
+          Check<p className={`text-sky-400`}>Mates</p>
         </h1>
         <div className="grid grid-cols-1 lg:grid-cols-3 items-center w-full gap-8 px-4">
           {leaderboard && (

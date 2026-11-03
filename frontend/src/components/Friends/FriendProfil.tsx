@@ -78,7 +78,6 @@ const FriendProfil = () => {
       });
       if (!response.ok) return;
       let infos = await response.json();
-      console.log(infos);
       setProfil(infos);
     } catch (err) {
       console.error(err);

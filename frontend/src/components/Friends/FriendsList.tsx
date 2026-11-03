@@ -55,11 +55,9 @@ const FriendsList = () => {
       }
       const infos = await response.json();
       if (infos) {
-        console.log(infos);
         setSearchList(infos);
       }
     } catch {
-      console.log("error");
     }
   }
 
@@ -79,7 +77,6 @@ const FriendsList = () => {
         setFriendsList(infos);
       }
     } catch {
-      console.log("error");
     }
   }
 
@@ -112,7 +109,6 @@ const FriendsList = () => {
       });
       if (!response.ok) {
         setIncomingRequest(null);
-        console.log("failed");
         return;
       }
       const infos = await response.json();
@@ -122,7 +118,6 @@ const FriendsList = () => {
       }
       setIncomingRequest(infos);
     } catch {
-      console.log("error");
     }
   }
 
@@ -135,7 +130,6 @@ const FriendsList = () => {
       });
       if (!response.ok) {
         setOutgoingRequest(null);
-        console.log("failed");
         return;
       }
       const infos = await response.json();
@@ -145,7 +139,6 @@ const FriendsList = () => {
       }
       setOutgoingRequest(infos);
     } catch {
-      console.log("error");
     }
   }
 
@@ -158,12 +151,10 @@ const FriendsList = () => {
         },
       });
       if (!response.ok) {
-        console.log("failed");
         return;
       }
       getFriendsList();
     } catch {
-      console.log("error");
     }
   }
 
@@ -176,14 +167,12 @@ const FriendsList = () => {
         },
       });
       if (!response.ok) {
-        console.log("failed");
         return;
       }
       ShowIncomingRequest();
       ShowOutgoingRequest();
       getFriendsList();
     } catch {
-      console.log("error");
     }
   }
 
@@ -196,14 +185,12 @@ const FriendsList = () => {
         },
       });
       if (!response.ok) {
-        console.log("failed");
         return;
       }
       ShowIncomingRequest();
       ShowOutgoingRequest();
       getFriendsList();
     } catch {
-      console.log("error");
     }
   }
 
