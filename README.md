@@ -90,11 +90,13 @@ make frontend
 ### Useful commands
 
 ```bash
-make help       # List available Make targets
-make db-stop    # Stop PostgreSQL
-make test       # Run backend tests
-make lint       # Lint the frontend
-make build      # Build the frontend
+make help                   # List available Make targets
+make db-stop                # Stop PostgreSQL
+make test                   # Run backend tests
+make lint                   # Lint the frontend
+make build                  # Build the frontend
+source .venv/bin/activate   # Launch the virtual environment
+deactivate                  # Stop the virtual environment
 ```
 
 `make db` creates both the usual `transcendence` database and the `transcendence_test` database used by backend tests. It also ensures the test database exists when starting an existing PostgreSQL container.
