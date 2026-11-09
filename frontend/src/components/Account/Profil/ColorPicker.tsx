@@ -1,0 +1,82 @@
+import { Sketch } from "@uiw/react-color";
+import { X } from "lucide-react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { createPortal } from "react-dom";
+
+interface ColorProps {
+  colorOnClose: () => void;
+  colorOpen: boolean;
+  Color: string;
+  setter: Dispatch<SetStateAction<string>>;
+}
+
+const ColorPicker = ({colorOpen , colorOnClose, Color, setter} : ColorProps) => {
+    const [hex, setHex] = useState<string>(Color);
+
+    useEffect(() => {
+    if (!colorOpen || !Color) return;
+    const current = getComputedStyle(document.documentElement)
+      .getPropertyValue(Color)
+      .trim();
+    setHex(current || "#ffffff");
+  }, [colorOpen, Color]);
+
+  return createPortal(
+    <div
+      className={`
+            fixed inset-0
+            flex justify-center items-center
+            bg-black/30 backdrop-blur-sm
+            transition-opacity duration-500 ease-out
+            ${colorOpen ? "opacity-100" : "opacity-0 pointer-events-none"}
+            `}
+    >
+      <div
+        className={`
+                    w-[90%] max-w-md lg:max-w-lg
+                    transition-all duration-500 ease-out
+                    ${colorOpen ? "opacity-100 scale-100" : "opacity-0 scale-95"}
+                    `}
+      >
+        <div className="w-full flex justify-center items-center">
+          <div className="mt-10 flex flex-col text-white w-full">
+            <div className="bg-black/30 border border-white/30 backdrop:blur-lg max-h-[90vh] overflow-y-auto flex items-center flex-col rounded-lg p-4 sm:p-5 gap-4 sm:gap-5">
+              <button
+                onClick={colorOnClose}
+                className="cursor-pointer place-self-end rounded-lg hover:bg-gray-400/30"
+              >
+                <X size={30} />
+              </button>
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold">Color Editor</h1>
+              <div className="zoom-[1] sm:zoom-[1.3]">
+                <Sketch 
+                  color={hex} 
+                  onChange={(color) => setHex(color.hex)} 
+                />
+              </div>
+                
+              <button 
+                onClick={() => {
+                    setter(hex);
+                    colorOnClose()
+                }}
+                className="relative inline-flex items-center justify-center mt-3 px-6 py-3 lg:px-8 lg:py-3 lg:text-lg overflow-hidden font-bold text-white hover:text-gray-700 rounded-md shadow-2xl group">
+                <span className="absolute inset-0 w-full h-full transition duration-350 ease-in opacity-0 bg-linear-to-br from-white via-gray-200 to-white group-hover:opacity-100"></span>
+                <span className="absolute top-0 left-0 w-full bg-linear-to-b from-white to-transparent opacity-5 h-1/3"></span>
+                <span className="absolute bottom-0 left-0 w-full h-1/3 bg-linear-to-t from-white to-transparent opacity-5"></span>
+                <span className="absolute bottom-0 left-0 w-4 h-full bg-linear-to-r from-white to-transparent opacity-5"></span>
+                <span className="absolute bottom-0 right-0 w-4 h-full bg-linear-to-l from-white to-transparent opacity-5"></span>
+                <span className="absolute inset-0 w-full h-full border border-white rounded-md opacity-10"></span>
+                <span className="absolute w-0 h-0 transition-all duration-350 ease-out bg-white rounded-full group-hover:w-56 group-hover:h-56 opacity-5"></span>
+                <span className="relative">Save</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+export default ColorPicker;
